@@ -1,5 +1,6 @@
 // lib/magicbell.ts
-import MagicBell from 'magicbell-js';
+'use client';
+import MagicBell from 'magicbell-js/project-client';
 
 const apiKey = process.env.NEXT_PUBLIC_MAGICBELL_API_KEY || '';
 const apiSecret = process.env.MAGICBELL_API_SECRET || '';
