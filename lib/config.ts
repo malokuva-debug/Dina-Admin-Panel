@@ -1,6 +1,15 @@
 // lib/config.ts
 // Application configuration
 
+export const BUSINESS_CONFIG = {
+  openTime: '09:00',
+  closeTime: '17:00',
+  lunchStart: '12:00',
+  lunchEnd: '13:00',
+};
+
+export const DAYS_OF_WEEK = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+
 export const config = {
   app: {
     name: process.env.NEXT_PUBLIC_APP_NAME || 'Admin Panel',
@@ -9,12 +18,7 @@ export const config = {
   
   workers: ['dina', 'kida'] as const,
   
-  businessDefaults: {
-    openTime: '09:00',
-    closeTime: '17:00',
-    lunchStart: '12:00',
-    lunchEnd: '13:00',
-  },
+  businessDefaults: BUSINESS_CONFIG,
   
   appointment: {
     defaultDuration: 30, // minutes
@@ -61,93 +65,64 @@ export const config = {
 
 // Time utilities
 export const timeSlots = {
-  // Generate time slots for a given range
   generate: (start: string, end: string, interval: number = 15): string[] => {
     const slots: string[] = [];
     const [startHour, startMin] = start.split(':').map(Number);
     const [endHour, endMin] = end.split(':').map(Number);
-    
+
     let currentMinutes = startHour * 60 + startMin;
     const endMinutes = endHour * 60 + endMin;
-    
+
     while (currentMinutes < endMinutes) {
       const hours = Math.floor(currentMinutes / 60);
       const mins = currentMinutes % 60;
-      slots.push(`${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`);
+      slots.push(`${hours.toString().padStart(2,'0')}:${mins.toString().padStart(2,'0')}`);
       currentMinutes += interval;
     }
-    
+
     return slots;
   },
-  
-  // Format time for display
+
   format: (time: string): string => {
     const [hours, minutes] = time.split(':').map(Number);
     const ampm = hours >= 12 ? 'PM' : 'AM';
     const displayHours = hours % 12 || 12;
-    return `${displayHours}:${minutes.toString().padStart(2, '0')} ${ampm}`;
+    return `${displayHours}:${minutes.toString().padStart(2,'0')} ${ampm}`;
   },
-  
-  // Add minutes to a time string
+
   addMinutes: (time: string, minutes: number): string => {
     const [hours, mins] = time.split(':').map(Number);
     const totalMinutes = hours * 60 + mins + minutes;
     const newHours = Math.floor(totalMinutes / 60) % 24;
     const newMins = totalMinutes % 60;
-    return `${newHours.toString().padStart(2, '0')}:${newMins.toString().padStart(2, '0')}`;
+    return `${newHours.toString().padStart(2,'0')}:${newMins.toString().padStart(2,'0')}`;
   },
 };
 
 // Date utilities
 export const dateUtils = {
-  // Format date for display
   format: (date: string | Date, format: 'short' | 'long' = 'short'): string => {
     const d = typeof date === 'string' ? new Date(date + 'T00:00:00') : date;
-    
     if (format === 'short') {
-      return d.toLocaleDateString('en-US', { 
-        month: 'short', 
-        day: 'numeric', 
-        year: 'numeric' 
-      });
+      return d.toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' });
     }
-    
-    return d.toLocaleDateString('en-US', { 
-      weekday: 'long',
-      month: 'long', 
-      day: 'numeric', 
-      year: 'numeric' 
-    });
+    return d.toLocaleDateString('en-US', { weekday:'long', month:'long', day:'numeric', year:'numeric' });
   },
-  
-  // Get today's date in YYYY-MM-DD format
-  today: (): string => {
-    return new Date().toISOString().split('T')[0];
-  },
-  
-  // Get current month in YYYY-MM format
-  currentMonth: (): string => {
-    return new Date().toISOString().slice(0, 7);
-  },
-  
-  // Check if date is in the past
+
+  today: (): string => new Date().toISOString().split('T')[0],
+
+  currentMonth: (): string => new Date().toISOString().slice(0,7),
+
   isPast: (date: string): boolean => {
     const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    today.setHours(0,0,0,0);
     const checkDate = new Date(date + 'T00:00:00');
     return checkDate < today;
   },
-  
-  // Get day of week (0 = Sunday, 6 = Saturday)
-  getDayOfWeek: (date: string): number => {
-    return new Date(date + 'T00:00:00').getDay();
-  },
-  
-  // Get day name
-  getDayName: (date: string): string => {
-    const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-    return days[dateUtils.getDayOfWeek(date)];
-  },
+
+  getDayOfWeek: (date: string): number => new Date(date + 'T00:00:00').getDay(),
+
+  getDayName: (date: string): string => DAYS_OF_WEEK[dateUtils.getDayOfWeek(date)],
 };
 
 export default config;
