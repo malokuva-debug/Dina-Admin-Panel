@@ -1,3 +1,4 @@
+// hooks/useSettings.ts
 import { useState, useEffect, useCallback } from 'react';
 import { 
   BusinessHours, 
@@ -16,60 +17,11 @@ interface UseSettingsOptions {
 export function useSettings(options: UseSettingsOptions = {}) {
   const { worker } = options;
 
+  // -----------------------------
   // Business Hours
-  const [businessHours, setBusinessHours] = useState<BusinessHours>(
-    BUSINESS_CONFIG.defaultBusinessHours
-  );
+  // -----------------------------
+  const [businessHours, setBusinessHours] = useState<BusinessHours>(BUSINESS_CONFIG);
 
-  // Weekly Days Off
-  const [weeklyDaysOff, setWeeklyDaysOff] = useState<WeeklyDaysOff>(
-    DAYS_OF_WEEK.reduce((acc, day) => ({ ...acc, [day]: false }), {} as WeeklyDaysOff)
-  );
-
-  // Unavailable Dates
-  const [unavailableDates, setUnavailableDates] = useState<UnavailableDate[]>([]);
-
-  // Unavailable Times
-  const [unavailableTimes, setUnavailableTimes] = useState<UnavailableTime[]>([]);
-
-  // Load all settings on mount
-  useEffect(() => {
-    if (worker) {
-      loadBusinessHours();
-      loadWeeklyDaysOff();
-      loadUnavailableDates();
-      loadUnavailableTimes();
-    }
-  }, [worker, loadBusinessHours, loadWeeklyDaysOff, loadUnavailableDates, loadUnavailableTimes]);
-
-  return {
-    // Business Hours
-    businessHours,
-    saveBusinessHours,
-    loadBusinessHours,
-
-    // Weekly Days Off
-    weeklyDaysOff,
-    saveWeeklyDaysOff,
-    loadWeeklyDaysOff,
-
-    // Unavailable Dates
-    unavailableDates,
-    addUnavailableDate,
-    removeUnavailableDate,
-    loadUnavailableDates,
-
-    // Unavailable Times
-    unavailableTimes,
-    addUnavailableTime,
-    removeUnavailableTime,
-    loadUnavailableTimes,
-
-    // Helpers
-    isDateAvailable,
-    isTimeSlotAvailable,
-  };
-}d business hours
   const loadBusinessHours = useCallback(() => {
     if (!worker) return;
 
@@ -77,18 +29,17 @@ export function useSettings(options: UseSettingsOptions = {}) {
     if (saved && saved[worker]) {
       setBusinessHours(saved[worker]);
     } else {
-      setBusinessHours(BUSINESS_CONFIG.defaultBusinessHours);
+      setBusinessHours(BUSINESS_CONFIG);
     }
   }, [worker]);
 
-  // Save business hours
   const saveBusinessHours = useCallback((hours: BusinessHours) => {
     if (!worker) return false;
 
     try {
       const allHours = storage.get<Record<Worker, BusinessHours>>(STORAGE_KEYS.BUSINESS_HOURS) || {
-        dina: BUSINESS_CONFIG.defaultBusinessHours,
-        kida: BUSINESS_CONFIG.defaultBusinessHours,
+        dina: BUSINESS_CONFIG,
+        kida: BUSINESS_CONFIG,
       };
 
       allHours[worker] = hours;
@@ -101,7 +52,13 @@ export function useSettings(options: UseSettingsOptions = {}) {
     }
   }, [worker]);
 
-  // Load weekly days off
+  // -----------------------------
+  // Weekly Days Off
+  // -----------------------------
+  const [weeklyDaysOff, setWeeklyDaysOff] = useState<WeeklyDaysOff>(
+    DAYS_OF_WEEK.reduce((acc, day) => ({ ...acc, [day]: false }), {} as WeeklyDaysOff)
+  );
+
   const loadWeeklyDaysOff = useCallback(() => {
     if (!worker) return;
 
@@ -115,7 +72,6 @@ export function useSettings(options: UseSettingsOptions = {}) {
     }
   }, [worker]);
 
-  // Save weekly days off
   const saveWeeklyDaysOff = useCallback((days: WeeklyDaysOff) => {
     if (!worker) return false;
 
@@ -135,7 +91,11 @@ export function useSettings(options: UseSettingsOptions = {}) {
     }
   }, [worker]);
 
-  // Load unavailable dates
+  // -----------------------------
+  // Unavailable Dates
+  // -----------------------------
+  const [unavailableDates, setUnavailableDates] = useState<UnavailableDate[]>([]);
+
   const loadUnavailableDates = useCallback(() => {
     if (!worker) return;
 
@@ -145,18 +105,13 @@ export function useSettings(options: UseSettingsOptions = {}) {
     setUnavailableDates(filtered);
   }, [worker]);
 
-  // Add unavailable date
   const addUnavailableDate = useCallback((date: string) => {
     if (!worker) return false;
 
     try {
       const allDates: UnavailableDate[] = storage.get(STORAGE_KEYS.UNAVAILABLE_DATES) || [];
-      
-      // Check if already exists
       const exists = allDates.some(d => d.date === date && d.worker === worker);
-      if (exists) {
-        return false;
-      }
+      if (exists) return false;
 
       const newDate: UnavailableDate = {
         id: Date.now().toString(),
@@ -173,7 +128,6 @@ export function useSettings(options: UseSettingsOptions = {}) {
     }
   }, [worker, loadUnavailableDates]);
 
-  // Remove unavailable date
   const removeUnavailableDate = useCallback((id: string) => {
     try {
       const allDates: UnavailableDate[] = storage.get(STORAGE_KEYS.UNAVAILABLE_DATES) || [];
@@ -189,13 +143,17 @@ export function useSettings(options: UseSettingsOptions = {}) {
     }
   }, [loadUnavailableDates]);
 
-  // Load unavailable times
+  // -----------------------------
+  // Unavailable Times
+  // -----------------------------
+  const [unavailableTimes, setUnavailableTimes] = useState<UnavailableTime[]>([]);
+
   const loadUnavailableTimes = useCallback(() => {
     if (!worker) return;
 
     const saved: UnavailableTime[] = storage.get(STORAGE_KEYS.UNAVAILABLE_TIMES) || [];
     const filtered = saved.filter(t => t.worker === worker);
-    
+
     filtered.sort((a, b) => {
       const dateCompare = a.date.localeCompare(b.date);
       if (dateCompare !== 0) return dateCompare;
@@ -205,12 +163,7 @@ export function useSettings(options: UseSettingsOptions = {}) {
     setUnavailableTimes(filtered);
   }, [worker]);
 
-  // Add unavailable time
-  const addUnavailableTime = useCallback((
-    date: string,
-    start: string,
-    end: string
-  ) => {
+  const addUnavailableTime = useCallback((date: string, start: string, end: string) => {
     if (!worker) return false;
 
     try {
@@ -232,7 +185,6 @@ export function useSettings(options: UseSettingsOptions = {}) {
     }
   }, [worker, loadUnavailableTimes]);
 
-  // Remove unavailable time
   const removeUnavailableTime = useCallback((id: string) => {
     try {
       const allTimes: UnavailableTime[] = storage.get(STORAGE_KEYS.UNAVAILABLE_TIMES) || [];
@@ -248,40 +200,31 @@ export function useSettings(options: UseSettingsOptions = {}) {
     }
   }, [loadUnavailableTimes]);
 
-  // Check if a specific date is available
+  // -----------------------------
+  // Availability Checkers
+  // -----------------------------
   const isDateAvailable = useCallback((date: string): boolean => {
     if (!worker) return true;
 
-    // Check if it's a weekly day off
     const dateObj = new Date(date + 'T00:00:00');
     const dayName = DAYS_OF_WEEK[dateObj.getDay()];
-    if (weeklyDaysOff[dayName]) {
-      return false;
-    }
+    if (weeklyDaysOff[dayName]) return false;
 
-    // Check if it's in unavailable dates
     return !unavailableDates.some(d => d.date === date);
   }, [worker, weeklyDaysOff, unavailableDates]);
 
-  // Check if a specific time slot is available
-  const isTimeSlotAvailable = useCallback((
-    date: string,
-    time: string,
-    duration: number = 30
-  ): boolean => {
+  const isTimeSlotAvailable = useCallback((date: string, time: string, duration: number = 30): boolean => {
     if (!worker) return true;
 
     const requestedStart = new Date(`${date}T${time}`);
     const requestedEnd = new Date(requestedStart.getTime() + duration * 60000);
 
-    // Check unavailable times
     return !unavailableTimes.some(ut => {
       if (ut.date !== date) return false;
 
       const blockStart = new Date(`${date}T${ut.start}`);
       const blockEnd = new Date(`${date}T${ut.end}`);
 
-      // Check for overlap
       return (
         (requestedStart >= blockStart && requestedStart < blockEnd) ||
         (requestedEnd > blockStart && requestedEnd <= blockEnd) ||
@@ -290,4 +233,41 @@ export function useSettings(options: UseSettingsOptions = {}) {
     });
   }, [worker, unavailableTimes]);
 
-  // Loa
+  // -----------------------------
+  // Load settings on mount
+  // -----------------------------
+  useEffect(() => {
+    if (worker) {
+      loadBusinessHours();
+      loadWeeklyDaysOff();
+      loadUnavailableDates();
+      loadUnavailableTimes();
+    }
+  }, [worker, loadBusinessHours, loadWeeklyDaysOff, loadUnavailableDates, loadUnavailableTimes]);
+
+  // -----------------------------
+  // Return all hooks
+  // -----------------------------
+  return {
+    businessHours,
+    saveBusinessHours,
+    loadBusinessHours,
+
+    weeklyDaysOff,
+    saveWeeklyDaysOff,
+    loadWeeklyDaysOff,
+
+    unavailableDates,
+    addUnavailableDate,
+    removeUnavailableDate,
+    loadUnavailableDates,
+
+    unavailableTimes,
+    addUnavailableTime,
+    removeUnavailableTime,
+    loadUnavailableTimes,
+
+    isDateAvailable,
+    isTimeSlotAvailable,
+  };
+}
