@@ -1,9 +1,11 @@
 // lib/magicbell.ts
 'use client';
-import MagicBell from 'magicbell-js/project-client';
+import { MagicBell } from 'magicbell-js';
 
-const apiKey = process.env.NEXT_PUBLIC_MAGICBELL_API_KEY || '';
-const apiSecret = process.env.MAGICBELL_API_SECRET || '';
+const magicbell = new MagicBell({
+  apiKey: process.env.NEXT_PUBLIC_MAGICBELL_API_KEY || '',
+  apiSecret: process.env.MAGICBELL_API_SECRET || '',
+});
 
 if (!apiKey) {
   console.warn('MagicBell API key not found. Notifications will be disabled.');
