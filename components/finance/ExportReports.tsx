@@ -53,7 +53,7 @@ export default function ExportReports() {
     const months = type === 'month' ? 1 : type === '6months' ? 6 : 12;
     
     try {
-      // @ts-ignore - jsPDF is loaded via CDN
+      // @ts-expect-error
       const { jsPDF } = window.jspdf;
       const doc = new jsPDF();
 
