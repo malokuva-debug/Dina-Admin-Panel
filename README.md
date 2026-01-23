@@ -31,7 +31,7 @@ A modern, mobile-first admin panel for managing business appointments, finances,
 
 1. Clone the repository:
 ```bash
-git clone <your-repo-url>
+git clone https://github.com/malokuva-debug/Dina-Admin-Panel/
 cd admin-panel
 ```
 
