@@ -53,7 +53,7 @@ export default function ExportReports() {
     const months = type === 'month' ? 1 : type === '6months' ? 6 : 12;
     
     try {
-      // @ts-expect-error
+      // @ts-expect-error export library has invalid types
       const { jsPDF } = window.jspdf;
       const doc = new jsPDF();
 
