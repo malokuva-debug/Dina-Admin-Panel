@@ -1,0 +1,145 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import { Service, Category } from '@/types';
+import { storage, STORAGE_KEYS } from '@/lib/storage';
+
+interface ServiceModalProps {
+  service: Service;
+  categoryId: string;
+  onClose: () => void;
+}
+
+export default function ServiceModal({ service, categoryId, onClose }: ServiceModalProps) {
+  const [name, setName] = useState(service.name);
+  const [price, setPrice] = useState(service.price.toString());
+  const [duration, setDuration] = useState(service.duration.toString());
+
+  useEffect(() => {
+    // Prevent body scroll when modal is open
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, []);
+
+  const handleSave = () => {
+    if (!name.trim()) {
+      alert('Please enter a service name');
+      return;
+    }
+
+    const priceNum = parseFloat(price);
+    const durationNum = parseInt(duration);
+
+    if (isNaN(priceNum) || priceNum < 0) {
+      alert('Please enter a valid price');
+      return;
+    }
+
+    if (isNaN(durationNum) || durationNum <= 0) {
+      alert('Please enter a valid duration');
+      return;
+    }
+
+    const categories: Category[] = storage.get(STORAGE_KEYS.CATEGORIES) || [];
+    
+    const updated = categories.map(cat => {
+      if (cat.id === categoryId) {
+        // Check if this is a new service or existing
+        const existingIndex = cat.services.findIndex(s => s.id === service.id);
+        
+        const updatedService: Service = {
+          ...service,
+          name: name.trim(),
+          price: priceNum,
+          duration: durationNum,
+          category: categoryId,
+        };
+
+        if (existingIndex >= 0) {
+          // Update existing service
+          const newServices = [...cat.services];
+          newServices[existingIndex] = updatedService;
+          return { ...cat, services: newServices };
+        } else {
+          // Add new service
+          return { ...cat, services: [...cat.services, updatedService] };
+        }
+      }
+      return cat;
+    });
+
+    storage.set(STORAGE_KEYS.CATEGORIES, updated);
+    onClose();
+  };
+
+  const handleBackdropClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (e.target === e.currentTarget) {
+      onClose();
+    }
+  };
+
+  return (
+    <div 
+      className="modal active" 
+      id="modal"
+      onClick={handleBackdropClick}
+    >
+      <div className="modal-content">
+        <h3>Edit Service</h3>
+        <div className="row">
+          <span>Name</span>
+          <input
+            id="mName"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+          />
+        </div>
+        <div className="row">
+          <span>Price $</span>
+          <input
+            type="number"
+            id="mPrice"
+            value={price}
+            onChange={(e) => setPrice(e.target.value)}
+            min="0"
+            step="0.01"
+          />
+        </div>
+        <div className="row">
+          <span>Mins</span>
+          <input
+            type="number"
+            id="mDuration"
+            value={duration}
+            onChange={(e) => setDuration(e.target.value)}
+            min="1"
+            step="1"
+          />
+        </div>
+        <div style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
+          <button className="btn-primary" onClick={handleSave}>
+            Save
+          </button>
+          <button
+            style={{
+              background: '#3a3a3c',
+              color: 'white',
+              padding: '14px',
+              borderRadius: '12px',
+              flex: 1,
+              border: 'none',
+              cursor: 'pointer',
+              fontSize: '16px',
+              fontWeight: '600',
+            }}
+            onClick={onClose}
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
