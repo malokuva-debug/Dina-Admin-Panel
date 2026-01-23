@@ -1,9 +1,9 @@
 // lib/config.ts
 // Application configuration
 
-export const BUSINESS_CONFIG = {
-  openTime: '09:00',
-  closeTime: '17:00',
+export const BUSINESS_CONFIG: BusinessHours = {
+  open: '09:00',
+  close: '17:00',
   lunchStart: '12:00',
   lunchEnd: '13:00',
 };
