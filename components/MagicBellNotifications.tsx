@@ -39,9 +39,9 @@ export default function MagicBellNotifications({ worker }: MagicBellNotification
     if (!apiKey) return;
 
     // Initialize MagicBell
-    // @ts-expect-error
+    // @ts-expect-error magicbell typings are wrong
     if (window.MagicBell) {
-      // @ts-expect-error
+      // @ts-expect-error magicbell typings are wrong
       window.MagicBell.init({
         apiKey: apiKey,
         userExternalId: worker, // Use worker name as user ID
