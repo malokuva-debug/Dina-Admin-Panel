@@ -1,25 +1,28 @@
 // lib/magicbell.ts
 'use client';
+
 import { MagicBell } from 'magicbell-js';
 
-const magicbell = new MagicBell({
-  apiKey: process.env.NEXT_PUBLIC_MAGICBELL_API_KEY || '',
-  apiSecret: process.env.MAGICBELL_API_SECRET || '',
-});
+// Load credentials from environment variables
+const apiKey = process.env.NEXT_PUBLIC_MAGICBELL_API_KEY || '';
+const apiSecret = process.env.MAGICBELL_API_SECRET || '';
 
-if (!apiKey) {
-  console.warn('MagicBell API key not found. Notifications will be disabled.');
+if (!apiKey || !apiSecret) {
+  console.warn('MagicBell API key/secret not found. Notifications will be disabled.');
 }
 
-// Initialize MagicBell client (server-side only)
-export const magicbell = apiKey && apiSecret 
+// Initialize MagicBell client (only if credentials exist)
+export const magicbell = apiKey && apiSecret
   ? new MagicBell({
       apiKey,
       apiSecret,
     })
   : null;
 
-// Client-side notification helper
+// -----------------------------
+// Client-side notification helpers
+// -----------------------------
+
 export const sendNotification = async (
   userId: string,
   title: string,
@@ -27,7 +30,7 @@ export const sendNotification = async (
   actionUrl?: string
 ) => {
   if (!magicbell) {
-    console.warn('MagicBell not configured');
+    console.warn('MagicBell client not configured');
     return null;
   }
 
@@ -38,7 +41,6 @@ export const sendNotification = async (
       recipients: [{ external_id: userId }],
       action_url: actionUrl,
     });
-    
     return notification;
   } catch (error) {
     console.error('Failed to send notification:', error);
@@ -46,7 +48,7 @@ export const sendNotification = async (
   }
 };
 
-// Send appointment reminder
+// Send appointment reminder to customer
 export const sendAppointmentReminder = async (
   userId: string,
   appointment: {
@@ -64,7 +66,7 @@ export const sendAppointmentReminder = async (
   );
 };
 
-// Send new appointment notification to worker
+// Notify worker of new appointment
 export const notifyWorkerNewAppointment = async (
   worker: 'dina' | 'kida',
   appointment: {
@@ -74,9 +76,9 @@ export const notifyWorkerNewAppointment = async (
     customerName?: string;
   }
 ) => {
-  const userId = worker; // Use worker name as user ID
+  const userId = worker; // Use worker name as ID
   const customerInfo = appointment.customerName ? ` for ${appointment.customerName}` : '';
-  
+
   return sendNotification(
     userId,
     'New Appointment',
