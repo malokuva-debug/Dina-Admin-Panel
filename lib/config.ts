@@ -1,5 +1,6 @@
 // lib/config.ts
 // Application configuration
+import { BusinessHours } from '@/types'; // ← IMPORT THE TYPE
 
 export const BUSINESS_CONFIG: BusinessHours = {
   open: '09:00',
@@ -15,47 +16,47 @@ export const config = {
     name: process.env.NEXT_PUBLIC_APP_NAME || 'Admin Panel',
     url: process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
   },
-  
+
   workers: ['dina', 'kida'] as const,
-  
+
   businessDefaults: BUSINESS_CONFIG,
-  
+
   appointment: {
     defaultDuration: 30, // minutes
     minDuration: 15,
     maxDuration: 240,
     slotInterval: 15, // Time slot intervals in minutes
   },
-  
+
   finance: {
     currency: 'USD',
     currencySymbol: '$',
     taxRate: 0, // Set to 0.1 for 10% tax
   },
-  
+
   notifications: {
     enabled: process.env.NEXT_PUBLIC_ENABLE_NOTIFICATIONS === 'true',
     reminderHours: 24, // Send reminder 24 hours before appointment
   },
-  
+
   pdf: {
     companyName: 'Your Business Name',
     companyAddress: '123 Main St, City, State 12345',
     companyPhone: '(555) 123-4567',
     companyEmail: 'info@yourbusiness.com',
   },
-  
+
   features: {
     pwa: process.env.NEXT_PUBLIC_ENABLE_PWA === 'true',
     multiWorker: true,
     expenseTracking: true,
     customerManagement: false, // Future feature
   },
-  
+
   storage: {
     mode: process.env.NEXT_PUBLIC_SUPABASE_URL ? 'supabase' : 'localStorage',
   },
-  
+
   dateFormat: {
     short: 'MMM dd, yyyy',
     long: 'MMMM dd, yyyy',
