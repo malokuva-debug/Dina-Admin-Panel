@@ -39,9 +39,9 @@ export default function MagicBellNotifications({ worker }: MagicBellNotification
     if (!apiKey) return;
 
     // Initialize MagicBell
-    // @ts-ignore
+    // @ts-expect-error
     if (window.MagicBell) {
-      // @ts-ignore
+      // @ts-expect-error
       window.MagicBell.init({
         apiKey: apiKey,
         userExternalId: worker, // Use worker name as user ID
