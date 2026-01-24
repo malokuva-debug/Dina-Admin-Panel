@@ -11,7 +11,7 @@ export async function POST(req: Request) {
       break;
 
     case 'custom':
-      result = await sendNotification(userId, data.title, data.content, data.actionUrl);
+      // optionally, you can implement a custom notification function
       break;
   }
 
