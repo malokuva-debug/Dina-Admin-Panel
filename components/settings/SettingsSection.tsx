@@ -13,23 +13,38 @@ interface SettingsSectionProps {
 
 export default function SettingsSection({ worker }: SettingsSectionProps) {
   const enableNotifications = async () => {
-    if (!('Notification' in window)) {
-      alert('This browser does not support notifications');
-      return;
-    }
-
-    if (Notification.permission === 'granted') {
-      alert('Notifications are already enabled');
-      return;
-    }
-
-    if (Notification.permission !== 'denied') {
-      const permission = await Notification.requestPermission();
-      if (permission === 'granted') {
-        new Notification('Notifications Enabled', {
-          body: 'You will now receive appointment reminders',
-        });
+    const { requestNotificationPermission, registerServiceWorker, subscribeToPush, saveSubscription } = await import('@/lib/notifications');
+    
+    try {
+      const permission = await requestNotificationPermission();
+      
+      if (permission !== 'granted') {
+        alert('Please allow notifications in your browser settings');
+        return;
       }
+
+      const registration = await registerServiceWorker();
+      if (!registration) {
+        alert('Failed to register service worker');
+        return;
+      }
+
+      const subscription = await subscribeToPush(registration);
+      if (!subscription) {
+        alert('Failed to create push subscription');
+        return;
+      }
+
+      const saved = await saveSubscription(subscription, worker);
+      if (!saved) {
+        alert('Failed to save subscription');
+        return;
+      }
+
+      alert('Notifications enabled successfully! You will receive push notifications for new appointments.');
+    } catch (error) {
+      console.error('Error enabling notifications:', error);
+      alert('Failed to enable notifications. Check console for details.');
     }
   };
 
