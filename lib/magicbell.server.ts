@@ -1,10 +1,10 @@
-import MagicBellClient from 'magicbell-js/project-client'; // ✅ default import
+import { MagicBell } from 'magicbell-js/project-client'; // ✅ use named import
 
-let client: MagicBellClient | null = null;
+let client: MagicBell | null = null;
 
 export function getMagicBellClient() {
   if (!client) {
-    client = new MagicBellClient({
+    client = new MagicBell({
       apiKey: process.env.MAGICBELL_API_KEY!,
     });
   }
