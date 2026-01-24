@@ -1,43 +1,23 @@
 import { useState } from 'react';
-
-interface NotificationData {
-  title: string;
-  content: string;
-  actionUrl?: string;
-}
+import { sendNotification, notifyWorkerNewAppointment } from '@/lib/notifications';
 
 export function useNotifications() {
   const [isSending, setIsSending] = useState(false);
 
-  const sendNotification = async (
+  const send = async (
     userId: string,
-    type: 'new_appointment' | 'custom',
-    data: NotificationData | any
+    title: string,
+    body: string,
+    data?: any
   ) => {
     setIsSending(true);
     
     try {
-      const response = await fetch('/api/notifications', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          type,
-          userId,
-          data,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to send notification');
-      }
-
-      const result = await response.json();
-      return result;
+      const success = await sendNotification(userId, title, body, data);
+      return success;
     } catch (error) {
       console.error('Error sending notification:', error);
-      throw error;
+      return false;
     } finally {
       setIsSending(false);
     }
@@ -52,26 +32,22 @@ export function useNotifications() {
       customerName?: string;
     }
   ) => {
-    return sendNotification(worker, 'new_appointment', appointment);
-  };
-
-  const notifyCustom = async (
-    userId: string,
-    title: string,
-    content: string,
-    actionUrl?: string
-  ) => {
-    return sendNotification(userId, 'custom', {
-      title,
-      content,
-      actionUrl,
-    });
+    setIsSending(true);
+    
+    try {
+      const success = await notifyWorkerNewAppointment(worker, appointment);
+      return success;
+    } catch (error) {
+      console.error('Error sending appointment notification:', error);
+      return false;
+    } finally {
+      setIsSending(false);
+    }
   };
 
   return {
-    sendNotification,
+    send,
     notifyNewAppointment,
-    notifyCustom,
     isSending,
   };
 }
