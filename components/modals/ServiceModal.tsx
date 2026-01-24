@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Service, Category } from '@/types';
-import { storage, STORAGE_KEYS } from '@/lib/storage';
+import { db, storage, STORAGE_KEYS, storageMode } from '@/lib/storage';
 
 interface ServiceModalProps {
   service: Service;
@@ -23,7 +23,7 @@ export default function ServiceModal({ service, categoryId, onClose }: ServiceMo
     };
   }, []);
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!name.trim()) {
       alert('Please enter a service name');
       return;
@@ -42,36 +42,64 @@ export default function ServiceModal({ service, categoryId, onClose }: ServiceMo
       return;
     }
 
-    const categories: Category[] = storage.get(STORAGE_KEYS.CATEGORIES) || [];
-    
-    const updated = categories.map(cat => {
-      if (cat.id === categoryId) {
+    try {
+      const updatedService: Service = {
+        ...service,
+        name: name.trim(),
+        price: priceNum,
+        duration: durationNum,
+        category: categoryId,
+      };
+
+      if (storageMode === 'supabase') {
         // Check if this is a new service or existing
-        const existingIndex = cat.services.findIndex(s => s.id === service.id);
-        
-        const updatedService: Service = {
-          ...service,
-          name: name.trim(),
-          price: priceNum,
-          duration: durationNum,
-          category: categoryId,
-        };
+        const categories: Category[] = await db.categories.getAll();
+        const existingCategory = categories.find(c => c.id === categoryId);
+        const isNewService = !existingCategory?.services?.some(s => s.id === service.id);
 
-        if (existingIndex >= 0) {
-          // Update existing service
-          const newServices = [...cat.services];
-          newServices[existingIndex] = updatedService;
-          return { ...cat, services: newServices };
+        if (isNewService) {
+          await db.services.create({
+            name: updatedService.name,
+            price: updatedService.price,
+            duration: updatedService.duration,
+            category: categoryId,
+          });
         } else {
-          // Add new service
-          return { ...cat, services: [...cat.services, updatedService] };
+          await db.services.update(service.id, {
+            name: updatedService.name,
+            price: updatedService.price,
+            duration: updatedService.duration,
+          });
         }
-      }
-      return cat;
-    });
+      } else {
+        // localStorage
+        const categories: Category[] = storage.get(STORAGE_KEYS.CATEGORIES) || [];
+        
+        const updated = categories.map(cat => {
+          if (cat.id === categoryId) {
+            const existingIndex = cat.services.findIndex(s => s.id === service.id);
+            
+            if (existingIndex >= 0) {
+              // Update existing service
+              const newServices = [...cat.services];
+              newServices[existingIndex] = updatedService;
+              return { ...cat, services: newServices };
+            } else {
+              // Add new service
+              return { ...cat, services: [...cat.services, updatedService] };
+            }
+          }
+          return cat;
+        });
 
-    storage.set(STORAGE_KEYS.CATEGORIES, updated);
-    onClose();
+        storage.set(STORAGE_KEYS.CATEGORIES, updated);
+      }
+
+      onClose();
+    } catch (error) {
+      console.error('Error saving service:', error);
+      alert('Failed to save service');
+    }
   };
 
   const handleBackdropClick = (e: React.MouseEvent<HTMLDivElement>) => {
