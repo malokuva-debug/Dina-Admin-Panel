@@ -1,4 +1,3 @@
-// app/api/notifications/subscribe/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
 
@@ -13,11 +12,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Store subscription in database or memory
-    // For now, we'll use Supabase to store subscriptions
-    
-    // Create subscriptions table if using Supabase:
-    // You'll need to add this table to your schema
     const { error } = await supabase
       .from('push_subscriptions')
       .upsert({
@@ -31,8 +25,6 @@ export async function POST(request: NextRequest) {
     if (error) {
       console.error('Error saving subscription:', error);
       
-      // Fallback: store in memory if Supabase table doesn't exist
-      // In production, you should create the table
       if (typeof global.pushSubscriptions === 'undefined') {
         global.pushSubscriptions = new Map();
       }
