@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { sendNotification } from '@/lib/magicbell.server';
+import { notifyWorkerNewAppointment } from '@/lib/notifications';
 
 export async function POST(req: Request) {
   const { type, userId, data } = await req.json();
