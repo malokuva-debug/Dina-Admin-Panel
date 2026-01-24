@@ -3,6 +3,7 @@ import { notifyWorkerNewAppointment } from '@/lib/notifications';
 
 export async function POST(req: Request) {
   const { type, userId, data } = await req.json();
+
   let result = null;
 
   switch (type) {
@@ -11,7 +12,12 @@ export async function POST(req: Request) {
       break;
 
     case 'custom':
-      // optionally, you can implement a custom notification function
+      result = await sendNotification(
+        userId,
+        data.title,
+        data.content,
+        data.actionUrl
+      );
       break;
   }
 
