@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { Category, Service } from '@/types';
-import { storage, STORAGE_KEYS } from '@/lib/storage';
+import { db, storage, STORAGE_KEYS, storageMode } from '@/lib/storage';
 import ServiceModal from '@/components/modals/ServiceModal';
 
 export default function ServicesSection() {
@@ -11,39 +11,71 @@ export default function ServicesSection() {
   const [newCategoryName, setNewCategoryName] = useState('');
   const [selectedService, setSelectedService] = useState<Service | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     loadCategories();
   }, []);
 
-  const loadCategories = () => {
-    const saved: Category[] = storage.get(STORAGE_KEYS.CATEGORIES) || [];
-    setCategories(saved);
-    if (saved.length > 0 && !selectedCategory) {
-      setSelectedCategory(saved[0].id);
+  const loadCategories = async () => {
+    setLoading(true);
+    try {
+      if (storageMode === 'supabase') {
+        // Use Supabase
+        const data = await db.categories.getAll();
+        setCategories(data);
+        if (data.length > 0 && !selectedCategory) {
+          setSelectedCategory(data[0].id);
+        }
+      } else {
+        // Use localStorage
+        const saved: Category[] = storage.get(STORAGE_KEYS.CATEGORIES) || [];
+        setCategories(saved);
+        if (saved.length > 0 && !selectedCategory) {
+          setSelectedCategory(saved[0].id);
+        }
+      }
+    } catch (error) {
+      console.error('Error loading categories:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const addCategory = () => {
+  const addCategory = async () => {
     if (!newCategoryName.trim()) {
       alert('Please enter a category name');
       return;
     }
 
-    const newCategory: Category = {
-      id: Date.now().toString(),
-      name: newCategoryName.trim(),
-      services: [],
-    };
+    try {
+      if (storageMode === 'supabase') {
+        const newCategory = await db.categories.create({ name: newCategoryName.trim() });
+        if (newCategory) {
+          await loadCategories();
+          setSelectedCategory(newCategory.id);
+          setNewCategoryName('');
+        }
+      } else {
+        const newCategory: Category = {
+          id: Date.now().toString(),
+          name: newCategoryName.trim(),
+          services: [],
+        };
 
-    const updated = [...categories, newCategory];
-    storage.set(STORAGE_KEYS.CATEGORIES, updated);
-    setCategories(updated);
-    setSelectedCategory(newCategory.id);
-    setNewCategoryName('');
+        const updated = [...categories, newCategory];
+        storage.set(STORAGE_KEYS.CATEGORIES, updated);
+        setCategories(updated);
+        setSelectedCategory(newCategory.id);
+        setNewCategoryName('');
+      }
+    } catch (error) {
+      console.error('Error adding category:', error);
+      alert('Failed to add category');
+    }
   };
 
-  const deleteCategory = () => {
+  const deleteCategory = async () => {
     if (!selectedCategory) return;
 
     const category = categories.find(c => c.id === selectedCategory);
@@ -51,10 +83,21 @@ export default function ServicesSection() {
 
     if (!confirm(`Delete category "${category.name}" and all its services?`)) return;
 
-    const updated = categories.filter(c => c.id !== selectedCategory);
-    storage.set(STORAGE_KEYS.CATEGORIES, updated);
-    setCategories(updated);
-    setSelectedCategory(updated.length > 0 ? updated[0].id : '');
+    try {
+      if (storageMode === 'supabase') {
+        await db.categories.delete(selectedCategory);
+      } else {
+        const updated = categories.filter(c => c.id !== selectedCategory);
+        storage.set(STORAGE_KEYS.CATEGORIES, updated);
+      }
+      
+      await loadCategories();
+      const remaining = categories.filter(c => c.id !== selectedCategory);
+      setSelectedCategory(remaining.length > 0 ? remaining[0].id : '');
+    } catch (error) {
+      console.error('Error deleting category:', error);
+      alert('Failed to delete category');
+    }
   };
 
   const addService = () => {
@@ -80,16 +123,25 @@ export default function ServicesSection() {
     setIsModalOpen(true);
   };
 
-  const deleteService = (serviceId: string) => {
+  const deleteService = async (serviceId: string) => {
     if (!confirm('Delete this service?')) return;
 
-    const updated = categories.map(cat => ({
-      ...cat,
-      services: cat.services.filter(s => s.id !== serviceId),
-    }));
-
-    storage.set(STORAGE_KEYS.CATEGORIES, updated);
-    setCategories(updated);
+    try {
+      if (storageMode === 'supabase') {
+        await db.services.delete(serviceId);
+      } else {
+        const updated = categories.map(cat => ({
+          ...cat,
+          services: cat.services.filter(s => s.id !== serviceId),
+        }));
+        storage.set(STORAGE_KEYS.CATEGORIES, updated);
+      }
+      
+      await loadCategories();
+    } catch (error) {
+      console.error('Error deleting service:', error);
+      alert('Failed to delete service');
+    }
   };
 
   const handleModalClose = () => {
@@ -99,6 +151,19 @@ export default function ServicesSection() {
   };
 
   const currentCategory = categories.find(c => c.id === selectedCategory);
+
+  if (loading) {
+    return (
+      <>
+        <h2 className="section-title">Services</h2>
+        <div className="card">
+          <p style={{ textAlign: 'center', color: '#888', padding: '20px 0' }}>
+            Loading services...
+          </p>
+        </div>
+      </>
+    );
+  }
 
   return (
     <>
@@ -124,25 +189,31 @@ export default function ServicesSection() {
           value={selectedCategory}
           onChange={(e) => setSelectedCategory(e.target.value)}
         >
-          {categories.map(cat => (
-            <option key={cat.id} value={cat.id}>
-              {cat.name}
-            </option>
-          ))}
+          {categories.length === 0 ? (
+            <option value="">No categories yet</option>
+          ) : (
+            categories.map(cat => (
+              <option key={cat.id} value={cat.id}>
+                {cat.name}
+              </option>
+            ))
+          )}
         </select>
 
-        <button className="btn-primary" onClick={addService}>
+        <button className="btn-primary" onClick={addService} disabled={!selectedCategory}>
           + Add Service
         </button>
 
-        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '10px' }}>
-          <button className="btn-remove" onClick={deleteCategory}>
-            Delete Category
-          </button>
-        </div>
+        {selectedCategory && (
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '10px' }}>
+            <button className="btn-remove" onClick={deleteCategory}>
+              Delete Category
+            </button>
+          </div>
+        )}
       </div>
 
-      {currentCategory && currentCategory.services.length > 0 && (
+      {currentCategory && currentCategory.services && currentCategory.services.length > 0 && (
         <div id="services">
           {currentCategory.services.map(service => (
             <div key={service.id} className="card">
