@@ -2,7 +2,7 @@
 // Server-side API route for sending MagicBell notifications
 
 import { NextRequest, NextResponse } from 'next/server';
-import { sendNotification, notifyWorkerNewAppointment } from '@/lib/magicbell';
+import { sendNotification } from '@/lib/magicbell.server';
 
 export async function POST(request: NextRequest) {
   try {
