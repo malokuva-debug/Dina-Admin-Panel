@@ -1,17 +1,7 @@
 // lib/magicbell.server.ts
-import { MagicBell } from 'magicbell-js/project-client'; // ✅ import everything
+import { MagicBellClient } from 'magicbell-js'; // ✅ correct named import
 
 let client: MagicBellClient | null = null;
-
-export function getMagicBellClient() {
-  if (!client) {
-    client = new MagicBellClient({
-      apiKey: process.env.MAGICBELL_API_KEY!,
-      projectId: process.env.MAGICBELL_PROJECT_ID!, // required
-    });
-  }
-  return client;
-}
 
 export async function sendNotification(
   userId: string,
