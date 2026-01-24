@@ -6,7 +6,7 @@ import WorkerNav from '@/components/layout/WorkerNav';
 import FinanceSection from '@/components/finance/FinanceSection';
 import AppointmentsSection from '@/components/appointments/AppointmentsSection';
 import SettingsSection from '@/components/settings/SettingsSection';
-import MagicBellNotifications from '@/components/MagicBellNotifications';
+import PushNotifications from '@/components/PushNotifications';
 import { Worker } from '@/types';
 
 export default function AdminPage() {
@@ -15,7 +15,7 @@ export default function AdminPage() {
 
   return (
     <div className="container">
-      <MagicBellNotifications worker={selectedWorker} />
+      <PushNotifications worker={selectedWorker} />
       
       <WorkerNav 
         selectedWorker={selectedWorker} 
