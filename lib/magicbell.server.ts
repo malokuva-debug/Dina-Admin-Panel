@@ -1,7 +1,7 @@
 // lib/magicbell.server.ts
 import { MagicBellClient } from 'magicbell-js'; // ✅ correct named import
 
-let client: MagicBellClient | null = null;
+const client: MagicBellClient | null = null;
 
 export async function sendNotification(
   userId: string,
