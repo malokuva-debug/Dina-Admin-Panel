@@ -1,5 +1,5 @@
 // lib/magicbell.server.ts
-import { MagicBellClient } from "magicbell-js";
+import { MagicBellClient } from 'magicbell-js';
 
 // initialize client once
 const client = new MagicBellClient({
