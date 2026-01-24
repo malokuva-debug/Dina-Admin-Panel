@@ -1,19 +1,13 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
+// /lib/magicbell.server.ts
+let MagicBellClient: any;
 
-// DO NOT add 'use client'
-
-let MagicBellClient: any = null;
-
-async function getClient() {
+export async function getMagicBellClient() {
   if (!MagicBellClient) {
-    const mod = await import('magicbell-js/project-client');
-    MagicBellClient = mod.MagicBell;
+    const mod = await import('magicbell-js'); // dynamically import the package
+    MagicBellClient = mod.default;           // get the default export
   }
   return MagicBellClient;
 }
-
-const apiKey = process.env.MAGICBELL_API_KEY;
-const apiSecret = process.env.MAGICBELL_API_SECRET;
 
 export async function sendNotification(
   userId: string,
@@ -21,22 +15,16 @@ export async function sendNotification(
   content: string,
   actionUrl?: string
 ) {
-  if (!apiKey || !apiSecret) {
-    console.warn('MagicBell credentials missing');
-    return null;
-  }
+  const MagicBell = await getMagicBellClient();
 
-  const MagicBell = await getClient();
-
-  const magicbell = new MagicBell({
-    apiKey,
-    apiSecret,
+  const client = new MagicBell({
+    apiKey: process.env.NEXT_PUBLIC_MAGICBELL_API_KEY // make sure you have this in your Vercel env
   });
 
-  return magicbell.notifications.create({
+  return client.notifications.create({
     title,
     content,
-    recipients: [{ external_id: userId }],
-    action_url: actionUrl,
+    recipients: [userId],
+    actionUrl
   });
 }
