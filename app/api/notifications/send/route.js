@@ -1,19 +1,13 @@
-// app/api/notifications/send/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import webpush from 'web-push';
 import { supabase } from '@/lib/supabase';
 
-// Configure web-push with VAPID keys
 const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || '';
 const vapidPrivateKey = process.env.VAPID_PRIVATE_KEY || '';
 const vapidEmail = process.env.VAPID_EMAIL || 'mailto:admin@example.com';
 
 if (vapidPublicKey && vapidPrivateKey) {
-  webpush.setVapidDetails(
-    vapidEmail,
-    vapidPublicKey,
-    vapidPrivateKey
-  );
+  webpush.setVapidDetails(vapidEmail, vapidPublicKey, vapidPrivateKey);
 }
 
 export async function POST(request: NextRequest) {
@@ -34,7 +28,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get user's push subscription from database
     let subscription = null;
 
     try {
@@ -49,7 +42,6 @@ export async function POST(request: NextRequest) {
       }
     } catch (dbError) {
       console.log('Database not available, using in-memory storage');
-      // Fallback to in-memory storage
       if (global.pushSubscriptions && global.pushSubscriptions.has(userId)) {
         subscription = global.pushSubscriptions.get(userId);
       }
@@ -62,7 +54,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Prepare notification payload
     const payload = JSON.stringify({
       title,
       body,
@@ -71,16 +62,13 @@ export async function POST(request: NextRequest) {
       data: data || {},
     });
 
-    // Send push notification
     await webpush.sendNotification(subscription, payload);
 
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Send notification error:', error);
     
-    // Handle expired subscriptions
     if (error instanceof Error && error.message.includes('410')) {
-      // Subscription expired, remove from database
       try {
         await supabase
           .from('push_subscriptions')
