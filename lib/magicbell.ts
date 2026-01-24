@@ -1,6 +1,4 @@
 // lib/magicbell.ts
-'use client';
-
 import { MagicBell } from 'magicbell-js';
 
 // Load credentials from environment variables
