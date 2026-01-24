@@ -6,7 +6,7 @@ let client: MagicBellClient | null = null;
 export function getMagicBellClient() {
   if (!client) {
     client = new MagicBellClient({
-      apiKey: process.env.NEXT_PUBLIC_MAGICBELL_API_KEY,
+      apiKey: process.env.MAGICBELL_API_KEY, // server-side key
     });
   }
   return client;
