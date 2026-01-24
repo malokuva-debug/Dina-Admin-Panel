@@ -1,8 +1,7 @@
 // /lib/magicbell.server.ts
+import { MagicBellClient } from 'magicbell-js';
 
-import MagicBellClient from 'magicbell-js/dist/esm/project-client'; // exact path
-
-let client: any;
+let client: MagicBellClient | null = null;
 
 export function getMagicBellClient() {
   if (!client) {
