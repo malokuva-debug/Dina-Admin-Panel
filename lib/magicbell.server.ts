@@ -1,12 +1,16 @@
 // /lib/magicbell.server.ts
-let MagicBellClient: any;
 
-export async function getMagicBellClient() {
-  if (!MagicBellClient) {
-    const mod = await import('magicbell-js'); // dynamically import the package
-    MagicBellClient = mod.default;           // get the default export
+import MagicBellClient from 'magicbell-js/dist/esm/project-client'; // exact path
+
+let client: any;
+
+export function getMagicBellClient() {
+  if (!client) {
+    client = new MagicBellClient({
+      apiKey: process.env.NEXT_PUBLIC_MAGICBELL_API_KEY,
+    });
   }
-  return MagicBellClient;
+  return client;
 }
 
 export async function sendNotification(
@@ -15,16 +19,11 @@ export async function sendNotification(
   content: string,
   actionUrl?: string
 ) {
-  const MagicBell = await getMagicBellClient();
-
-  const client = new MagicBell({
-    apiKey: process.env.NEXT_PUBLIC_MAGICBELL_API_KEY // make sure you have this in your Vercel env
-  });
-
-  return client.notifications.create({
+  const magicbell = getMagicBellClient();
+  return magicbell.notifications.create({
     title,
     content,
     recipients: [userId],
-    actionUrl
+    actionUrl,
   });
 }
