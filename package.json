@@ -1,4 +1,5 @@
 {
+<<<<<<< HEAD
   "name": "admin-panel",
   "version": "1.0.0",
   "private": true,
@@ -32,3 +33,9 @@
     "node": ">=18.x"
   }
 }
+=======
+  "dependencies": {
+    "magicbell-js": "^1.5.0"
+  }
+}
+>>>>>>> 419c801 (Add project folder)
