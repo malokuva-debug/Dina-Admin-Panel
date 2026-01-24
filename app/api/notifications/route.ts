@@ -9,12 +9,7 @@ export async function POST(req: Request) {
 
   switch (type) {
     case 'new_appointment':
-      result = await sendNotification(
-        userId,
-        'New appointment',
-        `You have a new appointment scheduled.`,
-        data?.url
-      );
+      result = await notifyWorkerNewAppointment(userId, data);
       break;
 
     case 'custom':
@@ -25,6 +20,13 @@ export async function POST(req: Request) {
         data.actionUrl
       );
       break;
+
+    default:
+      return NextResponse.json(
+        { success: false, error: 'Unknown notification type' },
+        { status: 400 }
+      );
   }
 
   return NextResponse.json({ success: true, result });
+}
