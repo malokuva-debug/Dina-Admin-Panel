@@ -1,19 +1,19 @@
-import { MagicBell } from 'magicbell-js/dist/esm/project-client';
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
-const apiKey = process.env.MAGICBELL_API_KEY!;
-const apiSecret = process.env.MAGICBELL_API_SECRET!;
+// DO NOT add 'use client'
 
-if (!apiKey || !apiSecret) {
-  console.warn('MagicBell credentials missing');
+let MagicBellClient: any = null;
+
+async function getClient() {
+  if (!MagicBellClient) {
+    const mod = await import('magicbell-js/project-client');
+    MagicBellClient = mod.MagicBell;
+  }
+  return MagicBellClient;
 }
 
-export const magicbell =
-  apiKey && apiSecret
-    ? new MagicBell({
-        apiKey,
-        apiSecret,
-      })
-    : null;
+const apiKey = process.env.MAGICBELL_API_KEY;
+const apiSecret = process.env.MAGICBELL_API_SECRET;
 
 export async function sendNotification(
   userId: string,
@@ -21,7 +21,17 @@ export async function sendNotification(
   content: string,
   actionUrl?: string
 ) {
-  if (!magicbell) return null;
+  if (!apiKey || !apiSecret) {
+    console.warn('MagicBell credentials missing');
+    return null;
+  }
+
+  const MagicBell = await getClient();
+
+  const magicbell = new MagicBell({
+    apiKey,
+    apiSecret,
+  });
 
   return magicbell.notifications.create({
     title,
