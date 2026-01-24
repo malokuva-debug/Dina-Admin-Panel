@@ -1,3 +1,4 @@
+// /lib/notifications.ts
 import { sendNotification } from './magicbell.server';
 
 export async function notifyWorkerNewAppointment(
