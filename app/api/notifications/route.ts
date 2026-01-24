@@ -1,26 +1,20 @@
-import { NextResponse } from 'next/server';
-import { notifyWorkerNewAppointment } from '@/lib/notifications';
-import { sendNotification } from '@/lib/magicbell.server'; // import fixed
+// app/api/notifications/route.ts
+import webpush from "web-push";
+
+webpush.setVapidDetails(
+  "mailto:you@example.com",
+  process.env.VAPID_PUBLIC_KEY!,
+  process.env.VAPID_PRIVATE_KEY!
+);
 
 export async function POST(req: Request) {
-  const { type, userId, data } = await req.json();
+  const { subscription, title, message } = await req.json();
 
-  let result = null;
-
-  switch (type) {
-    case 'new_appointment':
-      result = await notifyWorkerNewAppointment(userId, data);
-      break;
-
-    case 'custom':
-      result = await sendNotification(
-        userId,
-        data.title,
-        data.content,
-        data.actionUrl
-      );
-      break;
+  try {
+    await webpush.sendNotification(subscription, JSON.stringify({ title, message }));
+    return new Response(JSON.stringify({ success: true }), { status: 200 });
+  } catch (err) {
+    console.error(err);
+    return new Response(JSON.stringify({ success: false, error: err }), { status: 500 });
   }
-
-  return NextResponse.json({ success: true, result });
 }
