@@ -1,5 +1,5 @@
 // lib/magicbell.ts
-import { MagicBell } from 'magicbell-js';
+import { MagicBell } from 'magicbell-js/project-client';
 
 // Load credentials from environment variables
 const apiKey = process.env.NEXT_PUBLIC_MAGICBELL_API_KEY || '';
