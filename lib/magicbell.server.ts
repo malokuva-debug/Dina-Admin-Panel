@@ -1,5 +1,5 @@
 // lib/magicbell.server.ts
-import { MagicBellClient } from 'magicbell-js'; // ✅ use named import from 'magicbell-js'
+import { MagicBellClient } from 'magicbell-js/project-client'; // ✅ import everything
 
 let client: MagicBellClient | null = null;
 
