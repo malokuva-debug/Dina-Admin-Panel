@@ -1,5 +1,5 @@
 export {}
 
 declare global {
-  let pushSubscriptions: Map<string, any> | undefined
+  var pushSubscriptions: Map<string, any> | undefined
 }
