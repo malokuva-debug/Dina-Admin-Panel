@@ -27,16 +27,18 @@ export async function POST(req: NextRequest) {
 
     // Send push notifications
     if (subscriptions?.length) {
-  for (const { subscription } of subscriptions) {
-    await sendNotification(
-      subscription,
-      JSON.stringify({
-        title: 'New Appointment!',
-        body: `${clientName} booked ${service} on ${new Date(date).toLocaleString()}`,
-      }),
-    );
-  }
-}
+      for (const { subscription } of subscriptions) {
+        // Call sendNotification with all required arguments
+        await sendNotification(
+          subscription,
+          JSON.stringify({
+            title: 'New Appointment!',
+            body: `${clientName} booked ${service} on ${new Date(date).toLocaleString()}`,
+          }),
+          {} // options, can be empty if not used
+        );
+      }
+    }
 
     return NextResponse.json({ appointment });
   } catch (err) {
