@@ -27,14 +27,15 @@ export interface Expense {
 
 export interface Appointment {
   id: string;
-  worker: string;
+  worker: Worker;
   service: string;
   date: string;
   time: string;
   price: number;
   duration?: number;
-  customerName?: string: | null;
-  customerPhone?: string: | null;
+  customerName?: string;
+  customerPhone?: string;
+  is_done?: boolean;
 }
 
 export interface BusinessHours {
