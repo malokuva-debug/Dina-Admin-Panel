@@ -59,34 +59,55 @@ export default function AddAppointmentModal({
   setSelectedService(filtered[0]?.id ?? '');
 }, [selectedCategory, services]);
 
-    const newAppointment: Appointment = {
-      id: `${Date.now()}-${Math.floor(Math.random() * 1000)}`,
-      worker: selectedWorker,
-      service: service.name,
-      price: service.price,
-      duration: service.duration,
-      date,
-      time,
-      customerName,
-      customerPhone,
-      is_done: false,
-    };
+    const handleAdd = async () => {
+  if (!selectedWorker || !selectedService || !date || !time) {
+    alert('Please fill all required fields');
+    return;
+  }
 
-    try {
-      if (storageMode === 'supabase') {
-        const { error } = await supabase.from('appointments').insert([newAppointment]);
-        if (error) throw error;
-      } else {
-        const allAppointments: Appointment[] = storage.get(STORAGE_KEYS.APPOINTMENTS) || [];
-        storage.set(STORAGE_KEYS.APPOINTMENTS, [...allAppointments, newAppointment]);
-      }
-      onAdded();
-      onClose();
-    } catch (err) {
-      console.error('Failed to add appointment', err);
-      alert('Failed to add appointment');
-    }
+  const service = services.find(s => s.id === selectedService);
+  if (!service) {
+    alert('Service not found');
+    return;
+  }
+
+  const newAppointment: Appointment = {
+    id: `${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+    worker: selectedWorker,
+    service: service.name,
+    price: service.price,
+    duration: service.duration,
+    date,
+    time,
+    customerName,
+    customerPhone,
+    is_done: false,
   };
+
+  try {
+    if (storageMode === 'supabase') {
+      const { error } = await supabase
+        .from('appointments')
+        .insert([newAppointment]);
+
+      if (error) throw error;
+    } else {
+      const allAppointments: Appointment[] =
+        storage.get(STORAGE_KEYS.APPOINTMENTS) || [];
+
+      storage.set(STORAGE_KEYS.APPOINTMENTS, [
+        ...allAppointments,
+        newAppointment,
+      ]);
+    }
+
+    onAdded();
+    onClose();
+  } catch (err) {
+    console.error('Failed to add appointment', err);
+    alert('Failed to add appointment');
+  }
+};
 
   const handleBackdropClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (e.target === e.currentTarget) onClose();
