@@ -1,48 +1,61 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
-import { sendNotification } from '@/lib/notifications';
+import { NextResponse } from 'next/server';
+import { createClient } from '@supabase/supabase-js';
+import { sendNotification } from '@/lib/webpush'; // your existing notification helper
 
-export async function POST(req: NextRequest) {
+const supabase = createClient(
+  process.env.SUPABASE_URL!,
+  process.env.SUPABASE_ANON_KEY!
+);
+
+export async function POST(request: Request) {
   try {
-    const { userId, date, service, clientName } = await req.json();
+    const { date, service, clientName } = await request.json();
 
-    if (!userId || !date || !service || !clientName) {
-      return NextResponse.json({ error: 'Missing fields' }, { status: 400 });
+    if (!date || !service || !clientName) {
+      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
-    // Insert appointment into Supabase
-    const { data: appointment, error } = await supabase
+    // 1️⃣ Insert appointment (only columns that exist in DB)
+    const { data: appointment, error: insertError } = await supabase
       .from('appointments')
-      .insert({ user_id: userId, date, service, customer_name: clientName })
+      .insert({
+        date,
+        service,
+        client: clientName, // adjust if your table column is 'client' instead of 'client_name'
+      })
       .select()
       .single();
 
-    if (error) return NextResponse.json({ error: error.message }, { status: 400 });
-
-    // Fetch push subscriptions for this user
-    const { data: subscriptions } = await supabase
-      .from('push_subscriptions')
-      .select('subscription')
-      .eq('user_id', userId);
-
-    // Send push notifications
-    if (subscriptions?.length) {
-      for (const { subscription } of subscriptions) {
-        // Correctly pass a string as third argument
-        await sendNotification(
-          subscription,
-          JSON.stringify({
-            title: 'New Appointment!',
-            body: `${clientName} booked ${service} on ${new Date(date).toLocaleString()}`,
-          }),
-          '' // empty string if no options are needed
-        );
-      }
+    if (insertError) {
+      console.error('Insert error:', insertError);
+      return NextResponse.json({ error: insertError.message }, { status: 500 });
     }
 
-    return NextResponse.json({ appointment });
-  } catch (err) {
-    console.error('Error creating appointment:', err);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    // 2️⃣ Get all push subscriptions for this user (userId stored in push_subscriptions)
+    const { data: subscriptions, error: subError } = await supabase
+      .from('push_subscriptions')
+      .select('subscription, user_id');
+
+    if (subError) {
+      console.error('Subscription fetch error:', subError);
+      return NextResponse.json({ error: subError.message }, { status: 500 });
+    }
+
+    // 3️⃣ Send notification to each user
+    for (const { subscription, user_id } of subscriptions) {
+      // You can filter by user_id if needed
+      await sendNotification(
+        subscription,
+        JSON.stringify({
+          title: 'New Appointment!',
+          body: `${clientName} booked ${service} on ${new Date(date).toLocaleString()}`,
+        })
+      );
+    }
+
+    return NextResponse.json({ success: true, appointment });
+  } catch (err: any) {
+    console.error('Unexpected error:', err);
+    return NextResponse.json({ error: err.message || 'Unknown error' }, { status: 500 });
   }
 }
