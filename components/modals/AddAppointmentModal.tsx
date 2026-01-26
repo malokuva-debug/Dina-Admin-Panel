@@ -43,7 +43,7 @@ export default function AddAppointmentModal({
     return;
   }
 
-  const filtered = services.filter(s => s.category === selectedCategory);
+  const filtered = services.filter(s => s.category_id === selectedCategory);
   setFilteredServices(filtered);
   setSelectedService(filtered[0]?.id ?? '');
 }, [selectedCategory, services]);
@@ -112,11 +112,11 @@ export default function AddAppointmentModal({
         {/* Worker Dropdown */}
         <div className="row">
           <span>Worker</span>
-          <select value={selectedWorker} onChange={e => setSelectedWorker(e.target.value as Worker)}>
-            {workers.map(w => (
-              <option key={w} value={w}>{w}</option>
-            ))}
-          </select>
+          <select value={selectedWorker} onChange={e => setSelectedWorker(e.target.value)}>
+  {workers.map(w => (
+    <option key={w.id} value={w.name}>{w.name}</option>
+  ))}
+</select>
         </div>
 
         {/* Category Dropdown */}
