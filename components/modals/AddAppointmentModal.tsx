@@ -112,9 +112,9 @@ export default function AddAppointmentModal({
         {/* Worker Dropdown */}
         <div className="row">
           <span>Worker</span>
-          <select value={selectedWorker} onChange={e => setSelectedWorker(e.target.value)}>
+          <select value={selectedWorker} onChange={e => setSelectedWorker(e.target.value as Worker)}>
   {workers.map(w => (
-    <option key={w.id} value={w.name}>{w.name}</option>
+    <option key={w} value={w}>{w}</option>
   ))}
 </select>
         </div>
