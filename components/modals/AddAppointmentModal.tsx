@@ -7,10 +7,10 @@ import { storage, STORAGE_KEYS, storageMode } from '@/lib/storage';
 
 interface AddAppointmentModalProps {
   workers: Worker[];
-  categories: ServiceCategory[];
+  categories: Category[];
   services: Service[];
   onClose: () => void;
-  onAdded: () => void;
+  onAdded: () => void; // refresh callback
 }
 
 export default function AddAppointmentModal({
@@ -18,46 +18,48 @@ export default function AddAppointmentModal({
   categories,
   services,
   onClose,
-  onAdded
+  onAdded,
 }: AddAppointmentModalProps) {
-  const [selectedWorker, setSelectedWorker] = useState<string>(workers[0] || '');
-  const [selectedCategory, setSelectedCategory] = useState<string>(categories[0]?.id || '');
+  const [selectedWorker, setSelectedWorker] = useState<Worker>('dina');
+  const [selectedCategory, setSelectedCategory] = useState<string>('');
   const [filteredServices, setFilteredServices] = useState<Service[]>([]);
   const [selectedService, setSelectedService] = useState<string>('');
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
-  const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
-  const [time, setTime] = useState('12:00');
+  const [date, setDate] = useState<string>(new Date().toISOString().slice(0, 10));
+  const [time, setTime] = useState<string>('09:00');
 
-  // Filter services when category changes
   useEffect(() => {
-    const filtered = services.filter(s => s.categoryId === selectedCategory);
-    setFilteredServices(filtered);
-    setSelectedService(filtered[0]?.id || '');
+    // filter services by selected category
+    if (selectedCategory) {
+      const filtered = services.filter(s => s.category === selectedCategory);
+      setFilteredServices(filtered);
+      if (filtered.length > 0) setSelectedService(filtered[0].id);
+      else setSelectedService('');
+    } else {
+      setFilteredServices([]);
+      setSelectedService('');
+    }
   }, [selectedCategory, services]);
 
-  const handleSave = async () => {
+  const handleAdd = async () => {
     if (!selectedWorker || !selectedService || !date || !time) {
-      alert('Please fill in all required fields');
+      alert('Please fill all required fields');
       return;
     }
 
-    // Find service details
-    const serviceObj = services.find(s => s.id === selectedService);
-    if (!serviceObj) {
-      alert('Invalid service selected');
+    const service = services.find(s => s.id === selectedService);
+    if (!service) {
+      alert('Selected service not found');
       return;
     }
-
-    // Generate simple unique ID
-    const id = Date.now().toString() + Math.floor(Math.random() * 1000);
 
     const newAppointment: Appointment = {
-      id,
+      id: `${Date.now()}-${Math.floor(Math.random() * 1000)}`, // simple unique ID
       worker: selectedWorker,
-      service: serviceObj.name,
-      category: categories.find(c => c.id === selectedCategory)?.name || '',
-      price: serviceObj.price,
+      service: service.name,
+      price: service.price,
+      duration: service.duration,
       date,
       time,
       customerName,
@@ -74,113 +76,156 @@ export default function AddAppointmentModal({
         storage.set(STORAGE_KEYS.APPOINTMENTS, [...allAppointments, newAppointment]);
       }
 
-      onAdded(); // refresh list
-      onClose();  // close modal
-    } catch (error) {
-      console.error('Error adding appointment:', error);
+      onAdded();
+      onClose();
+    } catch (err) {
+      console.error('Failed to add appointment', err);
       alert('Failed to add appointment');
     }
   };
 
   return (
-    <div className="modal-overlay">
-      <div className="modal-card">
-        <h3>Add Appointment</h3>
+    <div
+      style={{
+        position: 'fixed',
+        top: 0, left: 0,
+        width: '100%',
+        height: '100%',
+        background: 'rgba(0,0,0,0.4)',
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        zIndex: 9999,
+      }}
+    >
+      <div
+        style={{
+          background: 'white',
+          borderRadius: '12px',
+          padding: '20px',
+          width: '400px',
+          maxWidth: '90%',
+        }}
+      >
+        <h3 style={{ marginBottom: '15px' }}>Add Appointment</h3>
 
+        {/* Worker */}
         <label>
-          Worker
-          <select value={selectedWorker} onChange={e => setSelectedWorker(e.target.value)}>
+          Worker:
+          <select
+            value={selectedWorker}
+            onChange={e => setSelectedWorker(e.target.value as Worker)}
+            style={{ width: '100%', margin: '5px 0 15px', padding: '8px' }}
+          >
             {workers.map(w => (
               <option key={w} value={w}>{w}</option>
             ))}
           </select>
         </label>
 
+        {/* Category */}
         <label>
-          Category
-          <select value={selectedCategory} onChange={e => setSelectedCategory(e.target.value)}>
+          Category:
+          <select
+            value={selectedCategory}
+            onChange={e => setSelectedCategory(e.target.value)}
+            style={{ width: '100%', margin: '5px 0 15px', padding: '8px' }}
+          >
+            <option value="">Select Category</option>
             {categories.map(c => (
-              <option key={c.id} value={c.id}>{c.name}</option>
+              <option key={c.id} value={c.name}>{c.name}</option>
             ))}
           </select>
         </label>
 
+        {/* Service */}
         <label>
-          Service
-          <select value={selectedService} onChange={e => setSelectedService(e.target.value)}>
+          Service:
+          <select
+            value={selectedService}
+            onChange={e => setSelectedService(e.target.value)}
+            style={{ width: '100%', margin: '5px 0 15px', padding: '8px' }}
+          >
             {filteredServices.map(s => (
-              <option key={s.id} value={s.id}>{s.name} (${s.price.toFixed(2)})</option>
+              <option key={s.id} value={s.id}>
+                {s.name} (${s.price})
+              </option>
             ))}
           </select>
         </label>
 
+        {/* Customer Name */}
         <label>
-          Customer Name
-          <input value={customerName} onChange={e => setCustomerName(e.target.value)} />
+          Customer Name:
+          <input
+            type="text"
+            value={customerName}
+            onChange={e => setCustomerName(e.target.value)}
+            style={{ width: '100%', margin: '5px 0 15px', padding: '8px' }}
+          />
+        </label>
+
+        {/* Customer Phone */}
+        <label>
+          Customer Phone:
+          <input
+            type="text"
+            value={customerPhone}
+            onChange={e => setCustomerPhone(e.target.value)}
+            style={{ width: '100%', margin: '5px 0 15px', padding: '8px' }}
+          />
+        </label>
+
+        {/* Date & Time */}
+        <label>
+          Date:
+          <input
+            type="date"
+            value={date}
+            onChange={e => setDate(e.target.value)}
+            style={{ width: '100%', margin: '5px 0 15px', padding: '8px' }}
+          />
         </label>
 
         <label>
-          Customer Phone
-          <input value={customerPhone} onChange={e => setCustomerPhone(e.target.value)} />
+          Time:
+          <input
+            type="time"
+            value={time}
+            onChange={e => setTime(e.target.value)}
+            style={{ width: '100%', margin: '5px 0 15px', padding: '8px' }}
+          />
         </label>
 
-        <label>
-          Date
-          <input type="date" value={date} onChange={e => setDate(e.target.value)} />
-        </label>
-
-        <label>
-          Time
-          <input type="time" value={time} onChange={e => setTime(e.target.value)} />
-        </label>
-
-        <div style={{ display: 'flex', gap: '10px', marginTop: '15px' }}>
-          <button onClick={handleSave} style={{ flex: 1 }}>Save</button>
-          <button onClick={onClose} style={{ flex: 1, background: '#ff3b30', color: 'white' }}>Cancel</button>
+        {/* Buttons */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '20px' }}>
+          <button
+            onClick={onClose}
+            style={{
+              padding: '10px 20px',
+              background: '#ccc',
+              border: 'none',
+              borderRadius: '8px',
+              cursor: 'pointer'
+            }}
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleAdd}
+            style={{
+              padding: '10px 20px',
+              background: '#34c759',
+              color: 'white',
+              border: 'none',
+              borderRadius: '8px',
+              cursor: 'pointer'
+            }}
+          >
+            Add
+          </button>
         </div>
       </div>
-
-      <style jsx>{`
-        .modal-overlay {
-          position: fixed;
-          top: 0; left: 0; right: 0; bottom: 0;
-          background: rgba(0,0,0,0.5);
-          display: flex; justify-content: center; align-items: center;
-          z-index: 9999;
-        }
-        .modal-card {
-          background: #1c1c1e;
-          padding: 20px;
-          border-radius: 12px;
-          width: 400px;
-          max-width: 90%;
-          display: flex;
-          flex-direction: column;
-          gap: 10px;
-        }
-        label {
-          display: flex;
-          flex-direction: column;
-          font-size: 14px;
-        }
-        input, select {
-          margin-top: 4px;
-          padding: 8px;
-          border-radius: 6px;
-          border: 1px solid #555;
-          background: #2c2c2e;
-          color: white;
-        }
-        button {
-          padding: 10px;
-          border-radius: 8px;
-          border: none;
-          cursor: pointer;
-          background: #007aff;
-          color: white;
-          font-weight: 600;
-        }
-      `}</style>
     </div>
   );
 }
