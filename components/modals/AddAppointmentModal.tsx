@@ -47,7 +47,9 @@ export default function AddAppointmentModal({
   setFilteredServices(filtered);
   setSelectedService(filtered[0]?.id ?? '');
 }, [selectedCategory, services]);
-
+  console.log('Services prop:', services);
+  console.log('Categories prop:', categories);
+  
     const handleAdd = async () => {
   if (!selectedWorker || !selectedService || !date || !time) {
     alert('Please fill all required fields');
