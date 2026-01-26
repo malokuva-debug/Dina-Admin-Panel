@@ -12,8 +12,7 @@ if (vapidPublicKey && vapidPrivateKey) {
   webpush.setVapidDetails(vapidEmail, vapidPublicKey, vapidPrivateKey);
 }
 
-// Ensure global pushSubscriptions map exists
-// Cast global so TS knows pushSubscriptions exists
+// Ensure global pushSubscriptions map exists (once)
 const g = global as typeof globalThis & {
   pushSubscriptions: Map<string, any>;
 };
@@ -21,12 +20,6 @@ const g = global as typeof globalThis & {
 if (!g.pushSubscriptions) {
   g.pushSubscriptions = new Map<string, any>();
 }
-
-// Use g.pushSubscriptions instead of global.pushSubscriptions
-if (g.pushSubscriptions.has(userId)) {
-  subscription = g.pushSubscriptions.get(userId);
-}
-
 
 export async function POST(request: NextRequest) {
   try {
@@ -47,7 +40,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Try to fetch subscription from Supabase
-    let subscription = null;
+    let subscription: any = null;
     try {
       const { data: subData, error } = await supabase
         .from('push_subscriptions')
@@ -60,15 +53,10 @@ export async function POST(request: NextRequest) {
       }
     } catch {
       console.log('Database not available, using in-memory storage');
-      // Ensure global pushSubscriptions map exists
-const g = global as typeof globalThis & {
-  pushSubscriptions: Map<string, any>;
-};
-
-if (!g.pushSubscriptions) {
-  g.pushSubscriptions = new Map<string, any>();
-}
-
+      // fallback: check in-memory map
+      if (g.pushSubscriptions.has(userId)) {
+        subscription = g.pushSubscriptions.get(userId);
+      }
     }
 
     if (!subscription) {
@@ -93,20 +81,14 @@ if (!g.pushSubscriptions) {
     console.error('Send notification error:', error);
 
     // Remove expired subscriptions (HTTP 410)
-    if (error.message?.includes('410')) {
-      try {
-        await supabase
-          .from('push_subscriptions')
-          .delete()
-          .eq('user_id', userId);
-      } catch (e) {
-        console.error('Failed to remove expired subscription:', e);
-      }
-
-      // Also remove from in-memory
-      if (g.pushSubscriptions.has(userId)) {
+    try {
+      const { userId } = await request.json();
+      if (error.message?.includes('410')) {
+        await supabase.from('push_subscriptions').delete().eq('user_id', userId);
         g.pushSubscriptions.delete(userId);
       }
+    } catch (e) {
+      console.error('Failed to remove expired subscription:', e);
     }
 
     return NextResponse.json(
