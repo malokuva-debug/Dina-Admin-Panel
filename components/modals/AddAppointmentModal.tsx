@@ -62,24 +62,42 @@ export default function AddAppointmentModal({
     return;
   }
 
-  const newAppointment: Appointment = {
-    id: `${Date.now()}-${Math.floor(Math.random() * 1000)}`,
-    worker: selectedWorker,
-    service: service.name,
-    price: service.price,
-    duration: service.duration,
-    date,
-    time,
-    customer_name: customerName,
-    customer_phone: customerPhone,
-    is_done: false,
+    function mapAppointmentToDb(appointment: Appointment) {
+  return {
+    time: appointment.time,
+    date: appointment.date,
+    worker: appointment.worker,
+    service: appointment.service,
+    price: appointment.price,
+    duration: appointment.duration,
+    customer_name: appointment.customerName, // map camelCase → snake_case
+    customer_phone: appointment.customerPhone,
+    is_done: appointment.is_done ?? false,
   };
+}
+      
+  const newAppointment: Appointment = {
+  id: `${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+  worker: selectedWorker,
+  service: service.name,
+  price: service.price,
+  duration: service.duration,
+  date,
+  time,
+  customerName,
+  customerPhone,
+  is_done: false,
+};
 
-  try {
-    if (storageMode === 'supabase') {
-      const { error } = await supabase
-        .from('appointments')
-        .insert([newAppointment]);
+// Convert camelCase → snake_case for Supabase
+const dbAppointment = mapAppointmentToDb(newAppointment);
+
+if (storageMode === 'supabase') {
+  const { error } = await supabase
+    .from('appointments')
+    .insert([dbAppointment]); // ← send mapped object
+  if (error) throw error;
+}
 
       if (error) throw error;
     } else {
