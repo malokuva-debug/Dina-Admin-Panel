@@ -37,16 +37,18 @@ export default function AddAppointmentModal({
   }, []);
 
   useEffect(() => {
-    // Filter services by category
-    if (selectedCategory) {
-      const filtered = services.filter(s => s.category === selectedCategory);
-      setFilteredServices(filtered);
-      setSelectedService(filtered.length > 0 ? filtered[0].id : '');
-    } else {
-      setFilteredServices([]);
-      setSelectedService('');
-    }
-  }, [selectedCategory, services]);
+  // Filter services by category
+  if (selectedCategory) {
+    // Find the selected category's ID
+    const category = categories.find(c => c.name === selectedCategory);
+    const filtered = services.filter(s => s.category === category?.id);
+    setFilteredServices(filtered);
+    setSelectedService(filtered.length > 0 ? filtered[0].id : '');
+  } else {
+    setFilteredServices([]);
+    setSelectedService('');
+  }
+}, [selectedCategory, services, categories]);
 
   const handleAdd = async () => {
     if (!selectedWorker || !selectedService || !date || !time) {
