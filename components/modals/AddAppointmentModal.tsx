@@ -21,7 +21,7 @@ export default function AddAppointmentModal({
   onAdded,
 }: AddAppointmentModalProps) {
   const [selectedWorker, setSelectedWorker] = useState<Worker>('dina');
-  const [selectedCategory, setSelectedCategory] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState<string>('');
   const [filteredServices, setFilteredServices] = useState<Service[]>([]);
   const [selectedService, setSelectedService] = useState('');
   const [customerName, setCustomerName] = useState('');
@@ -37,37 +37,27 @@ export default function AddAppointmentModal({
   }, []);
 
  useEffect(() => {
-  console.log('Selected category:', selectedCategory);
+  console.log('Selected category id:', selectedCategory);
   console.log(
-    'Service categories:',
-    services.map(s => s.category)
+    'Service category_ids:',
+    services.map(s => s.category_id)
   );
 
-  if (selectedCategory) {
-    const filtered = services.filter(
-      s => s.category === selectedCategory
-    );
-    console.log('Filtered services:', filtered);
-
-    setFilteredServices(filtered);
-    setSelectedService(filtered.length > 0 ? filtered[0].id : '');
-  } else {
+  if (!selectedCategory) {
     setFilteredServices([]);
     setSelectedService('');
+    return;
   }
+
+  const filtered = services.filter(
+    s => s.category_id === selectedCategory
+  );
+
+  console.log('Filtered services:', filtered);
+
+  setFilteredServices(filtered);
+  setSelectedService(filtered[0]?.id ?? '');
 }, [selectedCategory, services]);
-
-  const handleAdd = async () => {
-    if (!selectedWorker || !selectedService || !date || !time) {
-      alert('Please fill all required fields');
-      return;
-    }
-
-    const service = services.find(s => s.id === selectedService);
-    if (!service) {
-      alert('Service not found');
-      return;
-    }
 
     const newAppointment: Appointment = {
       id: `${Date.now()}-${Math.floor(Math.random() * 1000)}`,
@@ -126,7 +116,7 @@ export default function AddAppointmentModal({
 >
   <option value="">Select Category</option>
   {categories.map(c => (
-    <option key={c.id} value={c.name}>
+    <option key={c.id} value={c.id}>
       {c.name}
     </option>
   ))}
