@@ -6,7 +6,6 @@ import { useAppointments } from '@/hooks/useAppointments';
 import AppointmentsList from './AppointmentsList';
 import { supabase } from '@/lib/supabase';
 import { storage, STORAGE_KEYS, storageMode } from '@/lib/storage';
-import { v4 as uuidv4 } from 'uuid';
 
 interface AppointmentsSectionProps {
   worker: Worker;
