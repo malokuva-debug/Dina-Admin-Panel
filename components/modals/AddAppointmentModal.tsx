@@ -62,50 +62,42 @@ export default function AddAppointmentModal({
     return;
   }
 
-    function mapAppointmentToDb(appointment: Appointment) {
-  return {
-    time: appointment.time,
-    date: appointment.date,
-    worker: appointment.worker,
-    service: appointment.service,
-    price: appointment.price,
-    duration: appointment.duration,
-    customer_name: appointment.customerName, // map camelCase → snake_case
-    customer_phone: appointment.customerPhone,
-    is_done: appointment.is_done ?? false,
-  };
-}
-      
+  function mapAppointmentToDb(appointment: Appointment) {
+    return {
+      time: appointment.time,
+      customer_name: appointment.customerName, // camelCase -> snake_case
+      customer_phone: appointment.customerPhone,
+      is_done: appointment.is_done ?? false,
+    };
+  }
+
   const newAppointment: Appointment = {
-  id: `${Date.now()}-${Math.floor(Math.random() * 1000)}`,
-  worker: selectedWorker,
-  service: service.name,
-  price: service.price,
-  duration: service.duration,
-  date,
-  time,
-  customerName,       // <-- fixed
-  customerPhone,      // <-- fixed
-  is_done: false,
-};
+    id: `${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+    worker: selectedWorker,
+    service: service.name,
+    price: service.price,
+    duration: service.duration,
+    date,
+    time,
+    customerName,
+    customerPhone,
+    is_done: false,
+  };
 
-// Convert camelCase → snake_case for Supabase
-const dbAppointment = mapAppointmentToDb(newAppointment);
-
-if (storageMode === 'supabase') {
-  const { error } = await supabase
-    .from('appointments')
-    .insert([dbAppointment]);
-  if (error) throw error;
-} else {
-  const allAppointments: Appointment[] =
-    storage.get(STORAGE_KEYS.APPOINTMENTS) || [];
-
-  storage.set(STORAGE_KEYS.APPOINTMENTS, [
-    ...allAppointments,
-    newAppointment,
-  ]);
-}
+  try {
+    if (storageMode === 'supabase') {
+      const { error } = await supabase
+        .from('appointments')
+        .insert([mapAppointmentToDb(newAppointment)]);
+      if (error) throw error;
+    } else {
+      const allAppointments: Appointment[] =
+        storage.get(STORAGE_KEYS.APPOINTMENTS) || [];
+      storage.set(STORAGE_KEYS.APPOINTMENTS, [
+        ...allAppointments,
+        newAppointment,
+      ]);
+    }
 
     onAdded();
     onClose();
