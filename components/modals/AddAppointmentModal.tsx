@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Worker, ServiceCategory, Service, Appointment } from '@/types';
+import { Worker, Category, Service, Appointment } from '@/types';
 import { supabase } from '@/lib/supabase';
 import { storage, STORAGE_KEYS, storageMode } from '@/lib/storage';
 
