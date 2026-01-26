@@ -50,7 +50,6 @@ export default function AddAppointmentModal({
   }
 
   const filtered = services.filter(s => s.category === selectedCategory);
-  );
 
   console.log('Filtered services:', filtered);
 
