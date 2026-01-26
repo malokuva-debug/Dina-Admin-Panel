@@ -63,6 +63,7 @@ export default function ServiceModal({ service, categoryId, onClose }: ServiceMo
             price: updatedService.price,
             duration: updatedService.duration,
             category: categoryId,
+            category_id: updatedService.category,
           });
         } else {
           await db.services.update(service.id, {
