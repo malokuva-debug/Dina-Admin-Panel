@@ -37,18 +37,15 @@ export default function AddAppointmentModal({
   }, []);
 
   useEffect(() => {
-  // Filter services by category
   if (selectedCategory) {
-    // Find the selected category's ID
-    const category = categories.find(c => c.name === selectedCategory);
-    const filtered = services.filter(s => s.category === category?.id);
+    const filtered = services.filter(s => s.category === selectedCategory); // now both are category IDs
     setFilteredServices(filtered);
     setSelectedService(filtered.length > 0 ? filtered[0].id : '');
   } else {
     setFilteredServices([]);
     setSelectedService('');
   }
-}, [selectedCategory, services, categories]);
+}, [selectedCategory, services]);
 
   const handleAdd = async () => {
     if (!selectedWorker || !selectedService || !date || !time) {
@@ -111,25 +108,26 @@ export default function AddAppointmentModal({
         </div>
 
         {/* Category Dropdown */}
-        <div className="row">
-          <span>Category</span>
-          <select value={selectedCategory} onChange={e => setSelectedCategory(e.target.value)}>
-            <option value="">Select Category</option>
-            {categories.map(c => (
-              <option key={c.id} value={c.name}>{c.name}</option>
-            ))}
-          </select>
-        </div>
+<div className="row">
+  <span>Category</span>
+  <select value={selectedCategory} onChange={e => setSelectedCategory(e.target.value)}>
+    <option value="">Select Category</option>
+    {categories.map(c => (
+      <option key={c.id} value={c.id}>{c.name}</option>
+    ))}
+  </select>
+</div>
 
-        {/* Service Dropdown */}
-        <div className="row">
-          <span>Service</span>
-          <select value={selectedService} onChange={e => setSelectedService(e.target.value)}>
-            {filteredServices.map(s => (
-              <option key={s.id} value={s.id}>{s.name} (${s.price})</option>
-            ))}
-          </select>
-        </div>
+{/* Service Dropdown */}
+<div className="row">
+  <span>Service</span>
+  <select value={selectedService} onChange={e => setSelectedService(e.target.value)}>
+    <option value="">Select Service</option>
+    {filteredServices.map(s => (
+      <option key={s.id} value={s.id}>{s.name} (${s.price})</option>
+    ))}
+  </select>
+</div>
 
         {/* Customer Name */}
         <div className="row">
