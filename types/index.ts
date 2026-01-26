@@ -7,7 +7,7 @@ export interface Service {
   name: string;
   price: number;
   duration: number;
-  category_id: string;
+  category: string;
 }
 
 export interface Category {
