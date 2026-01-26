@@ -28,14 +28,14 @@ export async function POST(req: NextRequest) {
     // Send push notifications
     if (subscriptions?.length) {
       for (const { subscription } of subscriptions) {
-        // Call sendNotification with all required arguments
+        // Correctly pass a string as third argument
         await sendNotification(
           subscription,
           JSON.stringify({
             title: 'New Appointment!',
             body: `${clientName} booked ${service} on ${new Date(date).toLocaleString()}`,
           }),
-          {} // options, can be empty if not used
+          '' // empty string if no options are needed
         );
       }
     }
