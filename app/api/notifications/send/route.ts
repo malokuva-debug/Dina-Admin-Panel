@@ -43,8 +43,8 @@ export async function POST(request: NextRequest) {
     } catch (dbError) {
       console.log('Database not available, using in-memory storage');
       if (global.pushSubscriptions && global.pushSubscriptions.has(userId)) {
-        subscription = global.pushSubscriptions.get(userId);
-      }
+  subscription = global.pushSubscriptions.get(userId);
+}
     }
 
     if (!subscription) {
