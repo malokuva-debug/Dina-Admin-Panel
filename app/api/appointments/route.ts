@@ -47,17 +47,17 @@ export async function POST(request: Request) {
 
     // 3️⃣ Send notifications to owner
     if (subscriptions?.length) {
-      for (const { subscription } of subscriptions) {
-        await sendNotification(
-          subscription,
-          JSON.stringify({
-            title: 'New Appointment!',
-            body: `${clientName} booked ${service} on ${new Date(date).toLocaleString()}`,
-          }),
-          {} // empty options object
-        );
-      }
-    }
+  for (const { subscription } of subscriptions) {
+    await sendNotification(
+      subscription,
+      JSON.stringify({
+        title: 'New Appointment!',
+        body: `${clientName} booked ${service} on ${new Date(date).toLocaleString()}`,
+      }),
+      {} // <-- fix here
+    );
+  }
+}
 
     return NextResponse.json({ success: true, appointment });
   } catch (err: any) {
