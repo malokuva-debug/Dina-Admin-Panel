@@ -84,8 +84,8 @@ export default function AddAppointmentModal({
   duration: service.duration,
   date,
   time,
-  customerName,
-  customerPhone,
+  customerName,       // <-- fixed
+  customerPhone,      // <-- fixed
   is_done: false,
 };
 
@@ -95,20 +95,17 @@ const dbAppointment = mapAppointmentToDb(newAppointment);
 if (storageMode === 'supabase') {
   const { error } = await supabase
     .from('appointments')
-    .insert([dbAppointment]); // ← send mapped object
+    .insert([dbAppointment]);
   if (error) throw error;
+} else {
+  const allAppointments: Appointment[] =
+    storage.get(STORAGE_KEYS.APPOINTMENTS) || [];
+
+  storage.set(STORAGE_KEYS.APPOINTMENTS, [
+    ...allAppointments,
+    newAppointment,
+  ]);
 }
-
-      if (error) throw error;
-    } else {
-      const allAppointments: Appointment[] =
-        storage.get(STORAGE_KEYS.APPOINTMENTS) || [];
-
-      storage.set(STORAGE_KEYS.APPOINTMENTS, [
-        ...allAppointments,
-        newAppointment,
-      ]);
-    }
 
     onAdded();
     onClose();
