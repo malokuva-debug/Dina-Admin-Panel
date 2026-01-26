@@ -56,38 +56,43 @@ export default function AddAppointmentModal({
     return;
   }
 
-  const service = services.find(s => s.id === selectedService);
-  if (!service) {
-    alert('Service not found');
-    return;
-  }
+  if (!selectedService) {
+  alert('Please select a service');
+  return;
+}
 
-  function mapAppointmentToDb(appointment: Appointment) {
-    return {
+const service = services.find(s => s.id === selectedService);
+if (!service) {
+  alert('Selected service not found');
+  return;
+}
+
+ function mapAppointmentToDb(appointment: Appointment) {
+  return {
     time: appointment.time,
     date: appointment.date,
-    worker: appointment.worker,     // include worker
-    service: appointment.service,   // include service
+    worker: appointment.worker,     
+    service: appointment.service,   
     price: appointment.price,
     duration: appointment.duration,
     customer_name: appointment.customerName,
     customer_phone: appointment.customerPhone,
     is_done: appointment.is_done ?? false,
   };
-  }
+}
 
   const newAppointment: Appointment = {
-    id: `${Date.now()}-${Math.floor(Math.random() * 1000)}`,
-    worker: selectedWorker,
-    service: service.name,
-    price: service.price,
-    duration: service.duration,
-    date,
-    time,
-    customerName,
-    customerPhone,
-    is_done: false,
-  };
+  id: `${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+  worker: selectedWorker,
+  service: service.name, // will never be undefined because of step 1
+  price: service.price,
+  duration: service.duration,
+  date,
+  time,
+  customerName,
+  customerPhone,
+  is_done: false,
+};
 
   try {
     if (storageMode === 'supabase') {
