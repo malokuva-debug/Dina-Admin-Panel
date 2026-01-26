@@ -13,8 +13,11 @@ if (vapidPublicKey && vapidPrivateKey) {
 }
 
 export async function POST(request: NextRequest) {
+  let userId: string | undefined; // <-- declare here so catch can access
+
   try {
-    const { userId, title, body, data } = await request.json();
+    const { userId: uid, title, body, data } = await request.json();
+    userId = uid;
 
     if (!userId || !title || !body) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
@@ -64,7 +67,7 @@ export async function POST(request: NextRequest) {
     console.error('Send notification error:', error);
 
     // Remove expired subscriptions (HTTP 410)
-    if (error?.statusCode === 410 || error?.message?.includes('410')) {
+    if (userId && (error?.statusCode === 410 || error?.message?.includes('410'))) {
       try {
         await supabase
           .from('push_subscriptions')
