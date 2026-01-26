@@ -31,18 +31,21 @@ export default function AppointmentsSection({ worker }: AppointmentsSectionProps
 
   const [modalOpen, setModalOpen] = useState(false);
   const [services, setServices] = useState<Service[]>([]);
-  const [categories, setCategories] = useState<ServiceCategory[]>([]);
-  const [workers, setWorkers] = useState<Worker[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [workers, setWorkers] = useState<Worker[]>(['dina', 'kida']); // default to your types
 
   useEffect(() => {
-    // Fetch categories, services, workers from Supabase
+    // Fetch categories and services from Supabase
     const fetchData = async () => {
-      const { data: cats } = await supabase.from('categories').select('*');
-      const { data: svcs } = await supabase.from('services').select('*');
-      const { data: wks } = await supabase.from('workers').select('*');
-      if (cats) setCategories(cats);
-      if (svcs) setServices(svcs);
-      if (wks) setWorkers(wks.map(w => w.name)); // assuming Worker is string
+      try {
+        const { data: cats } = await supabase.from('categories').select('*');
+        const { data: svcs } = await supabase.from('services').select('*');
+
+        if (cats) setCategories(cats as Category[]);
+        if (svcs) setServices(svcs as Service[]);
+      } catch (err) {
+        console.error('Failed to fetch categories or services:', err);
+      }
     };
     fetchData();
   }, []);
@@ -61,7 +64,7 @@ export default function AppointmentsSection({ worker }: AppointmentsSectionProps
           .eq('id', id);
         if (error) throw error;
       } else {
-        const allAppointments = (storage.get(STORAGE_KEYS.APPOINTMENTS) as any[]) || [];
+        const allAppointments = (storage.get(STORAGE_KEYS.APPOINTMENTS) as Appointment[]) || [];
         const updated = allAppointments.map((apt) =>
           apt.id === id ? { ...apt, is_done: isDone } : apt
         );
