@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
-import { sendPushNotification } from '@/lib/notifications';
+import { sendNotification } from '@/lib/notifications';
 
 export async function POST(req: NextRequest) {
   try {
@@ -28,10 +28,10 @@ export async function POST(req: NextRequest) {
     // Send push notifications
     if (subscriptions?.length) {
       for (const { subscription } of subscriptions) {
-        await sendPushNotification(subscription, {
-          title: 'New Appointment!',
-          body: `${clientName} booked ${service} on ${new Date(date).toLocaleString()}`,
-        });
+        await sendNotification(subscription, {
+        title: 'New Appointment!',
+        body: `${clientName} booked ${service} on ${new Date(date).toLocaleString()}`,
+       });
       }
     }
 
