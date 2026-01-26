@@ -6,7 +6,7 @@ import { useAppointments } from '@/hooks/useAppointments';
 import AppointmentsList from './AppointmentsList';
 import { supabase } from '@/lib/supabase';
 import { storage, STORAGE_KEYS, storageMode } from '@/lib/storage';
-import AddAppointmentModal from '././modals/AddAppointmentModal'; // We'll create this modal
+import AddAppointmentModal from '@/components/modals/AddAppointmentModal';
 
 interface AppointmentsSectionProps {
   worker: Worker;
