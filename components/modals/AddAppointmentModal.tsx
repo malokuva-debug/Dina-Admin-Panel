@@ -36,9 +36,9 @@ export default function AddAppointmentModal({
     };
   }, []);
 
-  useEffect(() => {
+ useEffect(() => {
   if (selectedCategory) {
-    const filtered = services.filter(s => s.category === selectedCategory); // now both are category IDs
+    const filtered = services.filter(s => s.category === selectedCategory); // category IDs match
     setFilteredServices(filtered);
     setSelectedService(filtered.length > 0 ? filtered[0].id : '');
   } else {
@@ -111,11 +111,11 @@ export default function AddAppointmentModal({
 <div className="row">
   <span>Category</span>
   <select value={selectedCategory} onChange={e => setSelectedCategory(e.target.value)}>
-    <option value="">Select Category</option>
-    {categories.map(c => (
-      <option key={c.id} value={c.id}>{c.name}</option>
-    ))}
-  </select>
+  <option value="">Select Category</option>
+  {categories.map(c => (
+    <option key={c.id} value={c.id}>{c.name}</option> // ✅ value is id
+  ))}
+</select>
 </div>
 
 {/* Service Dropdown */}
