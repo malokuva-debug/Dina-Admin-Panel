@@ -49,9 +49,15 @@ export async function POST(request: NextRequest) {
       }
     } catch {
       console.log('Database not available, using in-memory storage');
-      if (global.pushSubscriptions.has(userId)) {
-        subscription = global.pushSubscriptions.get(userId);
-      }
+      // Ensure global pushSubscriptions map exists
+const g = global as typeof globalThis & {
+  pushSubscriptions: Map<string, any>;
+};
+
+if (!g.pushSubscriptions) {
+  g.pushSubscriptions = new Map<string, any>();
+}
+
     }
 
     if (!subscription) {
@@ -87,8 +93,8 @@ export async function POST(request: NextRequest) {
       }
 
       // Also remove from in-memory
-      if (global.pushSubscriptions.has(userId)) {
-        global.pushSubscriptions.delete(userId);
+      if (g.pushSubscriptions.has(userId)) {
+        g.pushSubscriptions.delete(userId);
       }
     }
 
