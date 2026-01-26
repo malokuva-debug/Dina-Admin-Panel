@@ -39,8 +39,8 @@ export default function AddAppointmentModal({
  useEffect(() => {
   console.log('Selected category id:', selectedCategory);
   console.log(
-    'Service category_ids:',
-    services.map(s => s.category_id)
+    'Service category:',
+    services.map(s => s.category)
   );
 
   if (!selectedCategory) {
