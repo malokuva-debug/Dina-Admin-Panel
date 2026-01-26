@@ -57,8 +57,8 @@ export async function POST(request: NextRequest) {
     const payload = JSON.stringify({
       title,
       body,
-      icon: '/icon-192.png',
-      badge: '/icon-192.png',
+      icon: '/icon.png',
+      badge: '/icon.png',
       data: data || {},
     });
 
@@ -66,14 +66,14 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Send notification error:', error);
+    console.error('Send notification error:', error, error.stack);
     
     if (error instanceof Error && error.message.includes('410')) {
       try {
         await supabase
           .from('push_subscriptions')
-          .delete()
-          .eq('user_id', request.body);
+          .delete().eq('user_id', userId);
+          .eq('user_id', userId);
       } catch (e) {
         console.error('Failed to remove expired subscription:', e);
       }
