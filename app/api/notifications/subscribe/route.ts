@@ -1,9 +1,7 @@
+// app/api/notifications/subscribe/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
-
-declare global {
-  let pushSubscriptions: Map<string, any> | undefined;
-}
+import { g } from '@/lib/pushSubscriptions';
 
 export async function POST(request: NextRequest) {
   try {
@@ -13,7 +11,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing subscription or userId' }, { status: 400 });
     }
 
-    // Validate subscription
     if (!subscription.endpoint || !subscription.keys?.p256dh || !subscription.keys?.auth) {
       return NextResponse.json({ error: 'Invalid subscription object' }, { status: 400 });
     }
@@ -30,14 +27,11 @@ export async function POST(request: NextRequest) {
 
     if (error) {
       console.error('Error saving subscription:', error);
-
-      // fallback for development
-      if (!global.pushSubscriptions) global.pushSubscriptions = new Map();
-      global.pushSubscriptions.set(userId, subscription);
-
+      g.pushSubscriptions.set(userId, subscription); // fallback
       return NextResponse.json({ success: false, fallback: true });
     }
 
+    g.pushSubscriptions.set(userId, subscription); // also cache in-memory
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Subscribe error:', error);
