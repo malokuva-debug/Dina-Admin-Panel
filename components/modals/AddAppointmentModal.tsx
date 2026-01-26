@@ -37,8 +37,18 @@ export default function AddAppointmentModal({
   }, []);
 
  useEffect(() => {
+  console.log('Selected category:', selectedCategory);
+  console.log(
+    'Service categories:',
+    services.map(s => s.category)
+  );
+
   if (selectedCategory) {
-    const filtered = services.filter(s => s.category === selectedCategory); // category names match
+    const filtered = services.filter(
+      s => s.category === selectedCategory
+    );
+    console.log('Filtered services:', filtered);
+
     setFilteredServices(filtered);
     setSelectedService(filtered.length > 0 ? filtered[0].id : '');
   } else {
