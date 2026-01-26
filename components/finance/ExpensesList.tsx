@@ -15,8 +15,16 @@ export default function ExpensesList({ month, worker }: ExpensesListProps) {
   const [selectedExpense, setSelectedExpense] = useState<Expense | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
+  // Load expenses on mount, month change, worker change, and on "expenses-updated" event
   useEffect(() => {
     loadExpenses();
+
+    const handler = () => loadExpenses();
+    window.addEventListener('expenses-updated', handler);
+
+    return () => {
+      window.removeEventListener('expenses-updated', handler);
+    };
   }, [month, worker]);
 
   const loadExpenses = () => {
@@ -42,7 +50,9 @@ export default function ExpensesList({ month, worker }: ExpensesListProps) {
       STORAGE_KEYS.EXPENSES,
       allExpenses.filter(exp => exp.id !== id)
     );
-    loadExpenses();
+
+    // Notify all listeners to reload
+    window.dispatchEvent(new Event('expenses-updated'));
   };
 
   const handleEdit = (expense: Expense) => {
@@ -53,7 +63,9 @@ export default function ExpensesList({ month, worker }: ExpensesListProps) {
   const handleModalClose = () => {
     setIsModalOpen(false);
     setSelectedExpense(null);
-    loadExpenses();
+
+    // Notify all listeners to reload
+    window.dispatchEvent(new Event('expenses-updated'));
   };
 
   const formatDate = (dateStr: string) => {
