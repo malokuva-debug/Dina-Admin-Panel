@@ -49,8 +49,7 @@ export default function AddAppointmentModal({
     return;
   }
 
-  const filtered = services.filter(
-    s => s.category_id === selectedCategory
+  const filtered = services.filter(s => s.category === selectedCategory);
   );
 
   console.log('Filtered services:', filtered);
@@ -137,7 +136,7 @@ export default function AddAppointmentModal({
 >
   <option value="">Select Category</option>
   {categories.map(c => (
-    <option key={c.id} value={c.id}>
+    <option key={c.id} value={c.name}>
       {c.name}
     </option>
   ))}
