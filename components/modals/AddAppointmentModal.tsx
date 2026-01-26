@@ -70,8 +70,8 @@ export default function AddAppointmentModal({
     duration: service.duration,
     date,
     time,
-    customerName,
-    customerPhone,
+    customer_name: customerName,
+    customer_phone: customerPhone,
     is_done: false,
   };
 
