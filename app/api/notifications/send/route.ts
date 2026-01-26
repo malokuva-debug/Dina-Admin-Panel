@@ -13,9 +13,20 @@ if (vapidPublicKey && vapidPrivateKey) {
 }
 
 // Ensure global pushSubscriptions map exists
-if (!global.pushSubscriptions) {
-  global.pushSubscriptions = new Map<string, any>();
+// Cast global so TS knows pushSubscriptions exists
+const g = global as typeof globalThis & {
+  pushSubscriptions: Map<string, any>;
+};
+
+if (!g.pushSubscriptions) {
+  g.pushSubscriptions = new Map<string, any>();
 }
+
+// Use g.pushSubscriptions instead of global.pushSubscriptions
+if (g.pushSubscriptions.has(userId)) {
+  subscription = g.pushSubscriptions.get(userId);
+}
+
 
 export async function POST(request: NextRequest) {
   try {
