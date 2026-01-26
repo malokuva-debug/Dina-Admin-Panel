@@ -112,7 +112,7 @@ export default function ServicesSection() {
       price: 0,
       duration: 30,
       category: selectedCategory,
-      category_id: updatedService.category,
+      category_id: selectedCategory,
     };
 
     setSelectedService(newService);
