@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
 
 declare global {
-  var pushSubscriptions: Map<string, any> | undefined;
+  let pushSubscriptions: Map<string, any> | undefined;
 }
 
 export async function POST(request: NextRequest) {
