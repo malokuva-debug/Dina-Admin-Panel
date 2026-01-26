@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { sendNotification } from '@/lib/webpush'; // your existing notification helper
+import { sendNotification } from '@/lib/notifications';
 
 const supabase = createClient(
   process.env.SUPABASE_URL!,
