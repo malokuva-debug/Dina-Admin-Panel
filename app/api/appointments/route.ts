@@ -21,7 +21,7 @@ export async function POST(request: Request) {
       .insert({
         date,
         service,
-        client: clientName, // adjust if your table column is 'client' instead of 'client_name'
+        customer_name: clientName, // adjust if your table column is 'client' instead of 'client_name'
       })
       .select()
       .single();
