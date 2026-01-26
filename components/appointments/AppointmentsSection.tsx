@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Worker, Appointment } from '@/types';
 import { useAppointments } from '@/hooks/useAppointments';
 import AppointmentsList from './AppointmentsList';
@@ -11,18 +11,15 @@ interface AppointmentsSectionProps {
   worker: Worker;
 }
 
+interface Service {
+  name: string;
+  price: number;
+}
+
 export default function AppointmentsSection({ worker }: AppointmentsSectionProps) {
   const [filterMonth, setFilterMonth] = useState<string>(
     new Date().toISOString().slice(0, 7)
   );
-  const [newAppointment, setNewAppointment] = useState({
-    service: '',
-    date: '',
-    time: '',
-    price: 0,
-    customerName: '',
-    customerPhone: ''
-  });
 
   const { 
     appointments, 
@@ -35,6 +32,27 @@ export default function AppointmentsSection({ worker }: AppointmentsSectionProps
     month: filterMonth,
     autoLoad: true 
   });
+
+  const [services, setServices] = useState<Service[]>([]);
+  const [newAppointment, setNewAppointment] = useState({
+    customerName: '',
+    customerPhone: '',
+    service: '',
+    price: 0,
+    date: new Date().toISOString().slice(0, 10),
+    time: '09:00',
+    worker
+  });
+  const [adding, setAdding] = useState(false);
+
+  useEffect(() => {
+    // Fetch services from Supabase
+    const fetchServices = async () => {
+      const { data, error } = await supabase.from('services').select('name, price');
+      if (!error && data) setServices(data);
+    };
+    fetchServices();
+  }, []);
 
   const handleDelete = async (id: string) => {
     const success = await deleteAppointment(id);
@@ -50,7 +68,6 @@ export default function AppointmentsSection({ worker }: AppointmentsSectionProps
           .from('appointments')
           .update({ is_done: isDone })
           .eq('id', id);
-
         if (error) throw error;
       } else {
         const allAppointments = (storage.get(STORAGE_KEYS.APPOINTMENTS) as any[]) || [];
@@ -59,7 +76,6 @@ export default function AppointmentsSection({ worker }: AppointmentsSectionProps
         );
         storage.set(STORAGE_KEYS.APPOINTMENTS, updated);
       }
-
       await refresh();
     } catch (error) {
       console.error('Error marking appointment:', error);
@@ -67,38 +83,43 @@ export default function AppointmentsSection({ worker }: AppointmentsSectionProps
     }
   };
 
-  const handleAddAppointment = () => {
-    if (!newAppointment.service || !newAppointment.date || !newAppointment.time) {
-      alert('Service, date, and time are required.');
+  const handleAddAppointment = async () => {
+    if (!newAppointment.service || !newAppointment.customerName) {
+      alert('Please select a service and enter customer name.');
       return;
     }
 
+    setAdding(true);
     const appointment: Appointment = {
-      id: `${Date.now()}-${Math.floor(Math.random() * 1000)}`, // unique ID without uuid
-      worker: worker,
-      service: newAppointment.service,
-      date: newAppointment.date,
-      time: newAppointment.time,
-      price: newAppointment.price,
-      customerName: newAppointment.customerName,
-      customerPhone: newAppointment.customerPhone,
-      is_done: false,
+      ...newAppointment,
+      id: crypto.randomUUID(),
+      is_done: false
     };
 
-    if (storageMode === 'supabase') {
-      supabase.from('appointments').insert([appointment]).then(({ error }) => {
-        if (error) {
-          alert('Failed to add appointment.');
-        } else {
-          refresh();
-          setNewAppointment({ service: '', date: '', time: '', price: 0, customerName: '', customerPhone: '' });
-        }
+    try {
+      if (storageMode === 'supabase') {
+        const { error } = await supabase.from('appointments').insert([appointment]);
+        if (error) throw error;
+      } else {
+        const allAppointments = (storage.get(STORAGE_KEYS.APPOINTMENTS) as Appointment[]) || [];
+        storage.set(STORAGE_KEYS.APPOINTMENTS, [...allAppointments, appointment]);
+      }
+      // Refresh list and reset form
+      await refresh();
+      setNewAppointment({
+        customerName: '',
+        customerPhone: '',
+        service: '',
+        price: 0,
+        date: new Date().toISOString().slice(0, 10),
+        time: '09:00',
+        worker
       });
-    } else {
-      const allAppointments = (storage.get(STORAGE_KEYS.APPOINTMENTS) as any[]) || [];
-      storage.set(STORAGE_KEYS.APPOINTMENTS, [...allAppointments, appointment]);
-      refresh();
-      setNewAppointment({ service: '', date: '', time: '', price: 0, customerName: '', customerPhone: '' });
+    } catch (err) {
+      console.error(err);
+      alert('Failed to add appointment.');
+    } finally {
+      setAdding(false);
     }
   };
 
@@ -106,7 +127,7 @@ export default function AppointmentsSection({ worker }: AppointmentsSectionProps
     <div id="appointments">
       <h2>Appointments</h2>
 
-      {/* Month filter */}
+      {/* Month Filter */}
       <div style={{ display: 'flex', gap: '10px', marginBottom: '15px', alignItems: 'center' }}>
         <input
           type="month"
@@ -115,65 +136,86 @@ export default function AppointmentsSection({ worker }: AppointmentsSectionProps
         />
       </div>
 
-      {/* New Appointment Form */}
-      <div style={{ marginBottom: '20px', display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-        <input
-          type="text"
-          placeholder="Service"
-          value={newAppointment.service}
-          onChange={(e) => setNewAppointment({ ...newAppointment, service: e.target.value })}
-        />
-        <input
-          type="date"
-          value={newAppointment.date}
-          onChange={(e) => setNewAppointment({ ...newAppointment, date: e.target.value })}
-        />
-        <input
-          type="time"
-          value={newAppointment.time}
-          onChange={(e) => setNewAppointment({ ...newAppointment, time: e.target.value })}
-        />
-        <input
-          type="number"
-          placeholder="Price"
-          value={newAppointment.price}
-          onChange={(e) => setNewAppointment({ ...newAppointment, price: parseFloat(e.target.value) })}
-        />
-        <input
-          type="text"
-          placeholder="Customer Name"
-          value={newAppointment.customerName}
-          onChange={(e) => setNewAppointment({ ...newAppointment, customerName: e.target.value })}
-        />
-        <input
-          type="tel"
-          placeholder="Customer Phone"
-          value={newAppointment.customerPhone}
-          onChange={(e) => setNewAppointment({ ...newAppointment, customerPhone: e.target.value })}
-        />
-        <button
-          onClick={handleAddAppointment}
-          style={{
-            background: '#34c759',
-            color: 'white',
-            padding: '10px 15px',
-            borderRadius: '6px',
-            fontWeight: '600',
-            cursor: 'pointer'
-          }}
-        >
-          Add Appointment
-        </button>
-      </div>
+      {/* Error */}
+      {error && (
+        <div className="card" style={{ background: '#ff3b3020', borderColor: '#ff3b30' }}>
+          <p style={{ color: '#ff3b30', textAlign: 'center' }}>{error}</p>
+        </div>
+      )}
 
-      {error && <div className="card" style={{ background: '#ff3b3020', borderColor: '#ff3b30' }}><p style={{ color: '#ff3b30', textAlign: 'center' }}>{error}</p></div>}
-
+      {/* Appointments List */}
       <AppointmentsList 
         appointments={appointments}
         onDelete={handleDelete}
         onMarkDone={handleMarkDone}
         loading={loading}
       />
+
+      {/* Add Appointment Form */}
+      <div className="card" style={{ marginTop: '20px', padding: '20px' }}>
+        <h3>Add Appointment</h3>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginBottom: '10px' }}>
+          <input
+            type="text"
+            placeholder="Customer Name"
+            value={newAppointment.customerName}
+            onChange={(e) => setNewAppointment({ ...newAppointment, customerName: e.target.value })}
+            style={{ flex: 1, padding: '8px' }}
+          />
+          <input
+            type="tel"
+            placeholder="Customer Phone"
+            value={newAppointment.customerPhone}
+            onChange={(e) => setNewAppointment({ ...newAppointment, customerPhone: e.target.value })}
+            style={{ flex: 1, padding: '8px' }}
+          />
+          <select
+            value={newAppointment.service}
+            onChange={(e) => {
+              const selected = services.find(s => s.name === e.target.value);
+              setNewAppointment({
+                ...newAppointment,
+                service: selected?.name || '',
+                price: selected?.price || 0
+              });
+            }}
+            style={{ flex: 1, padding: '8px' }}
+          >
+            <option value="">Select Service</option>
+            {services.map(s => (
+              <option key={s.name} value={s.name}>{s.name}</option>
+            ))}
+          </select>
+          <input
+            type="date"
+            value={newAppointment.date}
+            onChange={(e) => setNewAppointment({ ...newAppointment, date: e.target.value })}
+            style={{ flex: 1, padding: '8px' }}
+          />
+          <input
+            type="time"
+            value={newAppointment.time}
+            onChange={(e) => setNewAppointment({ ...newAppointment, time: e.target.value })}
+            style={{ flex: 1, padding: '8px' }}
+          />
+        </div>
+        <button
+          onClick={handleAddAppointment}
+          disabled={adding}
+          style={{
+            padding: '12px',
+            width: '100%',
+            background: '#34c759',
+            color: 'white',
+            border: 'none',
+            borderRadius: '8px',
+            fontWeight: '600',
+            cursor: 'pointer'
+          }}
+        >
+          {adding ? 'Adding...' : 'Add Appointment'}
+        </button>
+      </div>
     </div>
   );
 }
