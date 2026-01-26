@@ -71,9 +71,9 @@ export async function POST(request: NextRequest) {
     if (error instanceof Error && error.message.includes('410')) {
       try {
         await supabase
-          .from('push_subscriptions')
-          .delete().eq('user_id', userId);
-          .eq('user_id', userId);
+       .from('push_subscriptions')
+       .delete()
+       .eq('user_id', userId);
       } catch (e) {
         console.error('Failed to remove expired subscription:', e);
       }
