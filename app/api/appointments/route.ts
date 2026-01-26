@@ -13,7 +13,7 @@ export async function POST(req: NextRequest) {
     // Insert appointment into Supabase
     const { data: appointment, error } = await supabase
       .from('appointments')
-      .insert({ user_id: userId, date, service, client_name: clientName })
+      .insert({ user_id: userId, date, service, customer_name: clientName })
       .select()
       .single();
 
