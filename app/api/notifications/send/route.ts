@@ -1,13 +1,20 @@
+// app/api/notifications/send/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import webpush from 'web-push';
 import { supabase } from '@/lib/supabase';
 
+// VAPID configuration
 const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || '';
 const vapidPrivateKey = process.env.VAPID_PRIVATE_KEY || '';
 const vapidEmail = process.env.VAPID_EMAIL || 'mailto:valmir.mlku@gmail.com';
 
 if (vapidPublicKey && vapidPrivateKey) {
   webpush.setVapidDetails(vapidEmail, vapidPublicKey, vapidPrivateKey);
+}
+
+// Ensure global pushSubscriptions map exists
+if (!global.pushSubscriptions) {
+  global.pushSubscriptions = new Map<string, any>();
 }
 
 export async function POST(request: NextRequest) {
@@ -28,8 +35,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Try to fetch subscription from Supabase
     let subscription = null;
-
     try {
       const { data: subData, error } = await supabase
         .from('push_subscriptions')
@@ -40,11 +47,11 @@ export async function POST(request: NextRequest) {
       if (!error && subData) {
         subscription = subData.subscription;
       }
-    } catch (dbError) {
+    } catch {
       console.log('Database not available, using in-memory storage');
-      if (global.pushSubscriptions && global.pushSubscriptions.has(userId)) {
-  subscription = global.pushSubscriptions.get(userId);
-}
+      if (global.pushSubscriptions.has(userId)) {
+        subscription = global.pushSubscriptions.get(userId);
+      }
     }
 
     if (!subscription) {
@@ -65,17 +72,23 @@ export async function POST(request: NextRequest) {
     await webpush.sendNotification(subscription, payload);
 
     return NextResponse.json({ success: true });
-  } catch (error) {
-    console.error('Send notification error:', error, error.stack);
-    
-    if (error instanceof Error && error.message.includes('410')) {
+  } catch (error: any) {
+    console.error('Send notification error:', error);
+
+    // Remove expired subscriptions (HTTP 410)
+    if (error.message?.includes('410')) {
       try {
         await supabase
-       .from('push_subscriptions')
-       .delete()
-       .eq('user_id', userId);
+          .from('push_subscriptions')
+          .delete()
+          .eq('user_id', userId);
       } catch (e) {
         console.error('Failed to remove expired subscription:', e);
+      }
+
+      // Also remove from in-memory
+      if (global.pushSubscriptions.has(userId)) {
+        global.pushSubscriptions.delete(userId);
       }
     }
 
