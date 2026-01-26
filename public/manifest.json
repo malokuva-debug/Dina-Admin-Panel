@@ -1,6 +1,6 @@
 {
-  "name": "Admin Panel - Business Management",
-  "short_name": "Admin Panel",
+  "name": "Dina & Kida Admin Panel",
+  "short_name": "Dina & Kida",
   "description": "Business management and appointment tracking system",
   "start_url": "/",
   "display": "standalone",
