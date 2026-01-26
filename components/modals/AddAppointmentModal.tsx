@@ -37,12 +37,6 @@ export default function AddAppointmentModal({
   }, []);
 
  useEffect(() => {
-  console.log('Selected category id:', selectedCategory);
-  console.log(
-    'Service category:',
-    services.map(s => s.category)
-  );
-
   if (!selectedCategory) {
     setFilteredServices([]);
     setSelectedService('');
@@ -50,9 +44,6 @@ export default function AddAppointmentModal({
   }
 
   const filtered = services.filter(s => s.category === selectedCategory);
-
-  console.log('Filtered services:', filtered);
-
   setFilteredServices(filtered);
   setSelectedService(filtered[0]?.id ?? '');
 }, [selectedCategory, services]);
@@ -135,7 +126,7 @@ export default function AddAppointmentModal({
 >
   <option value="">Select Category</option>
   {categories.map(c => (
-    <option key={c.id} value={c.name}>
+    <option key={c.id} value={c.id}>
       {c.name}
     </option>
   ))}
