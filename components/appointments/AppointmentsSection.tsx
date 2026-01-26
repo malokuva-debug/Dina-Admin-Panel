@@ -4,6 +4,8 @@ import { useState } from 'react';
 import { Worker } from '@/types';
 import { useAppointments } from '@/hooks/useAppointments';
 import AppointmentsList from './AppointmentsList';
+import { supabase } from '@/lib/supabase';
+import { storage, STORAGE_KEYS, storageMode } from '@/lib/storage';
 
 interface AppointmentsSectionProps {
   worker: Worker;
@@ -18,7 +20,8 @@ export default function AppointmentsSection({ worker }: AppointmentsSectionProps
     appointments, 
     loading, 
     error,
-    deleteAppointment 
+    deleteAppointment,
+    refresh
   } = useAppointments({ 
     worker, 
     month: filterMonth,
@@ -29,6 +32,33 @@ export default function AppointmentsSection({ worker }: AppointmentsSectionProps
     const success = await deleteAppointment(id);
     if (!success) {
       alert('Failed to delete appointment');
+    }
+  };
+
+  const handleMarkDone = async (id: string, isDone: boolean) => {
+    try {
+      if (storageMode === 'supabase') {
+        // Update in Supabase
+        const { error } = await supabase
+          .from('appointments')
+          .update({ is_done: isDone })
+          .eq('id', id);
+
+        if (error) throw error;
+      } else {
+        // Update in localStorage
+        const allAppointments = storage.get(STORAGE_KEYS.APPOINTMENTS) || [];
+        const updated = allAppointments.map((apt: any) =>
+          apt.id === id ? { ...apt, is_done: isDone } : apt
+        );
+        storage.set(STORAGE_KEYS.APPOINTMENTS, updated);
+      }
+
+      // Refresh the list
+      await refresh();
+    } catch (error) {
+      console.error('Error marking appointment:', error);
+      alert('Failed to update appointment status');
     }
   };
 
@@ -56,6 +86,7 @@ export default function AppointmentsSection({ worker }: AppointmentsSectionProps
       <AppointmentsList 
         appointments={appointments}
         onDelete={handleDelete}
+        onMarkDone={handleMarkDone}
         loading={loading}
       />
     </div>
