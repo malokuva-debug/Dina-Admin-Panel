@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Worker, Appointment, ServiceCategory, Service } from '@/types';
+import { Worker, Appointment, Category, Service } from '@/types';
 import { useAppointments } from '@/hooks/useAppointments';
 import AppointmentsList from './AppointmentsList';
 import { supabase } from '@/lib/supabase';
