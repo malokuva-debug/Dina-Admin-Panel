@@ -7,34 +7,40 @@ const supabase = createClient(
   process.env.SUPABASE_ANON_KEY!
 );
 
-// Set your owner's user_id here
-const OWNER_USER_ID = process.env.OWNER_USER_ID!;
+// 👑 HARD-CODE OWNER USER ID (CHANGE THIS)
+const OWNER_USER_ID = 'dina';
 
 export async function POST(request: Request) {
   try {
     const { date, service, clientName } = await request.json();
 
     if (!date || !service || !clientName) {
-      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Missing required fields' },
+        { status: 400 }
+      );
     }
 
-    // 1️⃣ Insert appointment
+    // 1️⃣ Insert appointment (ONLY existing DB columns)
     const { data: appointment, error: insertError } = await supabase
       .from('appointments')
       .insert({
         date,
         service,
-        customer_name: clientName, // adjust column name
+        customer_name: clientName, // 🔁 must match DB column
       })
       .select()
       .single();
 
     if (insertError) {
       console.error('Insert error:', insertError);
-      return NextResponse.json({ error: insertError.message }, { status: 500 });
+      return NextResponse.json(
+        { error: insertError.message },
+        { status: 500 }
+      );
     }
 
-    // 2️⃣ Get all push subscriptions of the owner
+    // 2️⃣ Fetch OWNER push subscriptions ONLY
     const { data: subscriptions, error: subError } = await supabase
       .from('push_subscriptions')
       .select('subscription')
@@ -42,26 +48,36 @@ export async function POST(request: Request) {
 
     if (subError) {
       console.error('Subscription fetch error:', subError);
-      return NextResponse.json({ error: subError.message }, { status: 500 });
+      return NextResponse.json(
+        { error: subError.message },
+        { status: 500 }
+      );
     }
 
-    // 3️⃣ Send notifications to owner
+    // 3️⃣ Send push notifications to OWNER
     if (subscriptions?.length) {
-  for (const { subscription } of subscriptions) {
-    await sendNotification(
-      subscription,
-      JSON.stringify({
-        title: 'New Appointment!',
-        body: `${clientName} booked ${service} on ${new Date(date).toLocaleString()}`,
-      }),
-      {} // <-- fix here
-    );
-  }
-}
+      for (const { subscription } of subscriptions) {
+        await sendNotification(
+          subscription,
+          JSON.stringify({
+            title: '📅 New Appointment',
+            body: `${clientName} booked ${service} on ${new Date(date).toLocaleString()}`,
+          }),
+          {} // ✅ REQUIRED third argument
+        );
+      }
+    }
 
-    return NextResponse.json({ success: true, appointment });
+    return NextResponse.json({
+      success: true,
+      appointment,
+      notified: subscriptions?.length ?? 0,
+    });
   } catch (err: any) {
     console.error('Unexpected error:', err);
-    return NextResponse.json({ error: err.message || 'Unknown error' }, { status: 500 });
+    return NextResponse.json(
+      { error: err.message || 'Unknown error' },
+      { status: 500 }
+    );
   }
 }
