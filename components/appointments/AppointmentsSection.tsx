@@ -47,10 +47,12 @@ export default function AppointmentsSection({ worker }: AppointmentsSectionProps
         if (error) throw error;
       } else {
         // Update in localStorage
-        const allAppointments = storage.get(STORAGE_KEYS.APPOINTMENTS) || [];
-        const updated = allAppointments.map((apt: any) =>
-          apt.id === id ? { ...apt, is_done: isDone } : apt
-        );
+        const allAppointments =
+  (storage.get(STORAGE_KEYS.APPOINTMENTS) as any[]) || [];
+
+const updated = allAppointments.map((apt) =>
+  apt.id === id ? { ...apt, is_done: isDone } : apt
+);
         storage.set(STORAGE_KEYS.APPOINTMENTS, updated);
       }
 
