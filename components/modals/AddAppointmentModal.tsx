@@ -68,6 +68,7 @@ export default function AddAppointmentModal({
       customer_name: appointment.customerName, // camelCase -> snake_case
       customer_phone: appointment.customerPhone,
       is_done: appointment.is_done ?? false,
+      worker: appointment.worker,
     };
   }
 
