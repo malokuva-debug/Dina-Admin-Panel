@@ -64,12 +64,16 @@ export default function AddAppointmentModal({
 
   function mapAppointmentToDb(appointment: Appointment) {
     return {
-      time: appointment.time,
-      customer_name: appointment.customerName, // camelCase -> snake_case
-      customer_phone: appointment.customerPhone,
-      is_done: appointment.is_done ?? false,
-      worker: appointment.worker,
-    };
+    time: appointment.time,
+    date: appointment.date,
+    worker: appointment.worker,     // include worker
+    service: appointment.service,   // include service
+    price: appointment.price,
+    duration: appointment.duration,
+    customer_name: appointment.customerName,
+    customer_phone: appointment.customerPhone,
+    is_done: appointment.is_done ?? false,
+  };
   }
 
   const newAppointment: Appointment = {
