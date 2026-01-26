@@ -34,7 +34,6 @@ export async function POST(req: NextRequest) {
         title: 'New Appointment!',
         body: `${clientName} booked ${service} on ${new Date(date).toLocaleString()}`,
       }),
-      {} // optional
     );
   }
 }
