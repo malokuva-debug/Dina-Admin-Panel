@@ -4,7 +4,7 @@ export async function subscribeUser() {
 
   try {
     // Register the service worker
-    const registration = await navigator.serviceWorker.register("/service-worker.js");
+    const registration = await navigator.serviceWorker.register("/sw.js");
     console.log("Service Worker registered:", registration);
 
     // Wait until it's active
