@@ -7,6 +7,9 @@ const supabase = createClient(
   process.env.SUPABASE_ANON_KEY!
 );
 
+// Set your owner's user_id here
+const OWNER_USER_ID = process.env.OWNER_USER_ID!;
+
 export async function POST(request: Request) {
   try {
     const { date, service, clientName } = await request.json();
@@ -15,13 +18,13 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
-    // 1️⃣ Insert appointment (only columns that exist in DB)
+    // 1️⃣ Insert appointment
     const { data: appointment, error: insertError } = await supabase
       .from('appointments')
       .insert({
         date,
         service,
-        customer_name: clientName, // adjust if your table column is 'client' instead of 'client_name'
+        customer_name: clientName, // adjust column name
       })
       .select()
       .single();
@@ -31,27 +34,27 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: insertError.message }, { status: 500 });
     }
 
-    // 2️⃣ Get all push subscriptions for this user (userId stored in push_subscriptions)
+    // 2️⃣ Get all push subscriptions of the owner
     const { data: subscriptions, error: subError } = await supabase
       .from('push_subscriptions')
-      .select('subscription, user_id');
+      .select('subscription')
+      .eq('user_id', OWNER_USER_ID);
 
     if (subError) {
       console.error('Subscription fetch error:', subError);
       return NextResponse.json({ error: subError.message }, { status: 500 });
     }
 
-   // Send push notifications
+    // 3️⃣ Send notifications to owner
     if (subscriptions?.length) {
       for (const { subscription } of subscriptions) {
-        // Correctly pass a string as third argument
         await sendNotification(
           subscription,
           JSON.stringify({
             title: 'New Appointment!',
             body: `${clientName} booked ${service} on ${new Date(date).toLocaleString()}`,
           }),
-          '' // empty string if no options are needed
+          {} // empty options object
         );
       }
     }
