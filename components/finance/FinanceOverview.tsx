@@ -23,7 +23,7 @@ export default function FinanceOverview({ month, worker }: FinanceOverviewProps)
       const { data, error } = await supabase
         .from('appointments')
         .select('price, date, is_done')
-        .eq('worker', worker.name)
+        .eq('worker', worker)
         .eq('is_done', true);
 
       if (error) throw error;
