@@ -1,5 +1,4 @@
 import { createClient } from '@supabase/supabase-js'
-import fetch from 'node-fetch'; // Node.js fetch
 import 'dotenv/config'
 
 const supabase = createClient(
