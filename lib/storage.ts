@@ -173,6 +173,7 @@ export const db = {
         price: data.price,
         duration: data.duration,
         category: data.category_id,
+        category_id: data.category_id,
       };
     },
 
