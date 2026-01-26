@@ -41,16 +41,19 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: subError.message }, { status: 500 });
     }
 
-    // 3️⃣ Send notification to each user
-    for (const { subscription, user_id } of subscriptions) {
-      // You can filter by user_id if needed
-      await sendNotification(
-        subscription,
-        JSON.stringify({
-          title: 'New Appointment!',
-          body: `${clientName} booked ${service} on ${new Date(date).toLocaleString()}`,
-        })
-      );
+   // Send push notifications
+    if (subscriptions?.length) {
+      for (const { subscription } of subscriptions) {
+        // Correctly pass a string as third argument
+        await sendNotification(
+          subscription,
+          JSON.stringify({
+            title: 'New Appointment!',
+            body: `${clientName} booked ${service} on ${new Date(date).toLocaleString()}`,
+          }),
+          '' // empty string if no options are needed
+        );
+      }
     }
 
     return NextResponse.json({ success: true, appointment });
