@@ -86,7 +86,7 @@ if (!service) {
   worker: selectedWorker,
   service: service.name, // will never be undefined because of step 1
   price: service.price,
-  duration: appointment.duration,
+  duration: service.duration,
   date,
   time,
   customerName,
