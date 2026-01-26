@@ -74,7 +74,6 @@ if (!service) {
     worker: appointment.worker,     
     service: appointment.service,   
     price: appointment.price,
-    duration: appointment.duration,
     customer_name: appointment.customerName,
     customer_phone: appointment.customerPhone,
     is_done: appointment.is_done ?? false,
@@ -86,7 +85,6 @@ if (!service) {
   worker: selectedWorker,
   service: service.name, // will never be undefined because of step 1
   price: service.price,
-  duration: service.duration,
   date,
   time,
   customerName,
