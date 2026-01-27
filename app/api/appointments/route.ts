@@ -7,27 +7,36 @@ const supabase = createClient(
   process.env.SUPABASE_ANON_KEY!
 );
 
-// 👑 HARD-CODE OWNER USER ID (CHANGE THIS)
+// 👑 HARD-CODE OWNER USER ID
 const OWNER_USER_ID = 'dina';
 
 export async function POST(request: Request) {
   try {
-    const { date, service, clientName } = await request.json();
+    const { date, service, clientName, worker } = await request.json();
 
-    if (!date || !service || !clientName) {
+    console.log('API /appointments body:', {
+      date,
+      service,
+      clientName,
+      worker,
+    });
+
+    // ✅ Validate required fields
+    if (!date || !service || !clientName || !worker) {
       return NextResponse.json(
         { error: 'Missing required fields' },
         { status: 400 }
       );
     }
 
-    // 1️⃣ Insert appointment (ONLY existing DB columns)
+    // 1️⃣ Insert appointment
     const { data: appointment, error: insertError } = await supabase
       .from('appointments')
       .insert({
+        worker,
         date,
         service,
-        customer_name: clientName, // 🔁 must match DB column
+        customer_name: clientName,
       })
       .select()
       .single();
@@ -40,7 +49,7 @@ export async function POST(request: Request) {
       );
     }
 
-    // 2️⃣ Fetch OWNER push subscriptions ONLY
+    // 2️⃣ Fetch OWNER push subscriptions
     const { data: subscriptions, error: subError } = await supabase
       .from('push_subscriptions')
       .select('subscription')
@@ -54,7 +63,7 @@ export async function POST(request: Request) {
       );
     }
 
-    // 3️⃣ Send push notifications to OWNER
+    // 3️⃣ Send push notifications
     if (subscriptions?.length) {
       for (const { subscription } of subscriptions) {
         await sendNotification(
@@ -63,7 +72,7 @@ export async function POST(request: Request) {
             title: '📅 New Appointment',
             body: `${clientName} booked ${service} on ${new Date(date).toLocaleString()}`,
           }),
-          "" // ✅ REQUIRED third argument
+          ''
         );
       }
     }
@@ -74,9 +83,9 @@ export async function POST(request: Request) {
       notified: subscriptions?.length ?? 0,
     });
   } catch (err: any) {
-    console.error('Unexpected error:', err);
+    console.error('Unexpected API error:', err);
     return NextResponse.json(
-      { error: err.message || 'Unknown error' },
+      { error: err.message || 'Server error' },
       { status: 500 }
     );
   }
