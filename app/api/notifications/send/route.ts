@@ -76,8 +76,6 @@ export async function POST(request: NextRequest) {
       } catch (e) {
         console.error('Failed to delete expired subscription:', e);
       }
-
-      g.pushSubscriptions?.delete(userId);
     }
 
     return NextResponse.json(
