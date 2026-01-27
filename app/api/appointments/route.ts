@@ -63,7 +63,7 @@ export async function POST(request: Request) {
             title: '📅 New Appointment',
             body: `${clientName} booked ${service} on ${new Date(date).toLocaleString()}`,
           }),
-          {} // ✅ REQUIRED third argument
+          "" // ✅ REQUIRED third argument
         );
       }
     }
