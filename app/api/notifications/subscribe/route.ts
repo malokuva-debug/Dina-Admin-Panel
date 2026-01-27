@@ -28,15 +28,6 @@ export async function POST(request: NextRequest) {
     if (error) {
       console.error('Error saving subscription:', error);
 
-      // fallback to in-memory storage
-      g.pushSubscriptions.set(userId, subscription);
-
-      return NextResponse.json({ success: false, fallback: true });
-    }
-
-    // Save in-memory too
-    g.pushSubscriptions.set(userId, subscription);
-
     return NextResponse.json({ success: true });
   } catch (err) {
     console.error('Subscribe error:', err);
