@@ -1,22 +1,11 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { supabase } from '@/lib/supabase';
 import { notifyWorkerNewAppointment } from '@/lib/notifications';
-
-const supabase = createClient(
-  process.env.SUPABASE_URL!,
-  process.env.SUPABASE_ANON_KEY!
-);
 
 export async function POST(request: Request) {
   console.log('=== API ROUTE STARTED ===');
   
   try {
-    // Check env vars first
-    console.log('Env check:', {
-      hasUrl: !!process.env.SUPABASE_URL,
-      hasKey: !!process.env.SUPABASE_ANON_KEY
-    });
-
     const body = await request.json();
     console.log('Received body:', body);
     
