@@ -2,12 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import webpush from 'web-push';
 import { supabase } from '@/lib/supabase';
 
-const g = globalThis as unknown as {
-  pushSubscriptions?: Map<string, any>;
-};
-
-g.pushSubscriptions ??= new Map();
-
 // VAPID configuration
 const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || '';
 const vapidPrivateKey = process.env.VAPID_PRIVATE_KEY || '';
@@ -49,11 +43,6 @@ export async function POST(request: NextRequest) {
 
     if (!error && subData?.subscription) {
       subscription = subData.subscription;
-    }
-
-    // Optional fallback (non-critical)
-    if (!subscription && g.pushSubscriptions.has(userId)) {
-      subscription = g.pushSubscriptions.get(userId);
     }
 
     if (!subscription) {
