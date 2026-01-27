@@ -69,19 +69,24 @@ export async function POST(request: Request) {
       );
     }
 
-    // 3️⃣ Send push notifications
-    if (subscriptions?.length) {
-      for (const { subscription } of subscriptions) {
-        await sendNotification(
-          subscription,
-          JSON.stringify({
-            title: '📅 New Appointment',
-            body: `${clientName} booked ${service} on ${new Date(date).toLocaleString()}`,
-          }),
-          ''
-        );
-      }
+// 3️⃣ Send push notifications
+if (subscriptions?.length) {
+  try {
+    for (const { subscription } of subscriptions) {
+      await sendNotification(
+        subscription,
+        JSON.stringify({
+          title: '📅 New Appointment',
+          body: `${clientName} booked ${service} on ${new Date(date).toLocaleString()}`,
+        }),
+        ''
+      );
     }
+  } catch (notifError) {
+    console.error('Notification error (non-fatal):', notifError);
+    // Don't fail the whole request if notifications fail
+  }
+}
 
     return NextResponse.json({
       success: true,
