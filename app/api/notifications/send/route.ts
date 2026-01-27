@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import webpush from 'web-push';
 import { supabase } from '@/lib/supabase';
-import { g } from '@/lib/pushSubscriptions';
 
 // VAPID configuration
 const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || '';
