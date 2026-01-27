@@ -7,6 +7,12 @@ const supabase = createClient(
   process.env.SUPABASE_ANON_KEY!
 );
 
+const g = globalThis as unknown as {
+  pushSubscriptions?: Map<string, any>;
+};
+
+g.pushSubscriptions ??= new Map();
+
 // 👑 HARD-CODE OWNER USER ID
 const OWNER_USER_ID = 'dina';
 
