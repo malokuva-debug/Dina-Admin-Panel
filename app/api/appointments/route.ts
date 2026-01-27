@@ -1,18 +1,11 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { sendNotification } from '@/lib/notifications';
+import { notifyWorkerNewAppointment } from '@/lib/notifications';
 
 const supabase = createClient(
   process.env.SUPABASE_URL!,
   process.env.SUPABASE_ANON_KEY!
 );
-
-const g = globalThis as unknown as {
-  pushSubscriptions?: Map<string, any>;
-};
-g.pushSubscriptions ??= new Map();
-
-const OWNER_USER_ID = 'dina';
 
 export async function POST(request: Request) {
   console.log('=== API ROUTE STARTED ===');
@@ -62,39 +55,19 @@ export async function POST(request: Request) {
       );
     }
 
-    console.log('Fetching subscriptions...');
-    
-    // 2️⃣ Fetch OWNER push subscriptions
-    const { data: subscriptions, error: subError } = await supabase
-      .from('push_subscriptions')
-      .select('subscription')
-      .eq('user_id', OWNER_USER_ID);
-
-    console.log('Subscriptions result:', { subscriptions, subError });
-
-    if (subError) {
-      console.error('Subscription fetch error:', subError);
-      // Don't fail the whole request for this
-    }
-
-    // 3️⃣ Send push notifications
-    if (subscriptions?.length) {
-      console.log(`Sending ${subscriptions.length} notifications...`);
-      try {
-        for (const { subscription } of subscriptions) {
-          await sendNotification(
-            subscription,
-            JSON.stringify({
-              title: '📅 New Appointment',
-              body: `${clientName} booked ${service} on ${new Date(date).toLocaleString()}`,
-            }),
-            ''
-          );
-        }
-        console.log('Notifications sent successfully');
-      } catch (notifError) {
-        console.error('Notification error (non-fatal):', notifError);
-      }
+    // 2️⃣ Send push notification
+    try {
+      const dateObj = new Date(date);
+      await notifyWorkerNewAppointment('dina', {
+        service,
+        date: dateObj.toLocaleDateString(),
+        time: dateObj.toLocaleTimeString(),
+        customerName: clientName,
+      });
+      console.log('Notification sent successfully');
+    } catch (notifError) {
+      console.error('Notification error (non-fatal):', notifError);
+      // Don't fail the request if notification fails
     }
 
     console.log('=== API ROUTE SUCCESS ===');
@@ -102,13 +75,11 @@ export async function POST(request: Request) {
     return NextResponse.json({
       success: true,
       appointment,
-      notified: subscriptions?.length ?? 0,
     });
   } catch (err: any) {
     console.error('=== UNEXPECTED ERROR ===');
     console.error('Error message:', err.message);
     console.error('Error stack:', err.stack);
-    console.error('Full error:', err);
     
     return NextResponse.json(
       { error: err.message || 'Server error' },
