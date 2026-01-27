@@ -2,6 +2,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import webpush from 'web-push';
 import { supabase } from '@/lib/supabase';
 
+const g = globalThis as unknown as {
+  pushSubscriptions?: Map<string, any>;
+};
+
+g.pushSubscriptions ??= new Map();
+
 // VAPID configuration
 const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || '';
 const vapidPrivateKey = process.env.VAPID_PRIVATE_KEY || '';
@@ -12,43 +18,49 @@ if (vapidPublicKey && vapidPrivateKey) {
 }
 
 export async function POST(request: NextRequest) {
-  let userId: string | undefined; // <-- declare here so catch can access
+  let userId: string | undefined;
 
   try {
     const { userId: uid, title, body, data } = await request.json();
     userId = uid;
 
     if (!userId || !title || !body) {
-      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Missing required fields' },
+        { status: 400 }
+      );
     }
 
     if (!vapidPublicKey || !vapidPrivateKey) {
-      return NextResponse.json({ error: 'VAPID keys not configured' }, { status: 500 });
+      return NextResponse.json(
+        { error: 'VAPID keys not configured' },
+        { status: 500 }
+      );
     }
 
-    // Try to fetch subscription from Supabase
+    // Fetch subscription from Supabase
     let subscription: any = null;
-    try {
-      const { data: subData, error } = await supabase
-        .from('push_subscriptions')
-        .select('subscription')
-        .eq('user_id', userId)
-        .single();
 
-      if (!error && subData) {
-        subscription = subData.subscription;
-      }
-    } catch {
-      console.log('Database unavailable, using in-memory storage');
+    const { data: subData, error } = await supabase
+      .from('push_subscriptions')
+      .select('subscription')
+      .eq('user_id', userId)
+      .single();
+
+    if (!error && subData?.subscription) {
+      subscription = subData.subscription;
     }
 
-    // fallback to in-memory
+    // Optional fallback (non-critical)
     if (!subscription && g.pushSubscriptions.has(userId)) {
       subscription = g.pushSubscriptions.get(userId);
     }
 
     if (!subscription) {
-      return NextResponse.json({ error: 'No subscription found for user' }, { status: 404 });
+      return NextResponse.json(
+        { error: 'No subscription found for user' },
+        { status: 404 }
+      );
     }
 
     const payload = JSON.stringify({
@@ -65,7 +77,7 @@ export async function POST(request: NextRequest) {
   } catch (error: any) {
     console.error('Send notification error:', error);
 
-    // Remove expired subscriptions (HTTP 410)
+    // Cleanup expired subscriptions
     if (userId && (error?.statusCode === 410 || error?.message?.includes('410'))) {
       try {
         await supabase
@@ -73,15 +85,15 @@ export async function POST(request: NextRequest) {
           .delete()
           .eq('user_id', userId);
       } catch (e) {
-        console.error('Failed to remove expired subscription from DB:', e);
+        console.error('Failed to delete expired subscription:', e);
       }
 
-      // Also remove from in-memory
-      if (g.pushSubscriptions.has(userId)) {
-        g.pushSubscriptions.delete(userId);
-      }
+      g.pushSubscriptions?.delete(userId);
     }
 
-    return NextResponse.json({ error: 'Failed to send notification' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Failed to send notification' },
+      { status: 500 }
+    );
   }
 }
