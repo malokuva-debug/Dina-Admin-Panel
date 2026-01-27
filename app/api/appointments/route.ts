@@ -6,12 +6,13 @@ export async function POST(request: Request) {
   console.log('=== API ROUTE STARTED ===');
   
   try {
+    console.log('Step 1: Parsing body...');
     const body = await request.json();
-    console.log('Received body:', body);
+    console.log('Body parsed:', body);
     
-    const { date, service, clientName, worker } = body;
+    const { date, service, clientName, worker, price = 0 } = body;
 
-    // ✅ Validate required fields
+    console.log('Step 2: Validating fields...');
     if (!date || !service || !clientName || !worker) {
       console.log('Validation failed:', { date, service, clientName, worker });
       return NextResponse.json(
@@ -20,58 +21,69 @@ export async function POST(request: Request) {
       );
     }
 
-    console.log('About to insert into Supabase...');
+    // Extract date and time from the ISO string
+    const dateObj = new Date(date);
+    const dateString = dateObj.toISOString().split('T')[0]; // "2026-01-27"
+    const timeString = dateObj.toTimeString().slice(0, 5); // "14:30"
+
+    console.log('Step 3: Inserting into database...');
+    const insertData = {
+      worker,
+      date: dateString,
+      time: timeString,
+      service,
+      price: price,
+      customer_name: clientName,
+    };
+    console.log('Data to insert:', insertData);
     
-    // 1️⃣ Insert appointment
     const { data: appointment, error: insertError } = await supabase
       .from('appointments')
-      .insert({
-        worker,
-        date,
-        service,
-        customer_name: clientName,
-      })
+      .insert(insertData)
       .select()
       .single();
 
-    console.log('Insert result:', { appointment, insertError });
+    console.log('Step 4: Insert complete');
+    console.log('Result:', { appointment, insertError });
 
     if (insertError) {
-      console.error('Insert error:', insertError);
+      console.error('Insert error details:', JSON.stringify(insertError, null, 2));
       return NextResponse.json(
-        { error: insertError.message },
+        { error: insertError.message, details: insertError },
         { status: 500 }
       );
     }
 
-    // 2️⃣ Send push notification
+    // 5️⃣ Send push notification
     try {
-      const dateObj = new Date(date);
       await notifyWorkerNewAppointment('dina', {
         service,
         date: dateObj.toLocaleDateString(),
-        time: dateObj.toLocaleTimeString(),
+        time: timeString,
         customerName: clientName,
       });
       console.log('Notification sent successfully');
     } catch (notifError) {
       console.error('Notification error (non-fatal):', notifError);
-      // Don't fail the request if notification fails
     }
 
-    console.log('=== API ROUTE SUCCESS ===');
+    console.log('=== SUCCESS ===');
     
     return NextResponse.json({
       success: true,
       appointment,
     });
   } catch (err: any) {
-    console.error('=== UNEXPECTED ERROR ===');
-    console.error('Error message:', err.message);
-    console.error('Error stack:', err.stack);
+    console.error('=== CAUGHT ERROR ===');
+    console.error('Message:', err?.message);
+    console.error('Stack:', err?.stack);
+    console.error('Full:', err);
     
     return NextResponse.json(
-      { error: err.message || 'Server error' },
+      { 
+        error: err?.message || 'Unknown error',
+        details: String(err)
+      },
       { status: 500 }
     );
   }
