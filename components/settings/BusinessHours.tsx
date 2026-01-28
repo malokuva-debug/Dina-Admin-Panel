@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { Worker } from '@/types';
 import { supabase } from '@/lib/supabase';
+import type { BusinessHoursState } from '@/types';
 
 interface Props {
   worker: Worker;
