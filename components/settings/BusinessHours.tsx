@@ -4,14 +4,14 @@ import { useEffect, useState } from 'react';
 import { Worker } from '@/types';
 import { supabase } from '@/lib/supabase';
 
-interface BusinessHoursProps {
+interface Props {
   worker: Worker;
 }
 
-export default function BusinessHours({ worker }: BusinessHoursProps) {
+export default function BusinessHours({ worker }: Props) {
   const [loading, setLoading] = useState(false);
 
-  const [hours, setHours] = useState({
+  const [hours, setHours] = useState<BusinessHoursState>({
     open: '09:00',
     close: '17:00',
     lunchEnabled: true,
@@ -19,80 +19,63 @@ export default function BusinessHours({ worker }: BusinessHoursProps) {
     lunchEnd: '13:00',
   });
 
-  // 🔹 Load from Supabase
+  // Load
   useEffect(() => {
-    loadHours();
+    load();
   }, [worker]);
 
-  const loadHours = async () => {
+  async function load() {
     const { data, error } = await supabase
       .from('business_hours')
       .select('*')
       .eq('worker', worker)
       .single();
 
-    if (error && error.code !== 'PGRST116') {
-      console.error(error);
-      return;
-    }
+    if (error) return console.error(error);
 
-    if (data) {
-      setHours({
-        open: data.open,
-        close: data.close,
-        lunchEnabled: data.lunch_enabled,
-        lunchStart: data.lunch_start ?? '12:00',
-        lunchEnd: data.lunch_end ?? '13:00',
-      });
-    }
-  };
+    setHours({
+      open: data.open.slice(0, 5),
+      close: data.close.slice(0, 5),
+      lunchEnabled: data.lunch_enabled,
+      lunchStart: data.lunch_start?.slice(0, 5) || '12:00',
+      lunchEnd: data.lunch_end?.slice(0, 5) || '13:00',
+    });
+  }
 
-  // 🔹 Save to Supabase
-  const saveHours = async () => {
-    // Validation
+  async function save() {
     if (hours.open >= hours.close) {
-      alert('Opening time must be before closing time');
+      alert('Open must be before close');
       return;
     }
 
-    if (hours.lunchEnabled) {
-      if (hours.lunchStart >= hours.lunchEnd) {
-        alert('Lunch start must be before lunch end');
-        return;
-      }
-
-      if (
-        hours.lunchStart < hours.open ||
-        hours.lunchEnd > hours.close
-      ) {
-        alert('Lunch must be within business hours');
-        return;
-      }
+    if (hours.lunchEnabled && hours.lunchStart >= hours.lunchEnd) {
+      alert('Lunch start must be before lunch end');
+      return;
     }
 
     setLoading(true);
 
     const { error } = await supabase
       .from('business_hours')
-      .upsert({
-        worker,
+      .update({
         open: hours.open,
         close: hours.close,
         lunch_enabled: hours.lunchEnabled,
         lunch_start: hours.lunchEnabled ? hours.lunchStart : null,
         lunch_end: hours.lunchEnabled ? hours.lunchEnd : null,
-      });
+        updated_at: new Date().toISOString(),
+      })
+      .eq('worker', worker);
 
     setLoading(false);
 
     if (error) {
       console.error(error);
-      alert('Failed to save business hours');
-      return;
+      alert('Failed to save');
+    } else {
+      alert('Saved');
     }
-
-    alert('Business hours saved');
-  };
+  }
 
   return (
     <>
@@ -104,7 +87,7 @@ export default function BusinessHours({ worker }: BusinessHoursProps) {
           <input
             type="time"
             value={hours.open}
-            onChange={(e) => setHours({ ...hours, open: e.target.value })}
+            onChange={e => setHours({ ...hours, open: e.target.value })}
           />
         </div>
 
@@ -113,22 +96,25 @@ export default function BusinessHours({ worker }: BusinessHoursProps) {
           <input
             type="time"
             value={hours.close}
-            onChange={(e) => setHours({ ...hours, close: e.target.value })}
+            onChange={e => setHours({ ...hours, close: e.target.value })}
           />
         </div>
 
         <hr />
 
-        {/* 🔹 Lunch Toggle */}
+        {/* 🍏 Apple-style toggle */}
         <div className="row">
           <span>Lunch Break</span>
-          <input
-            type="checkbox"
-            checked={hours.lunchEnabled}
-            onChange={(e) =>
-              setHours({ ...hours, lunchEnabled: e.target.checked })
-            }
-          />
+          <label className="switch">
+            <input
+              type="checkbox"
+              checked={hours.lunchEnabled}
+              onChange={e =>
+                setHours({ ...hours, lunchEnabled: e.target.checked })
+              }
+            />
+            <span className="slider" />
+          </label>
         </div>
 
         {hours.lunchEnabled && (
@@ -138,7 +124,7 @@ export default function BusinessHours({ worker }: BusinessHoursProps) {
               <input
                 type="time"
                 value={hours.lunchStart}
-                onChange={(e) =>
+                onChange={e =>
                   setHours({ ...hours, lunchStart: e.target.value })
                 }
               />
@@ -149,7 +135,7 @@ export default function BusinessHours({ worker }: BusinessHoursProps) {
               <input
                 type="time"
                 value={hours.lunchEnd}
-                onChange={(e) =>
+                onChange={e =>
                   setHours({ ...hours, lunchEnd: e.target.value })
                 }
               />
@@ -157,13 +143,8 @@ export default function BusinessHours({ worker }: BusinessHoursProps) {
           </>
         )}
 
-        <button
-          className="btn-primary"
-          style={{ marginTop: 16 }}
-          onClick={saveHours}
-          disabled={loading}
-        >
-          {loading ? 'Saving…' : 'Save Hours'}
+        <button className="btn-primary" onClick={save} disabled={loading}>
+          {loading ? 'Saving…' : 'Save'}
         </button>
       </div>
     </>
