@@ -44,39 +44,44 @@ export default function BusinessHours({ worker }: Props) {
   }
 
   async function save() {
-    if (hours.open >= hours.close) {
-      alert('Open must be before close');
-      return;
-    }
+  if (hours.open >= hours.close) {
+    alert('Open must be before close');
+    return;
+  }
 
-    if (hours.lunchEnabled && hours.lunchStart >= hours.lunchEnd) {
-      alert('Lunch start must be before lunch end');
-      return;
-    }
+  if (hours.lunchEnabled && hours.lunchStart >= hours.lunchEnd) {
+    alert('Lunch start must be before lunch end');
+    return;
+  }
 
-    setLoading(true);
+  setLoading(true);
 
-    const { error } = await supabase
-      .from('business_hours')
-      .update({
+  const { error } = await supabase
+    .from('business_hours')
+    .upsert(
+      {
+        worker,
         open: hours.open,
         close: hours.close,
         lunch_enabled: hours.lunchEnabled,
         lunch_start: hours.lunchEnabled ? hours.lunchStart : null,
         lunch_end: hours.lunchEnabled ? hours.lunchEnd : null,
         updated_at: new Date().toISOString(),
-      })
-      .eq('worker', worker);
+      },
+      {
+        onConflict: 'worker', // 👈 IMPORTANT
+      }
+    );
 
-    setLoading(false);
+  setLoading(false);
 
-    if (error) {
-      console.error(error);
-      alert('Failed to save');
-    } else {
-      alert('Saved');
-    }
+  if (error) {
+    console.error(error);
+    alert(error.message);
+  } else {
+    alert('Saved');
   }
+}
 
   return (
     <>
