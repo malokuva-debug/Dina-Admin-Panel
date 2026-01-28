@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { Worker, UnavailableDate } from '@/types';
 import { storage, STORAGE_KEYS } from '@/lib/storage';
+import { supabase } from '@/lib/supabase';
 
 interface UnavailableDatesProps {
   worker: Worker;
@@ -16,52 +17,64 @@ export default function UnavailableDates({ worker }: UnavailableDatesProps) {
     loadDates();
   }, [worker]);
 
-  const loadDates = () => {
-    const saved: UnavailableDate[] = storage.get(STORAGE_KEYS.UNAVAILABLE_DATES) || [];
-    const filtered = saved.filter(d => d.worker === worker);
-    
-    // Sort by date
-    filtered.sort((a, b) => a.date.localeCompare(b.date));
-    
-    setUnavailableDates(filtered);
-  };
+  const loadDates = async () => {
+  const { data, error } = await supabase
+    .from('unavailable_dates')
+    .select('*')
+    .eq('worker', worker)
+    .order('date');
 
-  const addDate = () => {
-    if (!selectedDate) {
-      alert('Please select a date');
-      return;
-    }
+  if (error) {
+    console.error('Failed to load unavailable dates:', error);
+    return;
+  }
 
-    // Check if date already exists for this worker
-    const allDates: UnavailableDate[] = storage.get(STORAGE_KEYS.UNAVAILABLE_DATES) || [];
-    const exists = allDates.some(d => d.date === selectedDate && d.worker === worker);
+  setUnavailableDates(data || []);
+};
 
-    if (exists) {
-      alert('This date is already marked as unavailable');
-      return;
-    }
+  const addDate = async () => {
+  if (!selectedDate) {
+    alert('Please select a date');
+    return;
+  }
 
-    const newDate: UnavailableDate = {
-      id: Date.now().toString(),
-      date: selectedDate,
+  const { error } = await supabase
+    .from('unavailable_dates')
+    .insert({
       worker: worker,
-    };
+      date: selectedDate
+    });
 
-    storage.set(STORAGE_KEYS.UNAVAILABLE_DATES, [...allDates, newDate]);
-    setSelectedDate('');
-    loadDates();
-  };
+  if (error) {
+    if (error.code === '23505') {
+      alert('This date is already marked as unavailable');
+    } else {
+      console.error(error);
+      alert('Failed to save unavailable date');
+    }
+    return;
+  }
 
-  const deleteDate = (id: string) => {
-    if (!confirm('Remove this unavailable date?')) return;
+  setSelectedDate('');
+  loadDates();
+};
 
-    const allDates: UnavailableDate[] = storage.get(STORAGE_KEYS.UNAVAILABLE_DATES) || [];
-    storage.set(
-      STORAGE_KEYS.UNAVAILABLE_DATES,
-      allDates.filter(d => d.id !== id)
-    );
-    loadDates();
-  };
+const deleteDate = async (id: string) => {
+  if (!confirm('Remove this unavailable date?')) return;
+
+  const { error } = await supabase
+    .from('unavailable_dates')
+    .delete()
+    .eq('id', id);
+
+  if (error) {
+    console.error('Failed to delete unavailable date:', error);
+    alert('Failed to delete date');
+    return;
+  }
+
+  loadDates();
+};
 
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr + 'T00:00:00');
