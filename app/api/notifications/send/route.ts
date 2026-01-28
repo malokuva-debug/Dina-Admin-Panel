@@ -1,6 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server';
-import webpush from 'web-push';
+import { NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
+import webpush from 'web-push';
 
 // VAPID configuration
 const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || '';
@@ -11,75 +11,98 @@ if (vapidPublicKey && vapidPrivateKey) {
   webpush.setVapidDetails(vapidEmail, vapidPublicKey, vapidPrivateKey);
 }
 
-export async function POST(request: NextRequest) {
-  let userId: string | undefined;
-
+export async function POST(request: Request) {
+  console.log('=== API ROUTE STARTED ===');
+  
   try {
-    const { userId: uid, title, body, data } = await request.json();
-    userId = uid;
+    const body = await request.json();
+    console.log('Body parsed:', body);
+    
+    const { date, service, clientName, worker, price = 0 } = body;
 
-    if (!userId || !title || !body) {
+    if (!date || !service || !clientName || !worker) {
       return NextResponse.json(
         { error: 'Missing required fields' },
         { status: 400 }
       );
     }
 
-    if (!vapidPublicKey || !vapidPrivateKey) {
+    // Extract date and time from the ISO string
+    const dateObj = new Date(date);
+    const dateString = dateObj.toISOString().split('T')[0];
+    const timeString = dateObj.toTimeString().slice(0, 5);
+
+    console.log('Inserting appointment...');
+    
+    // Insert appointment
+    const { data: appointment, error: insertError } = await supabase
+      .from('appointments')
+      .insert({
+        worker,
+        date: dateString,
+        time: timeString,
+        service,
+        price: price,
+        customer_name: clientName,
+      })
+      .select()
+      .single();
+
+    if (insertError) {
+      console.error('Insert error:', insertError);
       return NextResponse.json(
-        { error: 'VAPID keys not configured' },
+        { error: insertError.message },
         { status: 500 }
       );
     }
 
-    // Fetch subscription from Supabase
-    let subscription: any = null;
+    console.log('Appointment created:', appointment);
 
-    const { data: subData, error } = await supabase
-      .from('push_subscriptions')
-      .select('subscription')
-      .eq('user_id', userId)
-      .single();
+    // Send push notification to 'dina'
+    try {
+      console.log('Fetching push subscription for dina...');
+      
+      const { data: subData, error: subError } = await supabase
+        .from('push_subscriptions')
+        .select('subscription')
+        .eq('user_id', 'dina')
+        .single();
 
-    if (!error && subData?.subscription) {
-      subscription = subData.subscription;
-    }
+      console.log('Subscription fetch result:', { subData, subError });
 
-    if (!subscription) {
-      return NextResponse.json(
-        { error: 'No subscription found for user' },
-        { status: 404 }
-      );
-    }
+      if (!subError && subData?.subscription) {
+        const payload = JSON.stringify({
+          title: '📅 New Appointment',
+          body: `${clientName} booked ${service} on ${dateObj.toLocaleDateString()} at ${timeString}`,
+          icon: '/icon.png',
+          badge: '/icon.png',
+          data: { type: 'new_appointment', appointment },
+        });
 
-    const payload = JSON.stringify({
-      title,
-      body,
-      icon: '/icon.png',
-      badge: '/icon.png',
-      data: data || {},
-    });
-
-    await webpush.sendNotification(subscription, payload);
-
-    return NextResponse.json({ success: true });
-  } catch (error: any) {
-    console.error('Send notification error:', error);
-
-    // Cleanup expired subscriptions
-    if (userId && (error?.statusCode === 410 || error?.message?.includes('410'))) {
-      try {
-        await supabase
-          .from('push_subscriptions')
-          .delete()
-          .eq('user_id', userId);
-      } catch (e) {
-        console.error('Failed to delete expired subscription:', e);
+        console.log('Sending push notification...');
+        await webpush.sendNotification(subData.subscription, payload);
+        console.log('✅ Notification sent successfully');
+      } else {
+        console.log('⚠️ No push subscription found for dina');
       }
+    } catch (notifError: any) {
+      console.error('❌ Notification error:', notifError);
+      // Don't fail the whole request
     }
 
+    console.log('=== SUCCESS ===');
+    
+    return NextResponse.json({
+      success: true,
+      appointment,
+    });
+  } catch (err: any) {
+    console.error('=== CAUGHT ERROR ===');
+    console.error('Message:', err?.message);
+    console.error('Stack:', err?.stack);
+    
     return NextResponse.json(
-      { error: 'Failed to send notification' },
+      { error: err?.message || 'Unknown error' },
       { status: 500 }
     );
   }
