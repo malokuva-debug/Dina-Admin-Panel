@@ -3,10 +3,4 @@
   "devCommand": "npm run dev",
   "installCommand": "npm install --legacy-peer-deps",
   "framework": "nextjs",
-  "crons": [
-    {
-      "path": "/api/cron/appointment-reminders",
-      "schedule": "*/5 * * * *"
-    }
-  ]
 }
