@@ -46,6 +46,14 @@ export interface BusinessHours {
   lunchEnd: string;
 }
 
+export type BusinessHoursState = {
+  open: string;
+  close: string;
+  lunchEnabled: boolean;
+  lunchStart: string;
+  lunchEnd: string;
+};
+
 export interface UnavailableDate {
   id: string;
   date: string;
