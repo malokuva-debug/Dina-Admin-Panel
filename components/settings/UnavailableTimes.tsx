@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { Worker, UnavailableTime } from '@/types';
-import { storage, STORAGE_KEYS } from '@/lib/storage';
+import { supabase } from '@/lib/supabase';
 
 interface UnavailableTimesProps {
   worker: Worker;
@@ -18,58 +18,71 @@ export default function UnavailableTimes({ worker }: UnavailableTimesProps) {
     loadTimes();
   }, [worker]);
 
-  const loadTimes = () => {
-    const saved: UnavailableTime[] = storage.get(STORAGE_KEYS.UNAVAILABLE_TIMES) || [];
-    const filtered = saved.filter(t => t.worker === worker);
-    
-    // Sort by date then start time
-    filtered.sort((a, b) => {
-      const dateCompare = a.date.localeCompare(b.date);
-      if (dateCompare !== 0) return dateCompare;
-      return a.start.localeCompare(b.start);
-    });
-    
-    setUnavailableTimes(filtered);
+  // Load from Supabase
+  const loadTimes = async () => {
+    const { data, error } = await supabase
+      .from('unavailable_times')
+      .select('*')
+      .eq('worker', worker)
+      .order('date', { ascending: true })
+      .order('start', { ascending: true });
+
+    if (error) {
+      console.error('Failed to load unavailable times:', error);
+      return;
+    }
+
+    setUnavailableTimes(data || []);
   };
 
-  const addTimeBlock = () => {
+  const addTimeBlock = async () => {
     if (!date || !startTime || !endTime) {
       alert('Please fill in all fields');
       return;
     }
-
     if (startTime >= endTime) {
       alert('Start time must be before end time');
       return;
     }
 
-    const newTimeBlock: UnavailableTime = {
-      id: Date.now().toString(),
-      date: date,
-      start: startTime,
-      end: endTime,
-      worker: worker,
-    };
+    // Insert into Supabase
+    const { data, error } = await supabase
+      .from('unavailable_times')
+      .insert({
+        worker,
+        date,
+        start: startTime,
+        end: endTime,
+      })
+      .select()
+      .single();
 
-    const allTimes: UnavailableTime[] = storage.get(STORAGE_KEYS.UNAVAILABLE_TIMES) || [];
-    storage.set(STORAGE_KEYS.UNAVAILABLE_TIMES, [...allTimes, newTimeBlock]);
+    if (error) {
+      console.error('Failed to add time block:', error);
+      alert('Failed to add time block');
+      return;
+    }
 
-    // Reset form
     setDate('');
     setStartTime('');
     setEndTime('');
-    
     loadTimes();
   };
 
-  const deleteTimeBlock = (id: string) => {
+  const deleteTimeBlock = async (id: string) => {
     if (!confirm('Remove this time block?')) return;
 
-    const allTimes: UnavailableTime[] = storage.get(STORAGE_KEYS.UNAVAILABLE_TIMES) || [];
-    storage.set(
-      STORAGE_KEYS.UNAVAILABLE_TIMES,
-      allTimes.filter(t => t.id !== id)
-    );
+    const { error } = await supabase
+      .from('unavailable_times')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      console.error('Failed to delete time block:', error);
+      alert('Failed to delete time block');
+      return;
+    }
+
     loadTimes();
   };
 
