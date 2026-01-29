@@ -2,47 +2,66 @@
 
 import { useAuth } from '@/lib/AuthContext';
 import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import Navbar from '@/components/layout/Navbar';
-import WorkerNav from '@/components/layout/WorkerNav';
-import FinanceSection from '@/components/finance/FinanceSection';
 import AppointmentsSection from '@/components/appointments/AppointmentsSection';
 import SettingsSection from '@/components/settings/SettingsSection';
-import PushNotifications from '@/components/PushNotifications';
-import { useState } from 'react';
+import WorkerFinanceSection from '@/components/finance/WorkerFinanceSection';
 
 export default function AdminDashboard() {
-  const { user } = useAuth();          // ✅ reactive user state
+  const { user, logout } = useAuth();
   const router = useRouter();
-  const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'appointments' | 'settings' | 'finance'>('appointments');
-  const [selectedWorker, setSelectedWorker] = useState<'dina' | 'kida'>('dina');
+  const [selectedWorker, setSelectedWorker] = useState<string | null>(null);
 
-  // redirect if not logged in
+  // Redirect if not logged in or not admin
   useEffect(() => {
-    if (!user) {
-      router.push('/login');
-    } else {
-      // if worker role, select their worker automatically
-      if (user.role === 'worker' && user.worker) {
-        setSelectedWorker(user.worker);
-      }
+    if (!user) return; // wait until auth loaded
+    if (user && user.role !== 'admin') {
+      router.push('/worker-dashboard'); // redirect non-admins
     }
-    setLoading(false);
-  }, [user]);
+  }, [user, router]);
 
-  if (loading) return <p>Loading...</p>;
-  if (!user) return null; // prevent render if user not set yet
+  if (!user) return <p>Loading...</p>;
 
   return (
     <div className="container">
-      <PushNotifications worker={selectedWorker} />
-      <WorkerNav selectedWorker={selectedWorker} onWorkerChange={setSelectedWorker} />
+      {/* Admin header */}
+      <div className="flex justify-between items-center mb-4">
+        <h1>Admin Dashboard</h1>
+        <button
+          onClick={logout}
+          className="p-2 bg-red-500 text-white rounded hover:bg-red-600"
+        >
+          Logout
+        </button>
+      </div>
 
-      {activeTab === 'finance' && <FinanceSection worker={selectedWorker} />}
-      {activeTab === 'appointments' && <AppointmentsSection worker={selectedWorker} />}
-      {activeTab === 'settings' && <SettingsSection worker={selectedWorker} />}
+      {/* Worker selector */}
+      <div className="mb-4">
+        <label className="mr-2 font-semibold">Select Worker:</label>
+        <select
+          value={selectedWorker || ''}
+          onChange={(e) => setSelectedWorker(e.target.value)}
+          className="border rounded p-1"
+        >
+          <option value="">All Workers</option>
+          <option value="Alice">Alice</option>
+          <option value="Bob">Bob</option>
+          {/* Replace with dynamic list of workers */}
+        </select>
+      </div>
 
+      {/* Sections */}
+      {activeTab === 'appointments' && (
+        <AppointmentsSection worker={selectedWorker || undefined} />
+      )}
+      {activeTab === 'finance' && selectedWorker && (
+        <WorkerFinanceSection worker={selectedWorker} />
+      )}
+      {activeTab === 'settings' && <SettingsSection worker={selectedWorker || undefined} />}
+
+      {/* Bottom Navbar */}
       <Navbar activeTab={activeTab} onTabChange={setActiveTab} />
     </div>
   );
