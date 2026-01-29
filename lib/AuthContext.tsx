@@ -5,66 +5,25 @@ import { supabase } from './supabase';
 
 interface User {
   id: string;
-  email: string;
-  name: string;
-  worker?: string; // assigned worker
+  email: string | null;
+  role: 'admin' | 'worker'; // <-- Add role here
+  worker?: string;           // optional: if worker users are linked to a worker ID
 }
 
 interface AuthContextType {
   user: User | null;
-  login: (email: string, password: string) => Promise<void>;
-  logout: () => Promise<void>;
+  logout: () => void;
 }
 
-const AuthContext = createContext<AuthContextType>({
-  user: null,
-  login: async () => {},
-  logout: async () => {},
-});
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export const AuthProvider = ({ children }: { children: ReactNode }) => {
+export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
 
-  // Check session on mount
   useEffect(() => {
-    const session = supabase.auth.getSession().then(({ data }) => {
-      if (data.session) {
-        loadUser(data.session.user.id);
-      }
-    });
-
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (session?.user) {
-        loadUser(session.user.id);
-      } else {
-        setUser(null);
-      }
-    });
-
-    return () => {
-      listener.subscription.unsubscribe();
-    };
+    const session = supabase.auth.getSession(); // or supabase.auth.onAuthStateChange
+    // set user manually from session if needed
   }, []);
-
-  const loadUser = async (id: string) => {
-    const { data, error } = await supabase
-      .from('users')
-      .select('id, email, name, worker')
-      .eq('id', id)
-      .single();
-
-    if (error) {
-      console.error('Error loading user:', error);
-      setUser(null);
-    } else {
-      setUser(data as User);
-    }
-  };
-
-  const login = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) throw error;
-  };
 
   const logout = async () => {
     await supabase.auth.signOut();
@@ -72,11 +31,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout }}>
+    <AuthContext.Provider value={{ user, logout }}>
       {children}
     </AuthContext.Provider>
   );
-};
+}
 
-// Hook to use the auth context
-export const useAuth = () => useContext(AuthContext);
+export function useAuth() {
+  const context = useContext(AuthContext);
+  if (!context) throw new Error('useAuth must be used within AuthProvider');
+  return context;
+}
