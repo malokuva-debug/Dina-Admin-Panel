@@ -1,26 +1,24 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useAuth } from '@/lib/AuthContext';
 import { useRouter } from 'next/navigation';
-import { getCurrentUser, isAuthenticated, getUserWorker, hasRole } from '@/lib/auth';
+import { useEffect } from 'react';
 
 export default function WorkerDashboard() {
+  const { user } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
-    // Redirect if not logged in or not worker
-    if (!isAuthenticated() || !hasRole('worker')) {
-      router.push('/login');
-    }
-  }, []);
+    if (!user) router.push('/login');
+  }, [user]);
 
-  const worker = getUserWorker();
+  if (!user) return <p>Loading...</p>;
 
   return (
-    <div style={{ padding: '2rem' }}>
-      <h1>Worker Dashboard</h1>
-      <p>Welcome, {worker?.toUpperCase() || 'Worker'}!</p>
-      <p>You can view and manage your appointments here.</p>
+    <div>
+      <h1>Welcome, {user.name}</h1>
+      <p>You are assigned to: {user.worker}</p>
+      {/* Put your worker dashboard components here */}
     </div>
   );
 }
