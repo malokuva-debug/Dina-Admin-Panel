@@ -67,7 +67,11 @@ export default function FinanceOverview({ month, worker }: FinanceOverviewProps)
       
       // Filter only done appointments
       appointments = appointments.filter(a => a.is_done);
+      // Don't filter expenses by worker - get all business expenses
     }
+
+    console.log('All expenses:', expenses);
+    console.log('Expenses length:', expenses.length);
 
     /** ---------------- REVENUE CALCULATIONS ---------------- */
     const todayRevenue = appointments
@@ -88,8 +92,19 @@ export default function FinanceOverview({ month, worker }: FinanceOverviewProps)
       })
       .reduce((sum, e) => sum + e.amount * e.quantity, 0);
 
+    console.log('Month:', month);
+    console.log('Year:', year, 'MonthNum:', monthNum);
+    console.log('Filtered month expenses:', expenses.filter(e => {
+      const [y, m] = e.date.split('-');
+      return Number(y) === Number(year) && Number(m) === Number(monthNum);
+    }));
+    console.log('Month Expenses Total:', monthExpenses);
+
     const totalRevenue = appointments.reduce((sum, a) => sum + a.price, 0);
     const totalExpenses = expenses.reduce((sum, e) => sum + e.amount * e.quantity, 0);
+
+    console.log('Total Revenue:', totalRevenue);
+    console.log('Total Expenses:', totalExpenses);
 
     setTodayRevenue(todayRevenue);
     setMonthRevenue(monthRevenue);
