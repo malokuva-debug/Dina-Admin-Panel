@@ -10,6 +10,10 @@ import FinanceSection from '@/components/finance/FinanceSection';
 import AppointmentsSection from '@/components/appointments/AppointmentsSection';
 import SettingsSection from '@/components/settings/SettingsSection';
 import PushNotifications from '@/components/PushNotifications';
+import WorkersSection from '@/components/admin/WorkersSection';
+import SettingsSection from '@/components/admin/SettingsSection';
+import FinanceSection from '@/components/admin/FinanceSection';
+import LogoutButton from '@/components/LogoutButton';
 import { Worker } from '@/types';
 
 export default function AdminPage() {
