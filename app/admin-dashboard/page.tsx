@@ -3,18 +3,12 @@
 import { useAuth } from '@/lib/AuthContext';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import WorkersSection from '@/components/admin/WorkersSection';
-import SettingsSection from '@/components/admin/SettingsSection';
-import FinanceSection from '@/components/admin/FinanceSection';
-import PushNotifications from '@/components/PushNotifications';
-import Navbar from '@/components/layout/Navbar';
 import LogoutButton from '@/components/LogoutButton';
 
 export default function AdminDashboard() {
   const { user } = useAuth();
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<'workers' | 'settings' | 'finance'>('workers');
-  const [selectedWorker, setSelectedWorker] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user) return;
@@ -24,20 +18,23 @@ export default function AdminDashboard() {
   if (!user || user.role !== 'admin') return <p>Loading...</p>;
 
   return (
-    <div className="container">
-      <div className="flex justify-end mb-4">
+    <div>
+      <div className="flex justify-between items-center mb-4">
+        <h1 className="text-2xl font-bold">Admin Dashboard</h1>
         <LogoutButton />
       </div>
 
-      {/* Notifications for selected worker (optional) */}
-      <PushNotifications worker={selectedWorker || ''} />
+      {/* Tabs */}
+      <div className="flex gap-4 mb-6">
+        <button onClick={() => setActiveTab('workers')}>Workers</button>
+        <button onClick={() => setActiveTab('settings')}>Settings</button>
+        <button onClick={() => setActiveTab('finance')}>Finance</button>
+      </div>
 
       {/* Sections */}
-      {activeTab === 'workers' && <WorkersSection selectedWorker={selectedWorker} setSelectedWorker={setSelectedWorker} />}
-      {activeTab === 'finance' && <FinanceSection worker={selectedWorker || undefined} />}
+      {activeTab === 'workers' && <WorkersSection />}
       {activeTab === 'settings' && <SettingsSection />}
-
-      <Navbar activeTab={activeTab} onTabChange={setActiveTab} />
+      {activeTab === 'finance' && <FinanceSection />}
     </div>
   );
 }
