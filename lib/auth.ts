@@ -30,9 +30,9 @@ export const setCurrentUser = (user: User | null) => {
 // Password-only mapping (for UI)
 // ----------------------
 export const EMAIL_MAP = {
-  dina: 'dina@yourapp.local',
-  kida: 'kida@yourapp.local',
-  admin: 'admin@yourapp.local',
+  dina: 'dina@dinakida.com',
+  kida: 'kida@dinakida.com',
+  admin: 'admin@dinakida.com',
 } as const;
 
 export type UserKey = keyof typeof EMAIL_MAP;
