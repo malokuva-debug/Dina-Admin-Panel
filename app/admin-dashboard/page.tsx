@@ -1,43 +1,46 @@
 'use client';
 
-import { useAuth } from '@/lib/AuthContext';
+import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
-import WorkersSection from '@/components/admin/WorkersSection';
-import SettingsSection from '@/components/admin/SettingsSection';
-import FinanceSection from '@/components/admin/FinanceSection';
-import LogoutButton from '@/components/LogoutButton';
+import { isAuthenticated, getCurrentUser } from '@/lib/auth';
+import { useState } from 'react';
+import Navbar from '@/components/layout/Navbar';
+import WorkerNav from '@/components/layout/WorkerNav';
+import FinanceSection from '@/components/finance/FinanceSection';
+import AppointmentsSection from '@/components/appointments/AppointmentsSection';
+import SettingsSection from '@/components/settings/SettingsSection';
+import PushNotifications from '@/components/PushNotifications';
+import { Worker } from '@/types';
 
-export default function AdminDashboard() {
-  const { user } = useAuth();
+export default function AdminPage() {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<'workers' | 'settings' | 'finance'>('workers');
+  const [activeTab, setActiveTab] = useState<'appointments' | 'settings' | 'finance'>('appointments');
+  const [selectedWorker, setSelectedWorker] = useState<Worker>('dina');
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!user) return;
-    if (user.role !== 'admin') router.push('/worker-dashboard'); // redirect non-admins
-  }, [user, router]);
+    // Redirect to login if not authenticated
+    if (!isAuthenticated()) {
+      router.push('/login');
+    } else {
+      const user = getCurrentUser();
+      if (user?.role === 'worker') setSelectedWorker(user.worker || 'dina');
+    }
+    setLoading(false);
+  }, []);
 
-  if (!user || user.role !== 'admin') return <p>Loading...</p>;
+  if (loading) return <p>Loading...</p>;
 
   return (
-    <div>
-      <div className="flex justify-between items-center mb-4">
-        <h1 className="text-2xl font-bold">Admin Dashboard</h1>
-        <LogoutButton />
-      </div>
+    <div className="container">
+      <PushNotifications worker={selectedWorker} />
+      <WorkerNav selectedWorker={selectedWorker} onWorkerChange={setSelectedWorker} />
 
-      {/* Tabs */}
-      <div className="flex gap-4 mb-6">
-        <button onClick={() => setActiveTab('workers')}>Workers</button>
-        <button onClick={() => setActiveTab('settings')}>Settings</button>
-        <button onClick={() => setActiveTab('finance')}>Finance</button>
-      </div>
+      {activeTab === 'finance' && <FinanceSection worker={selectedWorker} />}
+      {activeTab === 'appointments' && <AppointmentsSection worker={selectedWorker} />}
+      {activeTab === 'settings' && <SettingsSection worker={selectedWorker} />}
 
-      {/* Sections */}
-      {activeTab === 'workers' && <WorkersSection />}
-      {activeTab === 'settings' && <SettingsSection />}
-      {activeTab === 'finance' && <FinanceSection />}
+      <Navbar activeTab={activeTab} onTabChange={setActiveTab} />
     </div>
   );
 }
