@@ -1,44 +1,73 @@
+// lib/AuthContext.tsx
 'use client';
 
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { supabase } from './supabase';
+import { createContext, useContext, useState, ReactNode, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { User } from '@/types'; // make sure your User type has a `role` field
 
-interface User {
-  id: string;
-  email: string | null;
-  role: 'admin' | 'worker'; // <-- Add role here
-  worker?: string;           // optional: if worker users are linked to a worker ID
-}
-
+// 1. Define context type
 interface AuthContextType {
   user: User | null;
+  setUser: (user: User | null) => void;
+  login: (userKey: string, password: string) => Promise<void>;
   logout: () => void;
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+// 2. Create context with default empty values
+const AuthContext = createContext<AuthContextType>({
+  user: null,
+  setUser: () => {},
+  login: async () => {},
+  logout: () => {},
+});
 
-export function AuthProvider({ children }: { children: ReactNode }) {
+// 3. Provider component
+export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
+  const router = useRouter();
 
+  // Optional: load user from localStorage/session on mount
   useEffect(() => {
-    const session = supabase.auth.getSession(); // or supabase.auth.onAuthStateChange
-    // set user manually from session if needed
+    const savedUser = localStorage.getItem('user');
+    if (savedUser) setUser(JSON.parse(savedUser));
   }, []);
 
-  const logout = async () => {
-    await supabase.auth.signOut();
+  // Save user to localStorage whenever it changes
+  useEffect(() => {
+    if (user) localStorage.setItem('user', JSON.stringify(user));
+    else localStorage.removeItem('user');
+  }, [user]);
+
+  // Simple login function
+  const login = async (userKey: string, password: string) => {
+    // Replace this with your actual auth logic
+    // Example: hardcoded users
+    const mockUsers: Record<string, User> = {
+      dina: { id: '1', name: 'Dina Admin', role: 'admin' },
+      worker1: { id: '2', name: 'Worker One', role: 'worker' },
+    };
+
+    const foundUser = mockUsers[userKey];
+    if (!foundUser || password !== '1234') throw new Error('Invalid credentials');
+
+    setUser(foundUser);
+    // Redirect based on role
+    if (foundUser.role === 'admin') router.push('/admin-dashboard');
+    else router.push('/worker-dashboard');
+  };
+
+  // Logout function
+  const logout = () => {
     setUser(null);
+    router.push('/login');
   };
 
   return (
-    <AuthContext.Provider value={{ user, logout }}>
+    <AuthContext.Provider value={{ user, setUser, login, logout }}>
       {children}
     </AuthContext.Provider>
   );
-}
+};
 
-export function useAuth() {
-  const context = useContext(AuthContext);
-  if (!context) throw new Error('useAuth must be used within AuthProvider');
-  return context;
-}
+// 4. Hook to use context
+export const useAuth = () => useContext(AuthContext);
