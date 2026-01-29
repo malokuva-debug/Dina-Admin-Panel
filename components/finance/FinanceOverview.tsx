@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { Worker, Appointment, Expense } from '@/types';
-import { storage, STORAGE_KEYS } from '@/lib/storage';
+import { storage, STORAGE_KEYS, storageMode } from '@/lib/storage';
+import { supabase } from '@/lib/supabase';
 
 interface FinanceOverviewProps {
   month: string; // YYYY-MM
@@ -29,47 +30,67 @@ export default function FinanceOverview({ month, worker }: FinanceOverviewProps)
     };
   }, [month, worker]);
 
-  const loadFinanceData = () => {
-    const appointments: Appointment[] =
-      storage.get(STORAGE_KEYS.APPOINTMENTS) || [];
-
-    const expenses: Expense[] =
-      storage.get(STORAGE_KEYS.EXPENSES) || [];
-
+  const loadFinanceData = async () => {
     const [year, monthNum] = month.split('-');
-    const today = new Date().toISOString().slice(0, 10);
 
-    /** ---------------- REVENUE ---------------- */
-    // Show business-wide revenue (all workers), not filtered by worker
-    const doneAppointments = appointments.filter(
-      a => a.is_done
-    );
+    let appointments: Appointment[] = [];
+    let expenses: Expense[] = [];
 
-    const todayRevenue = doneAppointments
+    /** ---------------- FETCH DATA ---------------- */
+    if (storageMode === 'supabase') {
+      // Fetch appointments from Supabase - only get done appointments
+      const { data: appointmentsData, error: appointmentsError } = await supabase
+        .from('appointments')
+        .select('*')
+        .eq('is_done', true);
+
+      if (appointmentsError) {
+        console.error('Appointments fetch error:', appointmentsError);
+      } else {
+        appointments = appointmentsData as Appointment[];
+      }
+
+      // Fetch expenses from Supabase
+      const { data: expensesData, error: expensesError } = await supabase
+        .from('expenses')
+        .select('*')
+        .eq('worker', worker);
+
+      if (expensesError) {
+        console.error('Expenses fetch error:', expensesError);
+      } else {
+        expenses = expensesData as Expense[];
+      }
+    } else {
+      // Use local storage
+      appointments = storage.get(STORAGE_KEYS.APPOINTMENTS) || [];
+      expenses = storage.get(STORAGE_KEYS.EXPENSES) || [];
+      
+      // Filter only done appointments
+      appointments = appointments.filter(a => a.is_done);
+    }
+
+    /** ---------------- REVENUE CALCULATIONS ---------------- */
+    const todayRevenue = appointments
       .filter(a => new Date(a.date).toDateString() === new Date().toDateString())
       .reduce((sum, a) => sum + a.price, 0);
 
-    const monthRevenue = doneAppointments
+    const monthRevenue = appointments
       .filter(a => {
         const [y, m] = a.date.split('-');
         return Number(y) === Number(year) && Number(m) === Number(monthNum);
       })
       .reduce((sum, a) => sum + a.price, 0);
 
-    // Expenses remain filtered by worker
     const monthExpenses = expenses
       .filter(e => {
         const [y, m] = e.date.split('-');
-        return Number(y) === Number(year) &&
-               Number(m) === Number(monthNum) &&
-               e.worker === worker;
+        return Number(y) === Number(year) && Number(m) === Number(monthNum);
       })
       .reduce((sum, e) => sum + e.amount * e.quantity, 0);
 
-    const totalRevenue = doneAppointments.reduce((sum, a) => sum + a.price, 0);
-    const totalExpenses = expenses
-      .filter(e => e.worker === worker)
-      .reduce((sum, e) => sum + e.amount * e.quantity, 0);
+    const totalRevenue = appointments.reduce((sum, a) => sum + a.price, 0);
+    const totalExpenses = expenses.reduce((sum, e) => sum + e.amount * e.quantity, 0);
 
     setTodayRevenue(todayRevenue);
     setMonthRevenue(monthRevenue);
