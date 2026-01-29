@@ -4,8 +4,8 @@ export type Worker = 'dina' | 'kida';
 
 export interface User {
   id: string;
-  name: string;
-  role: 'admin' | Worker; // admin or one of your workers ('dina' | 'kida')
+  name?: string;       // <-- optional
+  role: 'admin' | Worker;
 }
 
 export interface Service {
