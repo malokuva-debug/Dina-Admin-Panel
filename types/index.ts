@@ -1,5 +1,25 @@
 // types/index.ts
 
+// ----------------------
+// Core enums / unions
+// ----------------------
+export type Worker = 'dina' | 'kida';
+export type Role = 'admin' | 'worker';
+
+// ----------------------
+// Auth / User
+// ----------------------
+export interface User {
+  id: string;
+  email: string;
+  name: string;
+  role: Role;
+  worker?: Worker;
+}
+
+// ----------------------
+// Services & Categories
+// ----------------------
 export interface Service {
   id: string;
   name: string;
@@ -15,15 +35,9 @@ export interface Category {
   services: Service[];
 }
 
-export interface Expense {
-  id: string;
-  name: string;
-  amount: number;
-  quantity: number;
-  date: string;
-  worker?: Worker;
-}
-
+// ----------------------
+// Appointments & Finance
+// ----------------------
 export interface Appointment {
   id: string;
   worker: Worker;
@@ -37,6 +51,25 @@ export interface Appointment {
   is_done?: boolean;
 }
 
+export interface Expense {
+  id: string;
+  name: string;
+  amount: number;
+  quantity: number;
+  date: string;
+  worker?: Worker;
+}
+
+export interface FinanceData {
+  today: number;
+  month: number;
+  total: number;
+  byWorker: Record<Worker, number>;
+}
+
+// ----------------------
+// Business settings
+// ----------------------
 export interface BusinessHours {
   open: string;
   close: string;
@@ -68,14 +101,4 @@ export interface UnavailableTime {
 
 export interface WeeklyDaysOff {
   [key: string]: boolean;
-}
-
-export interface FinanceData {
-  today: number;
-  month: number;
-  total: number;
-  byWorker: {
-    dina: number;
-    kida: number;
-  };
 }
