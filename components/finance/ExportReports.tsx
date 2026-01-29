@@ -42,10 +42,6 @@ export default function ExportReports() {
       appointments = appointments.filter(a => a.is_done);
     }
 
-    console.log('Total appointments fetched:', appointments.length);
-    console.log('Sample appointments:', appointments.slice(0, 3));
-    console.log('Total expenses fetched:', expenses.length);
-
     const today = new Date();
     let startDate: Date;
     let endDate: Date;
@@ -64,41 +60,16 @@ export default function ExportReports() {
     startDate.setHours(0, 0, 0, 0);
     endDate.setHours(23, 59, 59, 999);
 
-    console.log('Date range:', startDate.toISOString(), 'to', endDate.toISOString());
-    console.log('Today getMonth():', today.getMonth(), 'getFullYear():', today.getFullYear());
-    console.log('Start date calculated:', startDate);
-
     // Filter data by date range - handle date strings properly
     const relevantAppointments = appointments.filter(apt => {
       const aptDate = new Date(apt.date + 'T00:00:00');
-      const inRange = aptDate >= startDate && aptDate <= endDate;
-      console.log(`Appointment: date=${apt.date}, aptDate=${aptDate.toISOString()}, inRange=${inRange}, is_done=${apt.is_done}`);
-      return inRange;
+      return aptDate >= startDate && aptDate <= endDate;
     });
 
     const relevantExpenses = expenses.filter(exp => {
       const expDate = new Date(exp.date + 'T00:00:00');
-      const inRange = expDate >= startDate && expDate <= endDate;
-      console.log(`Expense: date=${exp.date}, expDate=${expDate.toISOString()}, inRange=${inRange}`);
-      return inRange;
+      return expDate >= startDate && expDate <= endDate;
     });
-
-    console.log('Relevant appointments:', relevantAppointments.length);
-    console.log('Relevant expenses:', relevantExpenses.length);
-
-    // Show debug info in alert before generating PDF
-    const debugInfo = `
-Debug Info:
-Total appointments fetched: ${appointments.length}
-Total expenses fetched: ${expenses.length}
-Date range: ${startDate.toLocaleDateString()} to ${endDate.toLocaleDateString()}
-Relevant appointments: ${relevantAppointments.length}
-Relevant expenses: ${relevantExpenses.length}
-
-${appointments.length > 0 ? `Sample appointment dates: ${appointments.slice(0, 3).map(a => `${a.date} (done:${a.is_done})`).join(', ')}` : 'No appointments found'}
-    `.trim();
-    
-    alert(debugInfo);
 
     // Calculate totals
     const totalRevenue = relevantAppointments.reduce((sum, apt) => sum + apt.price, 0);
@@ -121,6 +92,55 @@ ${appointments.length > 0 ? `Sample appointment dates: ${appointments.slice(0, 3
       .filter(exp => exp.worker === 'kida')
       .reduce((sum, exp) => sum + exp.amount * exp.quantity, 0);
 
+    // Monthly breakdown for multi-month reports
+    const monthlyData: {
+      month: string;
+      revenue: number;
+      expenses: number;
+      net: number;
+      appointmentCount: number;
+    }[] = [];
+
+    if (months > 1) {
+      // Create array of months in range
+      const currentDate = new Date(startDate);
+      while (currentDate <= endDate) {
+        const year = currentDate.getFullYear();
+        const month = currentDate.getMonth();
+        const monthName = currentDate.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+        
+        const monthRevenue = relevantAppointments
+          .filter(apt => {
+            const aptDate = new Date(apt.date + 'T00:00:00');
+            return aptDate.getFullYear() === year && aptDate.getMonth() === month;
+          })
+          .reduce((sum, apt) => sum + apt.price, 0);
+        
+        const monthExpenses = relevantExpenses
+          .filter(exp => {
+            const expDate = new Date(exp.date + 'T00:00:00');
+            return expDate.getFullYear() === year && expDate.getMonth() === month;
+          })
+          .reduce((sum, exp) => sum + exp.amount * exp.quantity, 0);
+        
+        const monthAppointments = relevantAppointments
+          .filter(apt => {
+            const aptDate = new Date(apt.date + 'T00:00:00');
+            return aptDate.getFullYear() === year && aptDate.getMonth() === month;
+          }).length;
+
+        monthlyData.push({
+          month: monthName,
+          revenue: monthRevenue,
+          expenses: monthExpenses,
+          net: monthRevenue - monthExpenses,
+          appointmentCount: monthAppointments
+        });
+
+        currentDate.setMonth(currentDate.getMonth() + 1);
+      }
+    }
+
     return {
       period: months === 1 ? 'Current Month' : `Last ${months} Months`,
       totalRevenue,
@@ -136,6 +156,8 @@ ${appointments.length > 0 ? `Sample appointment dates: ${appointments.slice(0, 3
       expenseCount: relevantExpenses.length,
       appointments: relevantAppointments,
       expenses: relevantExpenses,
+      monthlyData,
+      isMultiMonth: months > 1,
     };
   };
 
@@ -223,6 +245,70 @@ ${appointments.length > 0 ? `Sample appointment dates: ${appointments.slice(0, 3
       sectionTitle('Statistics');
       row('Completed Appointments', report.appointmentCount.toString());
       row('Total Expenses Recorded', report.expenseCount.toString());
+
+      /* ===== Monthly Breakdown (for multi-month reports) ===== */
+      if (report.isMultiMonth && report.monthlyData && report.monthlyData.length > 0) {
+        y += 10;
+        
+        // Check if we need a new page
+        if (y > 200) {
+          doc.addPage();
+          y = 20;
+        }
+
+        sectionTitle('Monthly Breakdown');
+        
+        // Table header
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(10);
+        doc.text('Month', 25, y);
+        doc.text('Revenue', 80, y);
+        doc.text('Expenses', 115, y);
+        doc.text('Net', 155, y);
+        doc.text('Appts', 180, y);
+        y += 3;
+        doc.setDrawColor(200);
+        doc.line(20, y, pageWidth - 20, y);
+        y += 8;
+        doc.setFont('helvetica', 'normal');
+
+        // Table rows
+        report.monthlyData.forEach(monthData => {
+          // Check if we need a new page
+          if (y > 270) {
+            doc.addPage();
+            y = 20;
+            // Repeat header
+            doc.setFont('helvetica', 'bold');
+            doc.text('Month', 25, y);
+            doc.text('Revenue', 80, y);
+            doc.text('Expenses', 115, y);
+            doc.text('Net', 155, y);
+            doc.text('Appts', 180, y);
+            y += 3;
+            doc.line(20, y, pageWidth - 20, y);
+            y += 8;
+            doc.setFont('helvetica', 'normal');
+          }
+
+          doc.setTextColor(0, 0, 0);
+          doc.text(monthData.month, 25, y);
+          
+          doc.setTextColor(0, 150, 0);
+          doc.text(`$${monthData.revenue.toFixed(2)}`, 80, y);
+          
+          doc.setTextColor(255, 0, 0);
+          doc.text(`$${monthData.expenses.toFixed(2)}`, 115, y);
+          
+          doc.setTextColor(monthData.net >= 0 ? 0 : 255, monthData.net >= 0 ? 100 : 0, 0);
+          doc.text(`$${monthData.net.toFixed(2)}`, 155, y);
+          
+          doc.setTextColor(0, 0, 0);
+          doc.text(monthData.appointmentCount.toString(), 180, y);
+          
+          y += 8;
+        });
+      }
 
       /* ===== Footer ===== */
       const footerY = doc.internal.pageSize.getHeight() - 15;
