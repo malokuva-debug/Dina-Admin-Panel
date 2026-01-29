@@ -8,49 +8,49 @@ import WorkerFinanceSection from '@/components/finance/WorkerFinanceSection';
 import AppointmentsSection from '@/components/appointments/AppointmentsSection';
 import SettingsSection from '@/components/settings/SettingsSection';
 import PushNotifications from '@/components/PushNotifications';
-import { FiLogOut } from 'react-icons/fi'; // Logout icon from react-icons
 
 export default function WorkerDashboard() {
   const { user, logout } = useAuth();
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<'appointments' | 'settings' | 'finance'>('appointments');
 
-  // Redirect to login if not logged in
   useEffect(() => {
     if (!user) router.push('/login');
   }, [user, router]);
 
   if (!user) return <p>Loading...</p>;
 
-  const handleLogout = async () => {
-    await logout();
-    router.push('/login');
-  };
-
   return (
     <div className="container">
-      {/* Top bar with logout */}
-      <div className="flex justify-between items-center py-2 px-4 border-b">
-        <h2 className="text-lg font-medium">{user.worker}</h2>
-        <button
-          onClick={handleLogout}
-          className="flex items-center gap-1 text-red-500 hover:text-red-700"
-        >
-          <FiLogOut size={20} /> Logout
+      {/* Header with logout */}
+      <div className="flex justify-between items-center mb-4">
+        <p className="font-semibold">{user.name}</p>
+        <button onClick={logout} className="p-2 rounded hover:bg-gray-200">
+          {/* Logout SVG */}
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            className="h-6 w-6"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            strokeWidth={2}
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1m0-10V5" />
+          </svg>
         </button>
       </div>
+
+      <p className="mb-4">Assigned to: {user.worker}</p>
 
       {/* Notifications */}
       <PushNotifications worker={user.worker!} />
 
-      {/* Main sections */}
-      <div className="mt-4">
-        {activeTab === 'finance' && <WorkerFinanceSection worker={user.worker!} />}
-        {activeTab === 'appointments' && <AppointmentsSection worker={user.worker!} />}
-        {activeTab === 'settings' && <SettingsSection worker={user.worker!} />}
-      </div>
+      {/* Sections */}
+      {activeTab === 'finance' && <WorkerFinanceSection worker={user.worker!} />}
+      {activeTab === 'appointments' && <AppointmentsSection worker={user.worker!} />}
+      {activeTab === 'settings' && <SettingsSection worker={user.worker!} />}
 
-      {/* Bottom navbar */}
+      {/* Bottom Navbar */}
       <Navbar activeTab={activeTab} onTabChange={setActiveTab} />
     </div>
   );
