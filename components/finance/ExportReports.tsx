@@ -47,27 +47,38 @@ export default function ExportReports() {
     console.log('Total expenses fetched:', expenses.length);
 
     const today = new Date();
-    const startDate = new Date(today.getFullYear(), today.getMonth() - months + 1, 1);
+    let startDate: Date;
+    let endDate: Date;
+
+    if (months === 1) {
+      // For current month, get the entire month (not just up to today)
+      startDate = new Date(today.getFullYear(), today.getMonth(), 1);
+      endDate = new Date(today.getFullYear(), today.getMonth() + 1, 0); // Last day of current month
+    } else {
+      // For 6 or 12 months, go back from today
+      startDate = new Date(today.getFullYear(), today.getMonth() - months + 1, 1);
+      endDate = today;
+    }
     
     // Set time to start of day for proper comparison
     startDate.setHours(0, 0, 0, 0);
-    today.setHours(23, 59, 59, 999);
+    endDate.setHours(23, 59, 59, 999);
 
-    console.log('Date range:', startDate.toISOString(), 'to', today.toISOString());
+    console.log('Date range:', startDate.toISOString(), 'to', endDate.toISOString());
     console.log('Today getMonth():', today.getMonth(), 'getFullYear():', today.getFullYear());
     console.log('Start date calculated:', startDate);
 
     // Filter data by date range - handle date strings properly
     const relevantAppointments = appointments.filter(apt => {
       const aptDate = new Date(apt.date + 'T00:00:00');
-      const inRange = aptDate >= startDate && aptDate <= today;
+      const inRange = aptDate >= startDate && aptDate <= endDate;
       console.log(`Appointment: date=${apt.date}, aptDate=${aptDate.toISOString()}, inRange=${inRange}, is_done=${apt.is_done}`);
       return inRange;
     });
 
     const relevantExpenses = expenses.filter(exp => {
       const expDate = new Date(exp.date + 'T00:00:00');
-      const inRange = expDate >= startDate && expDate <= today;
+      const inRange = expDate >= startDate && expDate <= endDate;
       console.log(`Expense: date=${exp.date}, expDate=${expDate.toISOString()}, inRange=${inRange}`);
       return inRange;
     });
@@ -80,7 +91,7 @@ export default function ExportReports() {
 Debug Info:
 Total appointments fetched: ${appointments.length}
 Total expenses fetched: ${expenses.length}
-Date range: ${startDate.toLocaleDateString()} to ${today.toLocaleDateString()}
+Date range: ${startDate.toLocaleDateString()} to ${endDate.toLocaleDateString()}
 Relevant appointments: ${relevantAppointments.length}
 Relevant expenses: ${relevantExpenses.length}
 
