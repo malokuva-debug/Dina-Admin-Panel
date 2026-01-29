@@ -29,7 +29,7 @@ export default function WorkerDashboard() {
       <PushNotifications worker={user.worker!} />
 
       {/* Sections */}
-      {activeTab === 'finance' && <FinanceSection worker={user.worker!} />}
+      {activeTab === 'finance' && <WorkerFinanceSection worker={user.worker!} />}
       {activeTab === 'appointments' && <AppointmentsSection worker={user.worker!} />}
       {activeTab === 'settings' && <SettingsSection worker={user.worker!} />}
 
