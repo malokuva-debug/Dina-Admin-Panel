@@ -42,48 +42,56 @@ export default function ExportReports() {
       appointments = appointments.filter(a => a.is_done);
     }
 
+    console.log('Total appointments fetched:', appointments.length);
+    console.log('Total expenses fetched:', expenses.length);
+
     const today = new Date();
     const startDate = new Date(today.getFullYear(), today.getMonth() - months + 1, 1);
+    
+    // Set time to start of day for proper comparison
+    startDate.setHours(0, 0, 0, 0);
+    today.setHours(23, 59, 59, 999);
 
-    // Filter data by date range
+    console.log('Date range:', startDate.toISOString(), 'to', today.toISOString());
+
+    // Filter data by date range - handle date strings properly
     const relevantAppointments = appointments.filter(apt => {
-      const aptDate = new Date(apt.date);
-      return aptDate >= startDate && aptDate <= today;
+      const aptDate = new Date(apt.date + 'T00:00:00');
+      const inRange = aptDate >= startDate && aptDate <= today;
+      if (!inRange) {
+        console.log('Appointment excluded:', apt.date, aptDate);
+      }
+      return inRange;
     });
 
     const relevantExpenses = expenses.filter(exp => {
-      const expDate = new Date(exp.date);
+      const expDate = new Date(exp.date + 'T00:00:00');
       return expDate >= startDate && expDate <= today;
     });
 
+    console.log('Relevant appointments:', relevantAppointments.length);
+    console.log('Relevant expenses:', relevantExpenses.length);
+
     // Calculate totals
-const totalRevenue = relevantAppointments.reduce(
-  (sum, apt) => sum + Number(apt.price || 0),
-  0
-);
-const totalExpenses = relevantExpenses.reduce(
-  (sum, exp) => sum + Math.abs(Number(exp.amount)) * exp.quantity,
-  0
-);
+    const totalRevenue = relevantAppointments.reduce((sum, apt) => sum + apt.price, 0);
+    const totalExpenses = relevantExpenses.reduce((sum, exp) => sum + exp.amount * exp.quantity, 0);
     const netProfit = totalRevenue - totalExpenses;
 
     // Revenue by worker
     const dinaRevenue = relevantAppointments
-  .filter(apt => apt.worker?.toLowerCase() === 'dina')
-  .reduce((sum, apt) => sum + Number(apt.price || 0), 0);
-
-const kidaRevenue = relevantAppointments
-  .filter(apt => apt.worker?.toLowerCase() === 'kida')
-  .reduce((sum, apt) => sum + Number(apt.price || 0), 0);
+      .filter(apt => apt.worker === 'dina')
+      .reduce((sum, apt) => sum + apt.price, 0);
+    const kidaRevenue = relevantAppointments
+      .filter(apt => apt.worker === 'kida')
+      .reduce((sum, apt) => sum + apt.price, 0);
 
     // Expenses by worker
     const dinaExpenses = relevantExpenses
-  .filter(exp => exp.worker?.toLowerCase() === 'dina')
-  .reduce((sum, exp) => sum + Math.abs(Number(exp.amount)) * exp.quantity, 0);
-
-const kidaExpenses = relevantExpenses
-  .filter(exp => exp.worker?.toLowerCase() === 'kida')
-  .reduce((sum, exp) => sum + Math.abs(Number(exp.amount)) * exp.quantity, 0);
+      .filter(exp => exp.worker === 'dina')
+      .reduce((sum, exp) => sum + exp.amount * exp.quantity, 0);
+    const kidaExpenses = relevantExpenses
+      .filter(exp => exp.worker === 'kida')
+      .reduce((sum, exp) => sum + exp.amount * exp.quantity, 0);
 
     return {
       period: months === 1 ? 'Current Month' : `Last ${months} Months`,
