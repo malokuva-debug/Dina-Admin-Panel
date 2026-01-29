@@ -50,55 +50,91 @@ export default function ExportReports() {
   };
 
   const exportPDF = async (type: 'month' | '6months' | '12months') => {
-    const months = type === 'month' ? 1 : type === '6months' ? 6 : 12;
-    
-    try {
-      // @ts-expect-error export library has invalid types
-      const { jsPDF } = window.jspdf;
-      const doc = new jsPDF();
+  const months = type === 'month' ? 1 : type === '6months' ? 6 : 12;
 
-      const report = generateReport(months);
+  try {
+    // @ts-expect-error export library has invalid types
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
 
-      // Title
-      doc.setFontSize(20);
-      doc.text('Financial Report', 20, 20);
+    const report = generateReport(months);
 
-      // Period
-      doc.setFontSize(12);
-      doc.text(`Period: ${report.period}`, 20, 35);
+    const pageWidth = doc.internal.pageSize.getWidth();
+    let y = 20;
 
-      // Summary
+    /* ===== Header ===== */
+    doc.setFillColor(30, 41, 59); // dark slate
+    doc.rect(0, 0, pageWidth, 35, 'F');
+
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(18);
+    doc.text('Financial Report', 20, 22);
+
+    doc.setFontSize(11);
+    doc.text(report.period, 20, 30);
+
+    doc.setTextColor(0, 0, 0);
+    y = 50;
+
+    /* ===== Section helper ===== */
+    const sectionTitle = (title: string) => {
       doc.setFontSize(14);
-      doc.text('Summary', 20, 50);
+      doc.setFont('helvetica', 'bold');
+      doc.text(title, 20, y);
+      y += 4;
+      doc.setDrawColor(200);
+      doc.line(20, y, pageWidth - 20, y);
+      y += 10;
+      doc.setFont('helvetica', 'normal');
       doc.setFontSize(11);
-      doc.text(`Total Revenue: $${report.totalRevenue.toFixed(2)}`, 30, 60);
-      doc.text(`Total Expenses: $${report.totalExpenses.toFixed(2)}`, 30, 68);
-      doc.text(`Net Profit: $${report.netProfit.toFixed(2)}`, 30, 76);
+    };
 
-      // Revenue by Worker
-      doc.setFontSize(14);
-      doc.text('Revenue by Worker', 20, 90);
-      doc.setFontSize(11);
-      doc.text(`Dina: $${report.dinaRevenue.toFixed(2)}`, 30, 100);
-      doc.text(`Kida: $${report.kidaRevenue.toFixed(2)}`, 30, 108);
+    const row = (label: string, value: string) => {
+      doc.text(label, 25, y);
+      doc.text(value, pageWidth - 25, y, { align: 'right' });
+      y += 8;
+    };
 
-      // Stats
-      doc.setFontSize(14);
-      doc.text('Statistics', 20, 122);
-      doc.setFontSize(11);
-      doc.text(`Total Appointments: ${report.appointmentCount}`, 30, 132);
-      doc.text(`Total Expenses: ${report.expenseCount}`, 30, 140);
+    /* ===== Summary ===== */
+    sectionTitle('Summary');
+    row('Total Revenue', `$${report.totalRevenue.toFixed(2)}`);
+    row('Total Expenses', `$${report.totalExpenses.toFixed(2)}`);
+    row('Net Profit', `$${report.netProfit.toFixed(2)}`);
 
-      // Save
-      const fileName = `financial-report-${type}-${new Date().toISOString().split('T')[0]}.pdf`;
-      doc.save(fileName);
+    y += 6;
 
-      alert('Report exported successfully!');
-    } catch (error) {
-      console.error('Error exporting PDF:', error);
-      alert('Error exporting PDF. Please make sure jsPDF is loaded.');
-    }
-  };
+    /* ===== Revenue by Worker ===== */
+    sectionTitle('Revenue by Worker');
+    row('Dina', `$${report.dinaRevenue.toFixed(2)}`);
+    row('Kida', `$${report.kidaRevenue.toFixed(2)}`);
+
+    y += 6;
+
+    /* ===== Statistics ===== */
+    sectionTitle('Statistics');
+    row('Total Appointments', report.appointmentCount.toString());
+    row('Total Expenses Recorded', report.expenseCount.toString());
+
+    /* ===== Footer ===== */
+    const footerY = doc.internal.pageSize.getHeight() - 15;
+    doc.setFontSize(9);
+    doc.setTextColor(120);
+    doc.text(
+      `Generated on ${new Date().toLocaleDateString()}`,
+      pageWidth / 2,
+      footerY,
+      { align: 'center' }
+    );
+
+    const fileName = `financial-report-${type}-${new Date().toISOString().split('T')[0]}.pdf`;
+    doc.save(fileName);
+
+    alert('Report exported successfully!');
+  } catch (error) {
+    console.error('Error exporting PDF:', error);
+    alert('Error exporting PDF. Please make sure jsPDF is loaded.');
+  }
+};
 
   return (
     <div className="card">
