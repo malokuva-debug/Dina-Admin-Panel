@@ -43,6 +43,7 @@ export default function ExportReports() {
     }
 
     console.log('Total appointments fetched:', appointments.length);
+    console.log('Sample appointments:', appointments.slice(0, 3));
     console.log('Total expenses fetched:', expenses.length);
 
     const today = new Date();
@@ -53,20 +54,22 @@ export default function ExportReports() {
     today.setHours(23, 59, 59, 999);
 
     console.log('Date range:', startDate.toISOString(), 'to', today.toISOString());
+    console.log('Today getMonth():', today.getMonth(), 'getFullYear():', today.getFullYear());
+    console.log('Start date calculated:', startDate);
 
     // Filter data by date range - handle date strings properly
     const relevantAppointments = appointments.filter(apt => {
       const aptDate = new Date(apt.date + 'T00:00:00');
       const inRange = aptDate >= startDate && aptDate <= today;
-      if (!inRange) {
-        console.log('Appointment excluded:', apt.date, aptDate);
-      }
+      console.log(`Appointment: date=${apt.date}, aptDate=${aptDate.toISOString()}, inRange=${inRange}, is_done=${apt.is_done}`);
       return inRange;
     });
 
     const relevantExpenses = expenses.filter(exp => {
       const expDate = new Date(exp.date + 'T00:00:00');
-      return expDate >= startDate && expDate <= today;
+      const inRange = expDate >= startDate && expDate <= today;
+      console.log(`Expense: date=${exp.date}, expDate=${expDate.toISOString()}, inRange=${inRange}`);
+      return inRange;
     });
 
     console.log('Relevant appointments:', relevantAppointments.length);
