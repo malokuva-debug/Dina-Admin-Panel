@@ -12,6 +12,12 @@ export const EMAIL_MAP = {
 
 export type UserKey = keyof typeof EMAIL_MAP;
 
+/** ✅ ADD THIS */
+export const isAuthenticated = (): boolean => {
+  if (typeof window === 'undefined') return false;
+  return Boolean(storage.get<User>(CURRENT_USER_KEY));
+};
+
 export const getCurrentUser = (): User | null => {
   if (typeof window === 'undefined') return null;
   return storage.get<User>(CURRENT_USER_KEY);
