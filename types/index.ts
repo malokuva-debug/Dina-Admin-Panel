@@ -1,11 +1,11 @@
 // types/index.ts
 
-export type Worker = 'dina' | 'kida';
+export type WorkerRole = 'dina' | 'kida';
 
 export interface User {
   id: string;
-  name?: string;       // <-- optional
-  role: 'admin' | Worker;
+  name?: string;            // optional to match incoming
+  role?: 'admin' | WorkerRole;  // optional to allow undefined before login
 }
 
 export interface Service {
