@@ -163,7 +163,7 @@ export const updatePassword = async (newPassword: string): Promise<boolean> => {
 // Auth state listener
 // ----------------------
 export const onAuthStateChange = (callback: (user: User | null) => void): (() => void) => {
-  const { data: subscription } = supabase.auth.onAuthStateChange((_event, session) => {
+  const { subscription } = supabase.auth.onAuthStateChange((_event, session) => {
     if (session?.user) {
       const user: User = {
         id: session.user.id,
