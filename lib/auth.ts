@@ -64,12 +64,12 @@ export const login = async (userKey: UserKey, password: string): Promise<User | 
     }
 
     const user: User = {
-      id: data.user.id,
-      email: data.user.email!,
-      name: userKey.charAt(0).toUpperCase() + userKey.slice(1),
-      role: profile.role as 'admin' | 'worker',
-      worker: profile.worker as 'dina' | 'kida' | undefined,
-    };
+  id: data.user.id,
+  email: data.user.email!,
+  name: userKey.charAt(0).toUpperCase() + userKey.slice(1) || '', // ensure string
+  role: profile.role as 'admin' | 'worker',
+  worker: profile.worker as 'dina' | 'kida' | undefined,
+};
 
     setCurrentUser(user);
     return user;
