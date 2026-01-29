@@ -75,6 +75,20 @@ export default function ExportReports() {
     console.log('Relevant appointments:', relevantAppointments.length);
     console.log('Relevant expenses:', relevantExpenses.length);
 
+    // Show debug info in alert before generating PDF
+    const debugInfo = `
+Debug Info:
+Total appointments fetched: ${appointments.length}
+Total expenses fetched: ${expenses.length}
+Date range: ${startDate.toLocaleDateString()} to ${today.toLocaleDateString()}
+Relevant appointments: ${relevantAppointments.length}
+Relevant expenses: ${relevantExpenses.length}
+
+${appointments.length > 0 ? `Sample appointment dates: ${appointments.slice(0, 3).map(a => `${a.date} (done:${a.is_done})`).join(', ')}` : 'No appointments found'}
+    `.trim();
+    
+    alert(debugInfo);
+
     // Calculate totals
     const totalRevenue = relevantAppointments.reduce((sum, apt) => sum + apt.price, 0);
     const totalExpenses = relevantExpenses.reduce((sum, exp) => sum + exp.amount * exp.quantity, 0);
