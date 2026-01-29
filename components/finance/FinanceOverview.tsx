@@ -41,37 +41,33 @@ export default function FinanceOverview({ month, worker }: FinanceOverviewProps)
 
     /** ---------------- REVENUE ---------------- */
     const doneAppointments = appointments.filter(
-      a => a.worker === worker && a.is_done
-    );
+  a => a.is_done && a.worker === worker
+);
 
-    const todayRevenue = doneAppointments
-      .filter(a => a.date === today)
-      .reduce((sum, a) => sum + a.price, 0);
+const todayRevenue = doneAppointments
+  .filter(a => new Date(a.date).toDateString() === new Date().toDateString())
+  .reduce((sum, a) => sum + a.price, 0);
 
-    const monthRevenue = doneAppointments
-      .filter(a => {
-        const [y, m] = a.date.split('-');
-        return y === year && m === monthNum;
-      })
-      .reduce((sum, a) => sum + a.price, 0);
+const monthRevenue = doneAppointments
+  .filter(a => {
+    const [y, m] = a.date.split('-');
+    return Number(y) === Number(year) && Number(m) === Number(monthNum);
+  })
+  .reduce((sum, a) => sum + a.price, 0);
 
-    /** ---------------- EXPENSES ---------------- */
-    const monthExpenses = expenses
-      .filter(e => {
-        const [y, m] = e.date.split('-');
-        return y === year && m === monthNum && e.worker === worker;
-      })
-      .reduce((sum, e) => sum + e.amount * e.quantity, 0);
+const monthExpenses = expenses
+  .filter(e => {
+    const [y, m] = e.date.split('-');
+    return Number(y) === Number(year) &&
+           Number(m) === Number(monthNum) &&
+           e.worker === worker;
+  })
+  .reduce((sum, e) => sum + e.amount * e.quantity, 0);
 
-    /** ---------------- TOTAL NET ---------------- */
-    const totalRevenue = doneAppointments.reduce(
-      (sum, a) => sum + a.price,
-      0
-    );
-
-    const totalExpenses = expenses
-      .filter(e => e.worker === worker)
-      .reduce((sum, e) => sum + e.amount * e.quantity, 0);
+const totalRevenue = doneAppointments.reduce((sum, a) => sum + a.price, 0);
+const totalExpenses = expenses
+  .filter(e => e.worker === worker)
+  .reduce((sum, e) => sum + e.amount * e.quantity, 0);
 
     setTodayRevenue(todayRevenue);
     setMonthRevenue(monthRevenue);
