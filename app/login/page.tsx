@@ -14,76 +14,45 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const [redirectTo, setRedirectTo] = useState<string | null>(null);
 
-  // Redirect after successful login
   useEffect(() => {
     if (redirectTo) router.push(redirectTo);
   }, [redirectTo, router]);
 
   const handleLogin = async () => {
     setError('');
+    const user = await login(userKey, password);
 
-    const authUser = await login(userKey, password);
-
-    if (!authUser) {
-      setError('Wrong password!');
+    if (!user) {
+      setError('Wrong password');
       return;
     }
 
-    // Update global auth state
-    setUser(authUser);
+    setUser(user);
 
-    // Redirect based on role
-    if (authUser.role === 'admin') setRedirectTo('/admin-dashboard');
-    else setRedirectTo('/worker-dashboard');
+    setRedirectTo(
+      user.role === 'admin' ? '/admin-dashboard' : '/worker-dashboard'
+    );
   };
 
   return (
-    <div
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        marginTop: '5rem',
-      }}
-    >
+    <div className="login">
       <h1>Login</h1>
 
-      <label style={{ marginTop: '1rem' }}>
-        Who are you?
-        <select
-          value={userKey}
-          onChange={(e) => setUserKey(e.target.value as UserKey)}
-          style={{ marginLeft: '0.5rem' }}
-        >
-          <option value="dina">Dina</option>
-          <option value="kida">Kida</option>
-          <option value="admin">Admin</option>
-        </select>
-      </label>
+      <select value={userKey} onChange={(e) => setUserKey(e.target.value as UserKey)}>
+        <option value="dina">Dina</option>
+        <option value="kida">Kida</option>
+        <option value="admin">Admin</option>
+      </select>
 
-      <label style={{ marginTop: '1rem' }}>
-        Password:
-        <input
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          placeholder="Enter password"
-          style={{ marginLeft: '0.5rem' }}
-        />
-      </label>
+      <input
+        type="password"
+        placeholder="Password"
+        value={password}
+        onChange={(e) => setPassword(e.target.value)}
+      />
 
-      <button
-        onClick={handleLogin}
-        style={{ marginTop: '1.5rem', padding: '0.5rem 1rem' }}
-      >
-        Login
-      </button>
-
-      {error && (
-        <p style={{ color: 'red', marginTop: '1rem', fontWeight: 'bold' }}>
-          {error}
-        </p>
-      )}
+      <button onClick={handleLogin}>Login</button>
+      {error && <p style={{ color: 'red' }}>{error}</p>}
     </div>
   );
 }
