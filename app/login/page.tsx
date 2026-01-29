@@ -15,8 +15,8 @@ export default function LoginPage() {
     const user = await login(userKey, password);
     if (user) {
       // Redirect after login
-      if (user.role === 'admin') router.push('/admin-dashboard'); 
-      else router.push('/worker-dashboard'); 
+      if (user.role === 'admin') router.push('/admin-dashboard');
+      else router.push('/worker-dashboard');
     } else {
       setError('Wrong password!');
     }
