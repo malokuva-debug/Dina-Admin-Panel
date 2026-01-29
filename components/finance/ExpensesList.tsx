@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { Worker, Expense } from '@/types';
-import { storage, STORAGE_KEYS } from '@/lib/storage';
+import { storage, STORAGE_KEYS, storageMode } from '@/lib/storage';
+import { supabase } from '@/lib/supabase';
 import ExpenseModal from '@/components/modals/ExpenseModal';
 
 interface ExpensesListProps {
@@ -27,9 +28,27 @@ export default function ExpensesList({ month, worker }: ExpensesListProps) {
     };
   }, [month, worker]);
 
-  const loadExpenses = () => {
-    const allExpenses: Expense[] = storage.get(STORAGE_KEYS.EXPENSES) || [];
+  const loadExpenses = async () => {
     const [year, monthNum] = month.split('-');
+    let allExpenses: Expense[] = [];
+
+    if (storageMode === 'supabase') {
+      // Fetch from Supabase
+      const { data, error } = await supabase
+        .from('expenses')
+        .select('*')
+        .eq('worker', worker);
+
+      if (error) {
+        console.error('Expenses fetch error:', error);
+        return;
+      }
+
+      allExpenses = data as Expense[];
+    } else {
+      // Use local storage
+      allExpenses = storage.get(STORAGE_KEYS.EXPENSES) || [];
+    }
 
     const filtered = allExpenses.filter(exp => {
       const [expYear, expMonth] = exp.date.split('-');
@@ -42,14 +61,27 @@ export default function ExpensesList({ month, worker }: ExpensesListProps) {
     setExpenses(filtered);
   };
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     if (!confirm('Delete this expense?')) return;
 
-    const allExpenses: Expense[] = storage.get(STORAGE_KEYS.EXPENSES) || [];
-    storage.set(
-      STORAGE_KEYS.EXPENSES,
-      allExpenses.filter(exp => exp.id !== id)
-    );
+    if (storageMode === 'supabase') {
+      const { error } = await supabase
+        .from('expenses')
+        .delete()
+        .eq('id', id);
+
+      if (error) {
+        console.error('Delete error:', error);
+        alert('Failed to delete expense');
+        return;
+      }
+    } else {
+      const allExpenses: Expense[] = storage.get(STORAGE_KEYS.EXPENSES) || [];
+      storage.set(
+        STORAGE_KEYS.EXPENSES,
+        allExpenses.filter(exp => exp.id !== id)
+      );
+    }
 
     // Notify all listeners to reload
     window.dispatchEvent(new Event('expenses-updated'));
