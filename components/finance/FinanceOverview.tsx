@@ -70,8 +70,9 @@ export default function FinanceOverview({ month, worker }: FinanceOverviewProps)
       // Don't filter expenses by worker - get all business expenses
     }
 
-    console.log('All expenses:', expenses);
+    console.log('All expenses fetched:', expenses);
     console.log('Expenses length:', expenses.length);
+    console.log('Sample expense:', expenses[0]);
 
     /** ---------------- REVENUE CALCULATIONS ---------------- */
     const todayRevenue = appointments
@@ -85,26 +86,34 @@ export default function FinanceOverview({ month, worker }: FinanceOverviewProps)
       })
       .reduce((sum, a) => sum + a.price, 0);
 
-    const monthExpenses = expenses
-      .filter(e => {
-        const [y, m] = e.date.split('-');
-        return Number(y) === Number(year) && Number(m) === Number(monthNum);
-      })
-      .reduce((sum, e) => sum + e.amount * e.quantity, 0);
-
     console.log('Month:', month);
     console.log('Year:', year, 'MonthNum:', monthNum);
-    console.log('Filtered month expenses:', expenses.filter(e => {
-      const [y, m] = e.date.split('-');
-      return Number(y) === Number(year) && Number(m) === Number(monthNum);
-    }));
+    console.log('Month Revenue:', monthRevenue);
+
+    const monthExpenses = expenses
+      .filter(e => {
+        if (!e.date) {
+          console.log('Expense missing date:', e);
+          return false;
+        }
+        const [y, m] = e.date.split('-');
+        const matches = Number(y) === Number(year) && Number(m) === Number(monthNum);
+        if (matches) {
+          console.log('Matched expense:', e, 'Amount:', e.amount, 'Qty:', e.quantity, 'Total:', e.amount * e.quantity);
+        }
+        return matches;
+      })
+      .reduce((sum, e) => sum + (e.amount * e.quantity), 0);
+
     console.log('Month Expenses Total:', monthExpenses);
 
     const totalRevenue = appointments.reduce((sum, a) => sum + a.price, 0);
-    const totalExpenses = expenses.reduce((sum, e) => sum + e.amount * e.quantity, 0);
+    const totalExpenses = expenses.reduce((sum, e) => sum + (e.amount * e.quantity), 0);
 
     console.log('Total Revenue:', totalRevenue);
     console.log('Total Expenses:', totalExpenses);
+    console.log('Month Net should be:', monthRevenue - monthExpenses);
+    console.log('Total Net should be:', totalRevenue - totalExpenses);
 
     setTodayRevenue(todayRevenue);
     setMonthRevenue(monthRevenue);
