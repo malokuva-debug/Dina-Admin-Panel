@@ -3,9 +3,11 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { login, UserKey } from '@/lib/auth';
+import { useAuth } from '@/lib/AuthContext';
 
 export default function LoginPage() {
   const router = useRouter();
+  const { setUser } = useAuth();
   const [userKey, setUserKey] = useState<UserKey>('dina');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -23,7 +25,10 @@ export default function LoginPage() {
       return;
     }
 
-    // Redirect safely using state
+    // Update global auth state
+    setUser(user);
+
+    // Redirect safely
     if (user.role === 'admin') setRedirectTo('/admin-dashboard');
     else setRedirectTo('/worker-dashboard');
   };
