@@ -2,6 +2,12 @@
 
 export type Worker = 'dina' | 'kida';
 
+export interface User {
+  id: string;
+  name: string;
+  role: 'admin' | Worker; // admin or one of your workers ('dina' | 'kida')
+}
+
 export interface Service {
   id: string;
   name: string;
