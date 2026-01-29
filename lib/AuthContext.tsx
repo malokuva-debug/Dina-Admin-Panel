@@ -1,56 +1,70 @@
-'use client'; // ← must be the first line
+'use client';
 
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { supabase } from './supabase';
 
 interface User {
   id: string;
+  email: string;
   name: string;
-  worker?: string;
+  worker?: string; // assigned worker
 }
 
 interface AuthContextType {
   user: User | null;
-  setUser: (user: User | null) => void;
+  login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType>({
   user: null,
-  setUser: () => {},
+  login: async () => {},
   logout: async () => {},
 });
 
-export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
+export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
 
+  // Check session on mount
   useEffect(() => {
-    const getSession = async () => {
-      const { data } = await supabase.auth.getSession();
-      if (data.session?.user) {
-        setUser({
-          id: data.session.user.id,
-          name: data.session.user.email!,
-          worker: data.session.user.user_metadata?.worker,
-        });
+    const session = supabase.auth.getSession().then(({ data }) => {
+      if (data.session) {
+        loadUser(data.session.user.id);
       }
-    };
-    getSession();
+    });
 
-    const { subscription } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session?.user) {
-        setUser({
-          id: session.user.id,
-          name: session.user.email!,
-          worker: session.user.user_metadata?.worker,
-        });
+        loadUser(session.user.id);
       } else {
         setUser(null);
       }
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      listener.subscription.unsubscribe();
+    };
   }, []);
+
+  const loadUser = async (id: string) => {
+    const { data, error } = await supabase
+      .from('users')
+      .select('id, email, name, worker')
+      .eq('id', id)
+      .single();
+
+    if (error) {
+      console.error('Error loading user:', error);
+      setUser(null);
+    } else {
+      setUser(data as User);
+    }
+  };
+
+  const login = async (email: string, password: string) => {
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) throw error;
+  };
 
   const logout = async () => {
     await supabase.auth.signOut();
@@ -58,10 +72,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, setUser, logout }}>
+    <AuthContext.Provider value={{ user, login, logout }}>
       {children}
     </AuthContext.Provider>
   );
 };
 
+// Hook to use the auth context
 export const useAuth = () => useContext(AuthContext);
