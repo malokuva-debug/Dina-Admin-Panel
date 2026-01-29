@@ -30,51 +30,53 @@ export default function FinanceOverview({ month, worker }: FinanceOverviewProps)
   }, [month, worker]);
 
   const loadFinanceData = () => {
-    const appointments: Appointment[] =
-      storage.get(STORAGE_KEYS.APPOINTMENTS) || [];
+  const appointments: Appointment[] =
+    storage.get(STORAGE_KEYS.APPOINTMENTS) || [];
 
-    const expenses: Expense[] =
-      storage.get(STORAGE_KEYS.EXPENSES) || [];
+  const expenses: Expense[] =
+    storage.get(STORAGE_KEYS.EXPENSES) || [];
 
-    const [year, monthNum] = month.split('-');
-    const today = new Date().toISOString().slice(0, 10);
+  const [year, monthNum] = month.split('-');
+  const todayStr = new Date().toISOString().slice(0, 10);
 
-    /** ---------------- REVENUE ---------------- */
-    const doneAppointments = appointments.filter(
-  a => a.is_done && a.worker === worker
-);
+  /** ---------------- REVENUE ---------------- */
+  const doneAppointments = appointments.filter(a => a.is_done);
 
-const todayRevenue = doneAppointments
-  .filter(a => new Date(a.date).toDateString() === new Date().toDateString())
-  .reduce((sum, a) => sum + a.price, 0);
+  // Today's revenue
+  const todayRevenue = doneAppointments
+    .filter(a => new Date(a.date).toISOString().slice(0, 10) === todayStr)
+    .reduce((sum, a) => sum + a.price, 0);
 
-const monthRevenue = doneAppointments
-  .filter(a => {
-    const [y, m] = a.date.split('-');
-    return Number(y) === Number(year) && Number(m) === Number(monthNum);
-  })
-  .reduce((sum, a) => sum + a.price, 0);
+  // Month revenue
+  const monthRevenue = doneAppointments
+    .filter(a => {
+      const [y, m] = a.date.split('-');
+      return Number(y) === Number(year) && Number(m) === Number(monthNum);
+    })
+    .reduce((sum, a) => sum + a.price, 0);
 
-const monthExpenses = expenses
-  .filter(e => {
-    const [y, m] = e.date.split('-');
-    return Number(y) === Number(year) &&
-           Number(m) === Number(monthNum) &&
-           e.worker === worker;
-  })
-  .reduce((sum, e) => sum + e.amount * e.quantity, 0);
+  // Month expenses
+  const monthExpenses = expenses
+    .filter(e => {
+      const [y, m] = e.date.split('-');
+      return Number(y) === Number(year) && Number(m) === Number(monthNum);
+    })
+    .reduce((sum, e) => sum + e.amount * e.quantity, 0);
 
-const totalRevenue = doneAppointments.reduce((sum, a) => sum + a.price, 0);
-const totalExpenses = expenses
-  .filter(e => e.worker === worker)
-  .reduce((sum, e) => sum + e.amount * e.quantity, 0);
+  // Total revenue & expenses
+  const totalRevenue = doneAppointments.reduce((sum, a) => sum + a.price, 0);
+  const totalExpenses = expenses.reduce(
+    (sum, e) => sum + e.amount * e.quantity,
+    0
+  );
 
-    setTodayRevenue(todayRevenue);
-    setMonthRevenue(monthRevenue);
-    setMonthExpenses(monthExpenses);
-    setMonthNet(monthRevenue - monthExpenses);
-    setTotalNet(totalRevenue - totalExpenses);
-  };
+  // Set state
+  setTodayRevenue(todayRevenue);
+  setMonthRevenue(monthRevenue);
+  setMonthExpenses(monthExpenses);
+  setMonthNet(monthRevenue - monthExpenses);
+  setTotalNet(totalRevenue - totalExpenses);
+};
 
   return (
     <div className="card">
