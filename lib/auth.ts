@@ -163,7 +163,8 @@ export const updatePassword = async (newPassword: string): Promise<boolean> => {
 // Auth state listener
 // ----------------------
 export const onAuthStateChange = (callback: (user: User | null) => void): (() => void) => {
-  const { subscription } = supabase.auth.onAuthStateChange((_event, session) => {
+  // Supabase v2 returns { data: { subscription } }
+  const { data } = supabase.auth.onAuthStateChange((_event, session) => {
     if (session?.user) {
       const user: User = {
         id: session.user.id,
@@ -176,5 +177,6 @@ export const onAuthStateChange = (callback: (user: User | null) => void): (() =>
     }
   });
 
-  return () => subscription.unsubscribe();
+  // unsubscribe correctly
+  return () => data.subscription.unsubscribe();
 };
