@@ -57,25 +57,33 @@ export default function ExportReports() {
     });
 
     // Calculate totals
-    const totalRevenue = relevantAppointments.reduce((sum, apt) => sum + apt.price, 0);
-    const totalExpenses = relevantExpenses.reduce((sum, exp) => sum + exp.amount * exp.quantity, 0);
+const totalRevenue = relevantAppointments.reduce(
+  (sum, apt) => sum + Number(apt.price || 0),
+  0
+);
+const totalExpenses = relevantExpenses.reduce(
+  (sum, exp) => sum + Math.abs(Number(exp.amount)) * exp.quantity,
+  0
+);
     const netProfit = totalRevenue - totalExpenses;
 
     // Revenue by worker
     const dinaRevenue = relevantAppointments
-      .filter(apt => apt.worker === 'dina')
-      .reduce((sum, apt) => sum + apt.price, 0);
-    const kidaRevenue = relevantAppointments
-      .filter(apt => apt.worker === 'kida')
-      .reduce((sum, apt) => sum + apt.price, 0);
+  .filter(apt => apt.worker?.toLowerCase() === 'dina')
+  .reduce((sum, apt) => sum + Number(apt.price || 0), 0);
+
+const kidaRevenue = relevantAppointments
+  .filter(apt => apt.worker?.toLowerCase() === 'kida')
+  .reduce((sum, apt) => sum + Number(apt.price || 0), 0);
 
     // Expenses by worker
     const dinaExpenses = relevantExpenses
-      .filter(exp => exp.worker === 'dina')
-      .reduce((sum, exp) => sum + exp.amount * exp.quantity, 0);
-    const kidaExpenses = relevantExpenses
-      .filter(exp => exp.worker === 'kida')
-      .reduce((sum, exp) => sum + exp.amount * exp.quantity, 0);
+  .filter(exp => exp.worker?.toLowerCase() === 'dina')
+  .reduce((sum, exp) => sum + Math.abs(Number(exp.amount)) * exp.quantity, 0);
+
+const kidaExpenses = relevantExpenses
+  .filter(exp => exp.worker?.toLowerCase() === 'kida')
+  .reduce((sum, exp) => sum + Math.abs(Number(exp.amount)) * exp.quantity, 0);
 
     return {
       period: months === 1 ? 'Current Month' : `Last ${months} Months`,
