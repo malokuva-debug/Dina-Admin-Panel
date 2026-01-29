@@ -1,111 +1,69 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { Appointment, Expense } from '@/types';
-import { storage, STORAGE_KEYS } from '@/lib/storage';
+import { useState } from 'react';
+import FinanceOverview from './finance/FinanceOverview';
+import RevenueByWorker from './finance/RevenueByWorker';
+import ExpenseForm from './finance/ExpenseForm';
+import ExpensesList from './finance/ExpensesList';
+import { Worker } from '@/types';
 
-interface FinanceOverviewProps {
-  month: string; // YYYY-MM
+interface FinanceSectionProps {
+  workers: Worker[];
 }
 
-export default function FinanceOverview({ month }: FinanceOverviewProps) {
-  const [todayRevenue, setTodayRevenue] = useState(0);
-  const [monthRevenue, setMonthRevenue] = useState(0);
-  const [monthExpenses, setMonthExpenses] = useState(0);
-  const [monthNet, setMonthNet] = useState(0);
-  const [totalNet, setTotalNet] = useState(0);
+export default function FinanceSection({ workers }: FinanceSectionProps) {
+  const [selectedMonth, setSelectedMonth] = useState(() => {
+    const today = new Date();
+    return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
+  });
 
-  useEffect(() => {
-    loadFinanceData();
+  const [worker, setWorker] = useState<Worker>(workers[0]);
 
-    const handler = () => loadFinanceData();
-    window.addEventListener('appointments-updated', handler);
-    window.addEventListener('expenses-updated', handler);
+  const handleMonthChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSelectedMonth(e.target.value);
+  };
 
-    return () => {
-      window.removeEventListener('appointments-updated', handler);
-      window.removeEventListener('expenses-updated', handler);
-    };
-  }, [month]);
-
-  const loadFinanceData = () => {
-    const appointments: Appointment[] =
-      storage.get(STORAGE_KEYS.APPOINTMENTS) || [];
-    const expenses: Expense[] = storage.get(STORAGE_KEYS.EXPENSES) || [];
-
-    const [year, monthNum] = month.split('-');
-    const todayStr = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
-
-    /** ---------------- REVENUE ---------------- */
-    const doneAppointments = appointments.filter(a => a.is_done);
-
-    // Normalize date to YYYY-MM-DD in case time exists
-    const normalizeDate = (dateStr: string) => dateStr.split('T')[0];
-
-    // Today's revenue
-    const todayRevenue = doneAppointments
-      .filter(a => normalizeDate(a.date) === todayStr)
-      .reduce((sum, a) => sum + a.price, 0);
-
-    // Month revenue
-    const monthRevenue = doneAppointments
-      .filter(a => {
-        const [y, m] = normalizeDate(a.date).split('-');
-        return Number(y) === Number(year) && Number(m) === Number(monthNum);
-      })
-      .reduce((sum, a) => sum + a.price, 0);
-
-    // Month expenses
-    const monthExpenses = expenses
-      .filter(e => {
-        const [y, m] = e.date.split('-');
-        return Number(y) === Number(year) && Number(m) === Number(monthNum);
-      })
-      .reduce((sum, e) => sum + e.amount * e.quantity, 0);
-
-    // Total revenue & expenses
-    const totalRevenue = doneAppointments.reduce((sum, a) => sum + a.price, 0);
-    const totalExpenses = expenses.reduce(
-      (sum, e) => sum + e.amount * e.quantity,
-      0
-    );
-
-    // Set state
-    setTodayRevenue(todayRevenue);
-    setMonthRevenue(monthRevenue);
-    setMonthExpenses(monthExpenses);
-    setMonthNet(monthRevenue - monthExpenses);
-    setTotalNet(totalRevenue - totalExpenses);
+  const handleWorkerChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const selected = workers.find(w => w.id === e.target.value);
+    if (selected) setWorker(selected);
   };
 
   return (
-    <div className="card">
-      <h3>Overview</h3>
+    <div className="finance-section">
+      {/* Month selector */}
+      <div style={{ marginBottom: '20px', display: 'flex', gap: '12px', alignItems: 'center' }}>
+        <label>
+          Month: 
+          <input 
+            type="month" 
+            value={selectedMonth} 
+            onChange={handleMonthChange} 
+            style={{ marginLeft: '8px', padding: '4px 8px' }}
+          />
+        </label>
 
-      <div className="service-card">
-        <span>Today Revenue</span>
-        <strong>${todayRevenue.toFixed(2)}</strong>
+        {/* Worker selector */}
+        <label>
+          Worker: 
+          <select value={worker.id} onChange={handleWorkerChange} style={{ marginLeft: '8px', padding: '4px 8px' }}>
+            {workers.map(w => (
+              <option key={w.id} value={w.id}>{w.name}</option>
+            ))}
+          </select>
+        </label>
       </div>
 
-      <div className="service-card">
-        <span>Month Revenue</span>
-        <strong>${monthRevenue.toFixed(2)}</strong>
-      </div>
+      {/* Overview for all workers */}
+      <FinanceOverview month={selectedMonth} />
 
-      <div className="service-card">
-        <span>Month Expenses</span>
-        <strong>${monthExpenses.toFixed(2)}</strong>
-      </div>
+      {/* Revenue breakdown per worker */}
+      <RevenueByWorker month={selectedMonth} />
 
-      <div className="service-card">
-        <span>Month Net</span>
-        <strong>${monthNet.toFixed(2)}</strong>
-      </div>
+      {/* Expense form for selected worker */}
+      <ExpenseForm worker={worker} month={selectedMonth} />
 
-      <div className="service-card">
-        <span>Total Net (All Time)</span>
-        <strong>${totalNet.toFixed(2)}</strong>
-      </div>
+      {/* Expenses list for selected worker */}
+      <ExpensesList month={selectedMonth} worker={worker} />
     </div>
   );
 }
