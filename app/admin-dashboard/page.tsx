@@ -4,21 +4,25 @@ import { useAuth } from '@/lib/AuthContext';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import Navbar from '@/components/layout/Navbar';
-import AppointmentsSection from '@/components/appointments/AppointmentsSection';
-import SettingsSection from '@/components/settings/SettingsSection';
-import WorkerFinanceSection from '@/components/finance/WorkerFinanceSection';
+import WorkersSection from '@/components/admin/WorkersSection';
+import SettingsSection from '@/components/admin/SettingsSection';
+import FinanceSection from '@/components/admin/FinanceSection';
+import PushNotifications from '@/components/PushNotifications';
 
 export default function AdminDashboard() {
   const { user, logout } = useAuth();
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<'appointments' | 'settings' | 'finance'>('appointments');
+  const [activeTab, setActiveTab] = useState<'workers' | 'settings' | 'finance'>('workers');
   const [selectedWorker, setSelectedWorker] = useState<string | null>(null);
 
-  // Redirect if not logged in or not admin
   useEffect(() => {
-    if (!user) return; // wait until auth loaded
-    if (user && user.role !== 'admin') {
-      router.push('/worker-dashboard'); // redirect non-admins
+    if (!user) {
+      router.push('/login');
+    } else {
+      // If worker role, select their worker automatically
+      if ((user as any).role === 'worker' && user.worker) {
+        setSelectedWorker(user.worker);
+      }
     }
   }, [user, router]);
 
@@ -26,40 +30,31 @@ export default function AdminDashboard() {
 
   return (
     <div className="container">
-      {/* Admin header */}
+      {/* Header with logout */}
       <div className="flex justify-between items-center mb-4">
-        <h1>Admin Dashboard</h1>
-        <button
-          onClick={logout}
-          className="p-2 bg-red-500 text-white rounded hover:bg-red-600"
-        >
-          Logout
+        <p className="font-semibold">{user.name}</p>
+        <button onClick={logout} className="p-2 rounded hover:bg-gray-200">
+          {/* Logout SVG */}
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            className="h-6 w-6"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            strokeWidth={2}
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1m0-10V5" />
+          </svg>
         </button>
       </div>
 
-      {/* Worker selector */}
-      <div className="mb-4">
-        <label className="mr-2 font-semibold">Select Worker:</label>
-        <select
-          value={selectedWorker || ''}
-          onChange={(e) => setSelectedWorker(e.target.value)}
-          className="border rounded p-1"
-        >
-          <option value="">All Workers</option>
-          <option value="Alice">Alice</option>
-          <option value="Bob">Bob</option>
-          {/* Replace with dynamic list of workers */}
-        </select>
-      </div>
+      {/* Notifications */}
+      <PushNotifications worker={selectedWorker || ''} />
 
       {/* Sections */}
-      {activeTab === 'appointments' && (
-        <AppointmentsSection worker={selectedWorker || undefined} />
-      )}
-      {activeTab === 'finance' && selectedWorker && (
-        <WorkerFinanceSection worker={selectedWorker} />
-      )}
-      {activeTab === 'settings' && <SettingsSection worker={selectedWorker || undefined} />}
+      {activeTab === 'workers' && <WorkersSection selectedWorker={selectedWorker} />}
+      {activeTab === 'settings' && <SettingsSection />}
+      {activeTab === 'finance' && <FinanceSection selectedWorker={selectedWorker} />}
 
       {/* Bottom Navbar */}
       <Navbar activeTab={activeTab} onTabChange={setActiveTab} />
