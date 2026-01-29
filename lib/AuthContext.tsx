@@ -1,73 +1,95 @@
-// lib/AuthContext.tsx
 'use client';
 
 import { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { User } from '@/types'; // make sure your User type has a `role` field
+import { User as AuthUser, getCurrentUser, setCurrentUser, onAuthStateChange } from './auth';
+import { Worker } from '@/types';
 
-// 1. Define context type
+// Frontend User type
+export interface User {
+  id: string;
+  name: string;
+  role: 'admin' | Worker; // matches types/index.ts
+}
+
+// Context type
 interface AuthContextType {
   user: User | null;
   setUser: (user: User | null) => void;
-  login: (userKey: string, password: string) => Promise<void>;
-  logout: () => void;
+  logout: () => Promise<void>;
 }
 
-// 2. Create context with default empty values
-const AuthContext = createContext<AuthContextType>({
-  user: null,
-  setUser: () => {},
-  login: async () => {},
-  logout: () => {},
-});
+// Create context
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// 3. Provider component
+// Provider
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUserState] = useState<User | null>(null);
   const router = useRouter();
 
-  // Optional: load user from localStorage/session on mount
+  // Map auth user (from lib/auth.ts) to frontend User type
+  const mapAuthUserToUser = (authUser: AuthUser | null): User | null => {
+    if (!authUser) return null;
+
+    let role: 'admin' | Worker;
+    if (authUser.role === 'admin') {
+      role = 'admin';
+    } else if (authUser.role === 'worker') {
+      if (!authUser.worker) {
+        console.warn('Worker type missing for user', authUser);
+        return null;
+      }
+      role = authUser.worker;
+    } else {
+      console.warn('Invalid role for user', authUser);
+      return null;
+    }
+
+    return {
+      id: authUser.id,
+      name: authUser.name || '',
+      role,
+    };
+  };
+
+  const setUser = (authUser: AuthUser | null) => {
+    const mappedUser = mapAuthUserToUser(authUser);
+    setUserState(mappedUser);
+    setCurrentUser(authUser); // keep localStorage in sync with auth.ts
+  };
+
+  const logout = async () => {
+    try {
+      setUser(null);
+      router.push('/login');
+    } catch (err) {
+      console.error('Logout failed:', err);
+    }
+  };
+
+  // Initialize from localStorage
   useEffect(() => {
-    const savedUser = localStorage.getItem('user');
-    if (savedUser) setUser(JSON.parse(savedUser));
+    const authUser = getCurrentUser();
+    setUser(authUser);
+
+    // Listen to auth state changes (optional, from supabase)
+    const unsubscribe = onAuthStateChange((authUser) => {
+      setUser(authUser);
+    });
+
+    return () => unsubscribe();
   }, []);
 
-  // Save user to localStorage whenever it changes
-  useEffect(() => {
-    if (user) localStorage.setItem('user', JSON.stringify(user));
-    else localStorage.removeItem('user');
-  }, [user]);
-
-  // Simple login function
-  const login = async (userKey: string, password: string) => {
-    // Replace this with your actual auth logic
-    // Example: hardcoded users
-    const mockUsers: Record<string, User> = {
-      dina: { id: '1', name: 'Dina Admin', role: 'admin' },
-      worker1: { id: '2', name: 'Worker One', role: 'worker' },
-    };
-
-    const foundUser = mockUsers[userKey];
-    if (!foundUser || password !== '1234') throw new Error('Invalid credentials');
-
-    setUser(foundUser);
-    // Redirect based on role
-    if (foundUser.role === 'admin') router.push('/admin-dashboard');
-    else router.push('/worker-dashboard');
-  };
-
-  // Logout function
-  const logout = () => {
-    setUser(null);
-    router.push('/login');
-  };
-
   return (
-    <AuthContext.Provider value={{ user, setUser, login, logout }}>
+    <AuthContext.Provider value={{ user, setUser, logout }}>
       {children}
     </AuthContext.Provider>
   );
 };
 
-// 4. Hook to use context
-export const useAuth = () => useContext(AuthContext);
+// Hook for convenience
+export const useAuth = (): AuthContextType => {
+  const context = useContext(AuthContext);
+  if (!context) throw new Error('useAuth must be used within an AuthProvider');
+  return context;
+};
