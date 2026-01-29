@@ -3,6 +3,9 @@
 import { useAuth } from '@/lib/AuthContext';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import WorkersSection from '@/components/admin/WorkersSection';
+import SettingsSection from '@/components/admin/SettingsSection';
+import FinanceSection from '@/components/admin/FinanceSection';
 import LogoutButton from '@/components/LogoutButton';
 
 export default function AdminDashboard() {
