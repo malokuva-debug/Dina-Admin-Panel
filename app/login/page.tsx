@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { login, UserKey } from '@/lib/auth';
 
@@ -9,6 +9,11 @@ export default function LoginPage() {
   const [userKey, setUserKey] = useState<UserKey>('dina');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [redirectTo, setRedirectTo] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (redirectTo) router.push(redirectTo);
+  }, [redirectTo]);
 
   const handleLogin = async () => {
     setError('');
@@ -18,14 +23,9 @@ export default function LoginPage() {
       return;
     }
 
-    // Redirect based on role
-    if (user.role === 'admin') {
-      router.push('/admin-dashboard');
-    } else if (user.role === 'worker') {
-      router.push('/worker-dashboard');
-    } else {
-      setError('Unknown role!');
-    }
+    // Redirect safely using state
+    if (user.role === 'admin') setRedirectTo('/admin-dashboard');
+    else setRedirectTo('/worker-dashboard');
   };
 
   return (
