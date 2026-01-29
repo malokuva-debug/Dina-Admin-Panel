@@ -1,8 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { login, EMAIL_MAP, UserKey } from '@/lib/auth';
 import { useRouter } from 'next/navigation';
+import { login, UserKey } from '@/lib/auth';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -13,12 +13,18 @@ export default function LoginPage() {
   const handleLogin = async () => {
     setError('');
     const user = await login(userKey, password);
-    if (user) {
-      // Redirect after login
-      if (user.role === 'admin') router.push('/admin-dashboard');
-      else router.push('/worker-dashboard');
-    } else {
+    if (!user) {
       setError('Wrong password!');
+      return;
+    }
+
+    // Redirect based on role
+    if (user.role === 'admin') {
+      router.push('/admin-dashboard');
+    } else if (user.role === 'worker') {
+      router.push('/worker-dashboard');
+    } else {
+      setError('Unknown role!');
     }
   };
 
@@ -29,9 +35,9 @@ export default function LoginPage() {
       <label>
         Who are you?
         <select value={userKey} onChange={(e) => setUserKey(e.target.value as UserKey)}>
-          {Object.keys(EMAIL_MAP).map((key) => (
-            <option key={key} value={key}>{key.charAt(0).toUpperCase() + key.slice(1)}</option>
-          ))}
+          <option value="dina">Dina</option>
+          <option value="kida">Kida</option>
+          <option value="admin">Admin</option>
         </select>
       </label>
 
@@ -45,7 +51,9 @@ export default function LoginPage() {
         />
       </label>
 
-      <button onClick={handleLogin} style={{ marginTop: '1rem' }}>Login</button>
+      <button onClick={handleLogin} style={{ marginTop: '1rem' }}>
+        Login
+      </button>
 
       {error && <p style={{ color: 'red' }}>{error}</p>}
     </div>
