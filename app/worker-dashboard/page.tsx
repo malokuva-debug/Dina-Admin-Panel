@@ -8,15 +8,17 @@ import WorkerFinanceSection from '@/components/finance/WorkerFinanceSection';
 import AppointmentsSection from '@/components/appointments/AppointmentsSection';
 import SettingsSection from '@/components/settings/SettingsSection';
 import PushNotifications from '@/components/PushNotifications';
+import { FiLogOut } from 'react-icons/fi'; // Logout icon from react-icons
 
 export default function WorkerDashboard() {
   const { user, logout } = useAuth();
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<'appointments' | 'settings' | 'finance'>('appointments');
 
+  // Redirect to login if not logged in
   useEffect(() => {
     if (!user) router.push('/login');
-  }, [user]);
+  }, [user, router]);
 
   if (!user) return <p>Loading...</p>;
 
@@ -27,26 +29,28 @@ export default function WorkerDashboard() {
 
   return (
     <div className="container">
-      {/* Logout Icon/Button */}
-      <div className="flex justify-end p-4">
-        <button 
-          onClick={handleLogout} 
-          className="text-red-600 hover:text-red-800 font-bold"
-          title="Logout"
+      {/* Top bar with logout */}
+      <div className="flex justify-between items-center py-2 px-4 border-b">
+        <h2 className="text-lg font-medium">{user.worker}</h2>
+        <button
+          onClick={handleLogout}
+          className="flex items-center gap-1 text-red-500 hover:text-red-700"
         >
-          ⎋ Logout
+          <FiLogOut size={20} /> Logout
         </button>
       </div>
 
       {/* Notifications */}
       <PushNotifications worker={user.worker!} />
 
-      {/* Sections */}
-      {activeTab === 'finance' && <WorkerFinanceSection worker={user.worker!} />}
-      {activeTab === 'appointments' && <AppointmentsSection worker={user.worker!} />}
-      {activeTab === 'settings' && <SettingsSection worker={user.worker!} />}
+      {/* Main sections */}
+      <div className="mt-4">
+        {activeTab === 'finance' && <WorkerFinanceSection worker={user.worker!} />}
+        {activeTab === 'appointments' && <AppointmentsSection worker={user.worker!} />}
+        {activeTab === 'settings' && <SettingsSection worker={user.worker!} />}
+      </div>
 
-      {/* Bottom Navbar */}
+      {/* Bottom navbar */}
       <Navbar activeTab={activeTab} onTabChange={setActiveTab} />
     </div>
   );
