@@ -1,3 +1,5 @@
+'use client'; // ← must be the first line
+
 import { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from './supabase';
 
@@ -10,28 +12,30 @@ interface User {
 interface AuthContextType {
   user: User | null;
   setUser: (user: User | null) => void;
-  logout: () => Promise<void>; // ✅ Add logout here
+  logout: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType>({
   user: null,
   setUser: () => {},
-  logout: async () => {}, // default no-op
+  logout: async () => {},
 });
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
 
   useEffect(() => {
-    const session = supabase.auth.getSession().then(({ data }) => {
+    const getSession = async () => {
+      const { data } = await supabase.auth.getSession();
       if (data.session?.user) {
         setUser({
           id: data.session.user.id,
-          name: data.session.user.email!, // or username if you have it
+          name: data.session.user.email!,
           worker: data.session.user.user_metadata?.worker,
         });
       }
-    });
+    };
+    getSession();
 
     const { subscription } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session?.user) {
