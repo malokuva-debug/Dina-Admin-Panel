@@ -10,7 +10,7 @@ import SettingsSection from '@/components/settings/SettingsSection';
 import PushNotifications from '@/components/PushNotifications';
 
 export default function WorkerDashboard() {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<'appointments' | 'settings' | 'finance'>('appointments');
 
@@ -20,10 +20,23 @@ export default function WorkerDashboard() {
 
   if (!user) return <p>Loading...</p>;
 
+  const handleLogout = async () => {
+    await logout();
+    router.push('/login');
+  };
+
   return (
     <div className="container">
-      <h1>Welcome, {user.name}</h1>
-      <p>You are assigned to: {user.worker}</p>
+      {/* Logout Icon/Button */}
+      <div className="flex justify-end p-4">
+        <button 
+          onClick={handleLogout} 
+          className="text-red-600 hover:text-red-800 font-bold"
+          title="Logout"
+        >
+          ⎋ Logout
+        </button>
+      </div>
 
       {/* Notifications */}
       <PushNotifications worker={user.worker!} />
