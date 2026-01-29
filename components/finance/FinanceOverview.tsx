@@ -1,10 +1,9 @@
 'use client';
 
 import { useState } from 'react';
-import FinanceOverview from './finance/FinanceOverview';
-import RevenueByWorker from './finance/RevenueByWorker';
-import ExpenseForm from './finance/ExpenseForm';
-import ExpensesList from './finance/ExpensesList';
+import RevenueByWorker from './RevenueByWorker';
+import ExpenseForm from './ExpenseForm';
+import ExpensesList from './ExpensesList';
 import { Worker } from '@/types';
 
 interface FinanceSectionProps {
