@@ -50,11 +50,10 @@ export default function FinanceOverview({ month, worker }: FinanceOverviewProps)
         appointments = appointmentsData as Appointment[];
       }
 
-      // Fetch expenses from Supabase
+      // Fetch expenses from Supabase - get all expenses for business overview
       const { data: expensesData, error: expensesError } = await supabase
         .from('expenses')
-        .select('*')
-        .eq('worker', worker);
+        .select('*');
 
       if (expensesError) {
         console.error('Expenses fetch error:', expensesError);
