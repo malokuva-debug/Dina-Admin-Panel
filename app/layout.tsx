@@ -1,19 +1,8 @@
 // app/layout.tsx
-
-import type { Metadata } from 'next';
-import Script from 'next/script';
 import './globals.css';
 import { AuthProvider } from '@/lib/AuthContext';
-
-export default function RootLayout({ children }: { children: React.ReactNode }) {
-  return (
-    <html lang="en">
-      <body>
-        <AuthProvider>{children}</AuthProvider>
-      </body>
-    </html>
-  );
-}
+import { Metadata } from 'next';
+import Script from 'next/script';
 
 export const metadata: Metadata = {
   title: 'Admin Panel - Business Management',
@@ -37,15 +26,11 @@ export const metadata: Metadata = {
   themeColor: '#000000',
 };
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
       <head>
-        {/* External Scripts for PDF Export */}
+        {/* External scripts */}
         <Script
           src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"
           strategy="beforeInteractive"
@@ -55,7 +40,9 @@ export default function RootLayout({
           strategy="beforeInteractive"
         />
       </head>
-      <body>{children}</body>
+      <body>
+        <AuthProvider>{children}</AuthProvider>
+      </body>
     </html>
   );
 }
