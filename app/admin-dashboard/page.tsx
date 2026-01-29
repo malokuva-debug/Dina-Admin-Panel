@@ -1,26 +1,49 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useAuth } from '@/lib/AuthContext';
 import { useRouter } from 'next/navigation';
-import { getCurrentUser, isAuthenticated, hasRole } from '@/lib/auth';
+import { useEffect } from 'react';
+import Navbar from '@/components/layout/Navbar';
+import WorkerNav from '@/components/layout/WorkerNav';
+import FinanceSection from '@/components/finance/FinanceSection';
+import AppointmentsSection from '@/components/appointments/AppointmentsSection';
+import SettingsSection from '@/components/settings/SettingsSection';
+import PushNotifications from '@/components/PushNotifications';
+import { useState } from 'react';
 
 export default function AdminDashboard() {
+  const { user } = useAuth();          // ✅ reactive user state
   const router = useRouter();
+  const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<'appointments' | 'settings' | 'finance'>('appointments');
+  const [selectedWorker, setSelectedWorker] = useState<'dina' | 'kida'>('dina');
 
+  // redirect if not logged in
   useEffect(() => {
-    // Redirect if not logged in or not admin
-    if (!isAuthenticated() || !hasRole('admin')) {
+    if (!user) {
       router.push('/login');
+    } else {
+      // if worker role, select their worker automatically
+      if (user.role === 'worker' && user.worker) {
+        setSelectedWorker(user.worker);
+      }
     }
-  }, []);
+    setLoading(false);
+  }, [user]);
 
-  const user = getCurrentUser();
+  if (loading) return <p>Loading...</p>;
+  if (!user) return null; // prevent render if user not set yet
 
   return (
-    <div style={{ padding: '2rem' }}>
-      <h1>Admin Dashboard</h1>
-      <p>Welcome, {user?.name || 'Admin'}!</p>
-      <p>You can manage everything here.</p>
+    <div className="container">
+      <PushNotifications worker={selectedWorker} />
+      <WorkerNav selectedWorker={selectedWorker} onWorkerChange={setSelectedWorker} />
+
+      {activeTab === 'finance' && <FinanceSection worker={selectedWorker} />}
+      {activeTab === 'appointments' && <AppointmentsSection worker={selectedWorker} />}
+      {activeTab === 'settings' && <SettingsSection worker={selectedWorker} />}
+
+      <Navbar activeTab={activeTab} onTabChange={setActiveTab} />
     </div>
   );
 }
