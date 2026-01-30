@@ -1,10 +1,8 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
-
 import { useAuth } from '@/lib/AuthContext';
-
+import { useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
 import Navbar from '@/components/layout/Navbar';
 import AppointmentsSection from '@/components/appointments/AppointmentsSection';
 import SettingsSection from '@/components/settings/SettingsSection';
@@ -13,37 +11,33 @@ import PushNotifications from '@/components/PushNotifications';
 export default function WorkerDashboard() {
   const { user, logout } = useAuth();
   const router = useRouter();
+  const [activeTab, setActiveTab] = useState<'appointments' | 'settings'>('appointments');
 
-  const [activeTab, setActiveTab] = useState<'appointments' | 'settings'>(
-    'appointments'
-  );
-
+  // Redirect to login if user is not authenticated
   useEffect(() => {
-    if (!user) {
-      router.replace('/login');
-      return;
-    }
+    if (!user) router.push('/login');
   }, [user, router]);
 
-  const handleLogout = async () => {
-    await logout();
-    router.replace('/login');
-    router.refresh();
-  };
-
+  // Ensure user is loaded
   if (!user) return <p>Loading...</p>;
 
+  // Handle logout with redirect
+  const handleLogout = async () => {
+    await logout();
+    router.push('/login');
+  };
+
   return (
-    <div className="container">
-      {/* Header */}
+    <div className="container mx-auto p-4">
+      {/* Header with user info and logout */}
       <div className="flex justify-between items-center mb-4">
         <p className="font-semibold">{user.name}</p>
-
         <button
           onClick={handleLogout}
-          className="p-2 rounded hover:bg-gray-200"
-          aria-label="Logout"
+          className="p-2 rounded hover:bg-gray-200 transition-colors"
+          title="Logout"
         >
+          {/* Logout SVG */}
           <svg
             xmlns="http://www.w3.org/2000/svg"
             className="h-6 w-6"
@@ -55,30 +49,26 @@ export default function WorkerDashboard() {
             <path
               strokeLinecap="round"
               strokeLinejoin="round"
-              d="M17 16l4-4m0 0l-4-4m4 4H7"
+              d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1m0-10V5"
             />
           </svg>
         </button>
       </div>
 
+      {/* Worker info */}
       <p className="mb-4">Assigned to: {user.worker}</p>
 
       {/* Notifications */}
       <PushNotifications worker={user.worker!} />
 
-      {/* Sections */}
-      {activeTab === 'appointments' && (
-        <AppointmentsSection worker={user.worker!} />
-      )}
+      {/* Main sections */}
+      {activeTab === 'appointments' && <AppointmentsSection worker={user.worker!} />}
+      {activeTab === 'settings' && <SettingsSection worker={user.worker!} />}
 
-      {activeTab === 'settings' && (
-        <SettingsSection worker={user.worker!} />
-      )}
-
-      {/* Bottom Navbar (NO finance) */}
+      {/* Bottom Navbar without finance */}
       <Navbar
         activeTab={activeTab}
-        onTabChange={setActiveTab}
+        onTabChange={(tab: 'appointments' | 'settings') => setActiveTab(tab)}
         hideFinance
       />
     </div>
