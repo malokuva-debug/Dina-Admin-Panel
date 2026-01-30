@@ -18,22 +18,30 @@ export default function AdminDashboard() {
   const [selectedWorker, setSelectedWorker] = useState<Worker>('dina');
 
   useEffect(() => {
-    const init = async () => {
-      // Force logout / reset session on page load
-      await resetSession();
+  const init = async () => {
+    // Clear old session / storage
+    await resetSession();
 
-      // Redirect to login if not admin
-      const user = getCurrentUser();
-      if (!user || user.role !== 'admin') {
-        router.replace('/login');
-        return;
-      }
+    // Check Supabase session
+    const { data: { session } } = await supabase.auth.getSession();
 
-      setLoading(false);
-    };
+    if (!session) {
+      router.replace('/login');
+      return;
+    }
 
-    init();
-  }, [router]);
+    // Optional: set current user again from Supabase if needed
+    const user = await getCurrentUser();
+    if (!user || user.role !== 'admin') {
+      router.replace('/login');
+      return;
+    }
+
+    setLoading(false);
+  };
+
+  init();
+}, [router]);
 
   if (loading) return <p>Loading...</p>;
 
