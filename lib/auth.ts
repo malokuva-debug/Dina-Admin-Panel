@@ -1,8 +1,5 @@
 import { supabase } from './supabase';
-import { storage } from './storage'; // ✅ Make sure this line exists
 import type { User, Worker, Role } from '@/types/user';
-
-const CURRENT_USER_KEY = 'currentUser';
 
 export const EMAIL_MAP = {
   admin: 'admin@dinakida.com',
@@ -10,23 +7,24 @@ export const EMAIL_MAP = {
 
 export type UserKey = keyof typeof EMAIL_MAP;
 
+// In-memory only, cleared on refresh/PWA close
+let currentUser: User | null = null;
+
 export const resetSession = async () => {
   await supabase.auth.signOut();
+  currentUser = null;
 };
 
 export const isAuthenticated = (): boolean => {
-  if (typeof window === 'undefined') return false;
-  return Boolean(storage.get<User>(CURRENT_USER_KEY));
+  return currentUser !== null;
 };
 
 export const getCurrentUser = (): User | null => {
-  if (typeof window === 'undefined') return null;
-  return storage.get<User>(CURRENT_USER_KEY); // ✅ storage imported
+  return currentUser;
 };
 
 export const setCurrentUser = (user: User | null) => {
-  if (user) storage.set(CURRENT_USER_KEY, user);
-  else storage.remove(CURRENT_USER_KEY);
+  currentUser = user;
 };
 
 export const login = async (
@@ -58,7 +56,7 @@ export const login = async (
     worker: profile.worker as Worker | undefined,
   };
 
-  setCurrentUser(user);
+  setCurrentUser(user); // ✅ only in memory
   return user;
 };
 
