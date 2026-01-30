@@ -1,35 +1,21 @@
 import { supabase } from './supabase';
-import { storage } from './storage';
 import type { User, Worker, Role } from '@/types/user';
 
-const CURRENT_USER_KEY = 'currentUser';
-
 export const EMAIL_MAP = {
-  dina: 'dina@dinakida.com',
-  kida: 'kida@dinakida.com',
   admin: 'admin@dinakida.com',
 } as const;
 
 export type UserKey = keyof typeof EMAIL_MAP;
 
+// Always resets Supabase session on page load
 export const resetSession = async () => {
-  await supabase.auth.signOut(); // removes session from storage
+  await supabase.auth.signOut();
 };
 
-/** ✅ ADD THIS */
-export const isAuthenticated = (): boolean => {
-  if (typeof window === 'undefined') return false;
-  return Boolean(storage.get<User>(CURRENT_USER_KEY));
-};
-
-export const getCurrentUser = (): User | null => {
-  if (typeof window === 'undefined') return null;
-  return storage.get<User>(CURRENT_USER_KEY);
-};
-
-export const setCurrentUser = (user: User | null) => {
-  if (user) storage.set(CURRENT_USER_KEY, user);
-  else storage.remove(CURRENT_USER_KEY);
+// Stateless: only checks Supabase session (not localStorage)
+export const isAuthenticated = async (): Promise<boolean> => {
+  const { data } = await supabase.auth.getSession();
+  return Boolean(data.session);
 };
 
 export const login = async (
@@ -61,11 +47,9 @@ export const login = async (
     worker: profile.worker as Worker | undefined,
   };
 
-  setCurrentUser(user);
   return user;
 };
 
 export const logout = async () => {
   await supabase.auth.signOut();
-  setCurrentUser(null);
 };
