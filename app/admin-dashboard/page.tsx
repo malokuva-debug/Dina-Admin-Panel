@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { supabase } from '@/lib/supabase';
 import { resetSession, getCurrentUser } from '@/lib/auth';
 import Navbar from '@/components/layout/Navbar';
 import WorkerNav from '@/components/layout/WorkerNav';
