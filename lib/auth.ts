@@ -18,6 +18,11 @@ export const isAuthenticated = async (): Promise<boolean> => {
   return Boolean(data.session);
 };
 
+export const getCurrentUser = (): User | null => {
+  if (typeof window === 'undefined') return null;
+  return storage.get<User>(CURRENT_USER_KEY);
+};
+
 export const login = async (
   userKey: UserKey,
   password: string
