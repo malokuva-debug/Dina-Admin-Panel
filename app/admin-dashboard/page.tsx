@@ -2,8 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-
-import { isAuthenticated, getCurrentUser, logout } from '@/lib/auth';
+import { isAuthenticated, getCurrentUser } from '@/lib/auth';
 
 import Navbar from '@/components/layout/Navbar';
 import WorkerNav from '@/components/layout/WorkerNav';
@@ -24,11 +23,13 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // Always redirect to login if not authenticated
     if (!isAuthenticated()) {
       router.replace('/login');
       return;
     }
 
+    // Set default worker if role is worker
     const user = getCurrentUser();
     if (user?.role === 'worker') {
       setSelectedWorker(user.worker || 'dina');
@@ -37,41 +38,11 @@ export default function AdminPage() {
     setLoading(false);
   }, [router]);
 
-  const handleLogout = async () => {
-    await logout();
-    router.replace('/login');
-    router.refresh();
-  };
-
   if (loading) return <p>Loading...</p>;
 
   return (
     <div className="container">
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          marginBottom: '1rem',
-        }}
-      >
-        <strong>{getCurrentUser()?.name}</strong>
-
-        <button
-          onClick={handleLogout}
-          style={{
-            padding: '0.5rem 1rem',
-            borderRadius: '6px',
-            border: 'none',
-            backgroundColor: '#111',
-            color: '#fff',
-            cursor: 'pointer',
-          }}
-        >
-          Logout
-        </button>
-      </div>
-
+      {/* No logout, no currentUser container */}
       <PushNotifications worker={selectedWorker} />
       <WorkerNav selectedWorker={selectedWorker} onWorkerChange={setSelectedWorker} />
 
