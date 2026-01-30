@@ -5,7 +5,7 @@ import { Worker, WeeklyDaysOff as WeeklyDaysOffType } from '@/types';
 import { supabase } from '@/lib/supabase';
 
 interface WeeklyDaysOffProps {
-  worker: Worker;
+  worker: Worker; // worker IS the identifier
 }
 
 const DEFAULT_DAYS: WeeklyDaysOffType = {
@@ -25,10 +25,9 @@ export default function WeeklyDaysOff({ worker }: WeeklyDaysOffProps) {
   const days = Object.keys(DEFAULT_DAYS) as (keyof WeeklyDaysOffType)[];
 
   useEffect(() => {
-    if (worker?.id) {
-      fetchDaysOff();
-    }
-  }, [worker?.id]);
+    fetchDaysOff();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [worker]);
 
   const fetchDaysOff = async () => {
     setLoading(true);
@@ -36,7 +35,7 @@ export default function WeeklyDaysOff({ worker }: WeeklyDaysOffProps) {
     const { data, error } = await supabase
       .from('weekly_days_off')
       .select('day, is_off')
-      .eq('worker', worker.id);
+      .eq('worker', worker);
 
     if (!error && data) {
       const mapped: WeeklyDaysOffType = { ...DEFAULT_DAYS };
@@ -65,7 +64,7 @@ export default function WeeklyDaysOff({ worker }: WeeklyDaysOffProps) {
     setLoading(true);
 
     const payload = days.map(day => ({
-      worker: worker.id,
+      worker,
       day,
       is_off: daysOff[day],
       updated_at: new Date().toISOString(),
@@ -92,14 +91,7 @@ export default function WeeklyDaysOff({ worker }: WeeklyDaysOffProps) {
     <>
       <h2 className="section-title">Weekly Days Off</h2>
 
-      <p
-        style={{
-          color: '#888',
-          fontSize: '13px',
-          marginBottom: '10px',
-          paddingLeft: '5px',
-        }}
-      >
+      <p style={{ color: '#888', fontSize: '13px', marginBottom: '10px', paddingLeft: '5px' }}>
         Select days consistently closed
       </p>
 
