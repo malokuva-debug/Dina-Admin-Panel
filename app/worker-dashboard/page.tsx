@@ -59,8 +59,8 @@ export default function WorkerDashboard() {
 
       <Navbar
         activeTab={activeTab}
-        onTabChange={(tab) => { if (tab !== 'finance') setActiveTab(tab); }}
-        hideFinance
+        onTabChange={(tab) => setActiveTab(tab)}
+        hideFinance // Hide the finance tab
       />
     </div>
   );
