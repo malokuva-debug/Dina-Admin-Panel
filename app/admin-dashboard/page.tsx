@@ -23,12 +23,9 @@ export default function AdminPage() {
   const [selectedWorker, setSelectedWorker] = useState<Worker>('dina');
   const [loading, setLoading] = useState(true);
 
-  // ----------------------
-  // Auth guard
-  // ----------------------
   useEffect(() => {
     if (!isAuthenticated()) {
-      router.push('/login');
+      router.replace('/login');
       return;
     }
 
@@ -40,19 +37,16 @@ export default function AdminPage() {
     setLoading(false);
   }, [router]);
 
-  // ----------------------
-  // Logout handler
-  // ----------------------
   const handleLogout = async () => {
     await logout();
-    router.push('/login');
+    router.replace('/login');
+    router.refresh();
   };
 
   if (loading) return <p>Loading...</p>;
 
   return (
     <div className="container">
-      {/* Top bar */}
       <div
         style={{
           display: 'flex',
