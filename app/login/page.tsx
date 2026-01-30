@@ -1,5 +1,4 @@
 'use client';
-
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { login } from '@/lib/auth';
@@ -8,7 +7,6 @@ import { useAuth } from '@/lib/AuthContext';
 export default function LoginPage() {
   const router = useRouter();
   const { setUser } = useAuth();
-
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -22,18 +20,20 @@ export default function LoginPage() {
   const handleLogin = async () => {
     setError('');
     setLoading(true);
-
     const user = await login('admin', password);
-
     setLoading(false);
-
     if (!user) {
       setError('Wrong password');
       return;
     }
-
     setUser(user);
-    router.push('/admin-dashboard'); // only admin dashboard for now
+    router.push('/admin-dashboard');
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !loading) {
+      handleLogin();
+    }
   };
 
   return (
