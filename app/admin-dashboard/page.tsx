@@ -34,34 +34,19 @@ export default function AdminDashboard() {
     init();
   }, [router]);
 
-  if (loading) return <p>Loading...</p>;
+if (loading) return <p>Loading...</p>;
 
   return (
-    <div style={{ padding: '1rem', fontFamily: 'Arial, sans-serif' }}>
-      <h1 style={{ marginBottom: '1rem', fontSize: '1.8rem', fontWeight: 'bold' }}>
-        Admin Dashboard
-      </h1>
-
-      {/* Notifications */}
+    <div className="container">
+      {/* No logout, no currentUser container */}
       <PushNotifications worker={selectedWorker} />
-
-      {/* Worker navigation */}
       <WorkerNav selectedWorker={selectedWorker} onWorkerChange={setSelectedWorker} />
 
-      {/* Sections */}
-      <div style={{ marginTop: '1rem' }}>
-        {activeTab === 'appointments' && <AppointmentsSection worker={selectedWorker} />}
-        {activeTab === 'settings' && <SettingsSection worker={selectedWorker} />}
-      </div>
+      {activeTab === 'finance' && <FinanceSection worker={selectedWorker} />}
+      {activeTab === 'appointments' && <AppointmentsSection worker={selectedWorker} />}
+      {activeTab === 'settings' && <SettingsSection worker={selectedWorker} />}
 
-      {/* Bottom Navbar */}
-      <div style={{ marginTop: '2rem' }}>
-        <Navbar
-          activeTab={activeTab}
-          onTabChange={(tab: 'appointments' | 'settings') => setActiveTab(tab)}
-          hideFinance // optional prop to hide finance tab
-        />
-      </div>
+      <Navbar activeTab={activeTab} onTabChange={setActiveTab} />
     </div>
   );
 }
