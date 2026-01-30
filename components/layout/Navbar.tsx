@@ -1,9 +1,10 @@
 interface NavbarProps {
   activeTab: 'appointments' | 'settings' | 'finance';
   onTabChange: (tab: 'appointments' | 'settings' | 'finance') => void;
+  hideFinance?: boolean;
 }
 
-export default function Navbar({ activeTab, onTabChange }: NavbarProps) {
+export default function Navbar({ activeTab, onTabChange, hideFinance }: NavbarProps) {
   return (
     <div className="navbar">
       <button
@@ -28,15 +29,17 @@ export default function Navbar({ activeTab, onTabChange }: NavbarProps) {
         </svg>
       </button>
       
-      <button
-        className={`nav-item ${activeTab === 'finance' ? 'active' : ''}`}
-        onClick={() => onTabChange('finance')}
-      >
-        <svg viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M12 1v22"></path>
-          <path d="M17 5H9a3 3 0 0 0 0 6h6a3 3 0 0 1 0 6H6"></path>
-        </svg>
-      </button>
+      {!hideFinance && (
+        <button
+          className={`nav-item ${activeTab === 'finance' ? 'active' : ''}`}
+          onClick={() => onTabChange('finance')}
+        >
+          <svg viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M12 1v22"></path>
+            <path d="M17 5H9a3 3 0 0 0 0 6h6a3 3 0 0 1 0 6H6"></path>
+          </svg>
+        </button>
+      )}
     </div>
   );
 }
