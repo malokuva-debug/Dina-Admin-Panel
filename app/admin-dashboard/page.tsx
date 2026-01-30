@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { resetSession, isAuthenticated, getCurrentUser } from '@/lib/auth';
+import { resetSession, isAuthenticated } from '@/lib/auth';
 import Navbar from '@/components/layout/Navbar';
 import WorkerNav from '@/components/layout/WorkerNav';
 import AppointmentsSection from '@/components/appointments/AppointmentsSection';
