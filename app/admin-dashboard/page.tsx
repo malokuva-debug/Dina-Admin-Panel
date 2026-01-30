@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
-import { resetSession, getCurrentUser } from '@/lib/auth';
+import { getCurrentUser } from '@/lib/auth';
 import Navbar from '@/components/layout/Navbar';
 import WorkerNav from '@/components/layout/WorkerNav';
 import FinanceSection from '@/components/finance/FinanceSection';
@@ -15,47 +15,43 @@ import type { Worker } from '@/types';
 export default function AdminDashboard() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'appointments' | 'settings' | 'finance'>('appointments');
+  const [activeTab, setActiveTab] = useState<'finance' | 'appointments' | 'settings'>('appointments');
   const [selectedWorker, setSelectedWorker] = useState<Worker>('dina');
 
   useEffect(() => {
-  const init = async () => {
-    // Clear old session / storage
-    await resetSession();
+    const checkAuth = async () => {
+      // Check Supabase session
+      const { data: { session } } = await supabase.auth.getSession();
 
-    // Check Supabase session
-    const { data: { session } } = await supabase.auth.getSession();
+      // Check local storage user
+      const user = getCurrentUser();
 
-    if (!session) {
-      router.replace('/login');
-      return;
-    }
+      if (!session || !user || user.role !== 'admin') {
+        router.replace('/login');
+        return;
+      }
 
-    // Optional: set current user again from Supabase if needed
-    const user = await getCurrentUser();
-    if (!user || user.role !== 'admin') {
-      router.replace('/login');
-      return;
-    }
+      setLoading(false);
+    };
 
-    setLoading(false);
-  };
-
-  init();
-}, [router]);
+    checkAuth();
+  }, [router]);
 
   if (loading) return <p>Loading...</p>;
 
   return (
-    <div style={{ padding: '1rem' }}>
+    <div className="container" style={{ padding: '1rem' }}>
       <PushNotifications worker={selectedWorker} />
       <WorkerNav selectedWorker={selectedWorker} onWorkerChange={setSelectedWorker} />
 
+      {activeTab === 'finance' && <FinanceSection worker={selectedWorker} />}
       {activeTab === 'appointments' && <AppointmentsSection worker={selectedWorker} />}
       {activeTab === 'settings' && <SettingsSection worker={selectedWorker} />}
-      {activeTab === 'finance' && <FinanceSection worker={selectedWorker} />}
 
-      <Navbar activeTab={activeTab} onTabChange={setActiveTab} />
+      <Navbar
+        activeTab={activeTab}
+        onTabChange={(tab: 'finance' | 'appointments' | 'settings') => setActiveTab(tab)}
+      />
     </div>
   );
 }
