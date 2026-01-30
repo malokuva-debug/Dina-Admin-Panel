@@ -13,15 +13,12 @@ export default function WorkerDashboard() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<'appointments' | 'settings'>('appointments');
 
-  // Redirect to login if user is not authenticated
   useEffect(() => {
     if (!user) router.push('/login');
   }, [user, router]);
 
-  // Ensure user is loaded
   if (!user) return <p>Loading...</p>;
 
-  // Handle logout with redirect
   const handleLogout = async () => {
     await logout();
     router.push('/login');
@@ -29,7 +26,6 @@ export default function WorkerDashboard() {
 
   return (
     <div className="container mx-auto p-4">
-      {/* Header with user info and logout */}
       <div className="flex justify-between items-center mb-4">
         <p className="font-semibold">{user.name}</p>
         <button
@@ -37,7 +33,6 @@ export default function WorkerDashboard() {
           className="p-2 rounded hover:bg-gray-200 transition-colors"
           title="Logout"
         >
-          {/* Logout SVG */}
           <svg
             xmlns="http://www.w3.org/2000/svg"
             className="h-6 w-6"
@@ -55,20 +50,16 @@ export default function WorkerDashboard() {
         </button>
       </div>
 
-      {/* Worker info */}
       <p className="mb-4">Assigned to: {user.worker}</p>
 
-      {/* Notifications */}
       <PushNotifications worker={user.worker!} />
 
-      {/* Main sections */}
       {activeTab === 'appointments' && <AppointmentsSection worker={user.worker!} />}
       {activeTab === 'settings' && <SettingsSection worker={user.worker!} />}
 
-      {/* Bottom Navbar without finance */}
       <Navbar
         activeTab={activeTab}
-        onTabChange={(tab: 'appointments' | 'settings') => setActiveTab(tab)}
+        onTabChange={(tab) => { if (tab !== 'finance') setActiveTab(tab); }}
         hideFinance
       />
     </div>
