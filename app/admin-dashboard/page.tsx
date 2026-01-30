@@ -2,61 +2,66 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { isAuthenticated, getCurrentUser } from '@/lib/auth';
-
+import { resetSession, isAuthenticated, getCurrentUser } from '@/lib/auth';
 import Navbar from '@/components/layout/Navbar';
 import WorkerNav from '@/components/layout/WorkerNav';
-import FinanceSection from '@/components/finance/FinanceSection';
 import AppointmentsSection from '@/components/appointments/AppointmentsSection';
 import SettingsSection from '@/components/settings/SettingsSection';
 import PushNotifications from '@/components/PushNotifications';
-
 import type { Worker } from '@/types';
 
-export default function AdminPage() {
+export default function AdminDashboard() {
   const router = useRouter();
-
-  const [activeTab, setActiveTab] = useState<'appointments' | 'settings' | 'finance'>(
-    'appointments'
-  );
-  const [selectedWorker, setSelectedWorker] = useState<Worker>('dina');
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<'appointments' | 'settings'>('appointments');
+  const [selectedWorker, setSelectedWorker] = useState<Worker>('dina');
 
   useEffect(() => {
-  const checkAuth = async () => {
-    // Always reset session on page load
-    await resetSession();
+    const init = async () => {
+      // Force logout / reset session on page load
+      await resetSession();
 
-    // Now user is guaranteed to be logged out
-    if (!isAuthenticated()) {
-      router.replace('/login');
-      return;
-    }
+      // Redirect to login if not authenticated or not admin
+      const user = getCurrentUser();
+      if (!user || user.role !== 'admin') {
+        router.replace('/login');
+        return;
+      }
 
-    const user = getCurrentUser();
-    if (user?.role === 'worker') {
-      setSelectedWorker(user.worker || 'dina');
-    }
+      setLoading(false);
+    };
 
-    setLoading(false);
-  };
-
-  checkAuth();
-}, [router]);
+    init();
+  }, [router]);
 
   if (loading) return <p>Loading...</p>;
 
   return (
-    <div className="container">
-      {/* No logout, no currentUser container */}
+    <div style={{ padding: '1rem', fontFamily: 'Arial, sans-serif' }}>
+      <h1 style={{ marginBottom: '1rem', fontSize: '1.8rem', fontWeight: 'bold' }}>
+        Admin Dashboard
+      </h1>
+
+      {/* Notifications */}
       <PushNotifications worker={selectedWorker} />
+
+      {/* Worker navigation */}
       <WorkerNav selectedWorker={selectedWorker} onWorkerChange={setSelectedWorker} />
 
-      {activeTab === 'finance' && <FinanceSection worker={selectedWorker} />}
-      {activeTab === 'appointments' && <AppointmentsSection worker={selectedWorker} />}
-      {activeTab === 'settings' && <SettingsSection worker={selectedWorker} />}
+      {/* Sections */}
+      <div style={{ marginTop: '1rem' }}>
+        {activeTab === 'appointments' && <AppointmentsSection worker={selectedWorker} />}
+        {activeTab === 'settings' && <SettingsSection worker={selectedWorker} />}
+      </div>
 
-      <Navbar activeTab={activeTab} onTabChange={setActiveTab} />
+      {/* Bottom Navbar */}
+      <div style={{ marginTop: '2rem' }}>
+        <Navbar
+          activeTab={activeTab}
+          onTabChange={(tab: 'appointments' | 'settings') => setActiveTab(tab)}
+          hideFinance // optional prop to hide finance tab
+        />
+      </div>
     </div>
   );
 }
