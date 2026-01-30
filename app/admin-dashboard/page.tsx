@@ -31,13 +31,13 @@ export default function AdminDashboard() {
   if (loading) return <p>Loading...</p>;
 
   return (
-    <div style={{ padding: '1rem' }}>
+    <div className="container">
       <PushNotifications worker={selectedWorker} />
       <WorkerNav selectedWorker={selectedWorker} onWorkerChange={setSelectedWorker} />
 
+      {activeTab === 'finance' && <FinanceSection worker={selectedWorker} />}
       {activeTab === 'appointments' && <AppointmentsSection worker={selectedWorker} />}
       {activeTab === 'settings' && <SettingsSection worker={selectedWorker} />}
-      {activeTab === 'finance' && <FinanceSection worker={selectedWorker} />}
 
       <Navbar activeTab={activeTab} onTabChange={setActiveTab} />
     </div>
