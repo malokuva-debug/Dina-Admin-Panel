@@ -54,6 +54,11 @@ export default function Navbar({ activeTab, onTabChange, hideFinance }: NavbarPr
             activeTab === tab.key ? 'font-bold border-b-2 border-blue-500' : ''
           }`}
           onClick={() => onTabChange(tab.key)}
+          style={{
+            stroke: activeTab === tab.key ? '#007aff' : 'currentColor',
+            fill: 'none',
+            strokeWidth: 2,
+          }}
         >
           {tab.svg}
         </button>
