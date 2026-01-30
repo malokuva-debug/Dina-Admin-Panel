@@ -25,22 +25,30 @@ export default function WeeklyDaysOff({ worker }: WeeklyDaysOffProps) {
   const days = Object.keys(DEFAULT_DAYS) as (keyof WeeklyDaysOffType)[];
 
   useEffect(() => {
-    fetchDaysOff();
-  }, [worker]);
+    if (worker?.id) {
+      fetchDaysOff();
+    }
+  }, [worker?.id]);
 
   const fetchDaysOff = async () => {
     setLoading(true);
 
     const { data, error } = await supabase
       .from('weekly_days_off')
-      .select('days')
-      .eq('worker', worker)
-      .single();
+      .select('day, is_off')
+      .eq('worker', worker.id);
 
-    if (!error && data?.days) {
-      setDaysOff(data.days);
-    } else {
-      setDaysOff(DEFAULT_DAYS);
+    if (!error && data) {
+      const mapped: WeeklyDaysOffType = { ...DEFAULT_DAYS };
+
+      data.forEach(row => {
+        const day = row.day as keyof WeeklyDaysOffType;
+        if (day in mapped) {
+          mapped[day] = row.is_off;
+        }
+      });
+
+      setDaysOff(mapped);
     }
 
     setLoading(false);
@@ -56,22 +64,24 @@ export default function WeeklyDaysOff({ worker }: WeeklyDaysOffProps) {
   const saveDaysOff = async () => {
     setLoading(true);
 
+    const payload = days.map(day => ({
+      worker: worker.id,
+      day,
+      is_off: daysOff[day],
+      updated_at: new Date().toISOString(),
+    }));
+
     const { error } = await supabase
       .from('weekly_days_off')
-      .upsert(
-        {
-          worker,
-          days: daysOff,
-          updated_at: new Date().toISOString(),
-        },
-        { onConflict: 'worker' }
-      );
+      .upsert(payload, {
+        onConflict: 'worker,day',
+      });
 
     setLoading(false);
 
     if (error) {
       console.error(error);
-      alert('Failed to save days off');
+      alert('Failed to save weekly days off');
       return;
     }
 
@@ -81,11 +91,19 @@ export default function WeeklyDaysOff({ worker }: WeeklyDaysOffProps) {
   return (
     <>
       <h2 className="section-title">Weekly Days Off</h2>
-      <p style={{ color: '#888', fontSize: '13px', marginBottom: '10px', paddingLeft: '5px' }}>
+
+      <p
+        style={{
+          color: '#888',
+          fontSize: '13px',
+          marginBottom: '10px',
+          paddingLeft: '5px',
+        }}
+      >
         Select days consistently closed
       </p>
 
-      <div className="days-grid" id="days">
+      <div className="days-grid">
         {days.map(day => (
           <button
             key={day}
