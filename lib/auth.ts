@@ -12,6 +12,10 @@ export const EMAIL_MAP = {
 
 export type UserKey = keyof typeof EMAIL_MAP;
 
+export const resetSession = async () => {
+  await supabase.auth.signOut(); // removes session from storage
+};
+
 /** ✅ ADD THIS */
 export const isAuthenticated = (): boolean => {
   if (typeof window === 'undefined') return false;
