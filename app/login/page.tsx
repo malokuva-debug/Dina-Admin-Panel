@@ -1,66 +1,110 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { resetSession, isAuthenticated, getCurrentUser } from '@/lib/auth';
-import Navbar from '@/components/layout/Navbar';
-import WorkerNav from '@/components/layout/WorkerNav';
-import AppointmentsSection from '@/components/appointments/AppointmentsSection';
-import SettingsSection from '@/components/settings/SettingsSection';
-import PushNotifications from '@/components/PushNotifications';
-import type { Worker } from '@/types';
+import { login } from '@/lib/auth';
+import { useAuth } from '@/lib/AuthContext';
 
-export default function AdminDashboard() {
+export default function LoginPage() {
   const router = useRouter();
-  const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'appointments' | 'settings'>('appointments');
-  const [selectedWorker, setSelectedWorker] = useState<Worker>('dina');
+  const { setUser } = useAuth();
+
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    const init = async () => {
-      // Force logout / reset session on page load
-      await resetSession();
-
-      // Redirect to login if not authenticated or not admin
-      const user = getCurrentUser();
-      if (!user || user.role !== 'admin') {
-        router.replace('/login');
-        return;
-      }
-
-      setLoading(false);
-    };
-
-    init();
+    // Optionally, redirect if already logged in
+    // const current = localStorage.getItem('currentUser');
+    // if (current) router.push('/admin-dashboard');
   }, [router]);
 
-  if (loading) return <p>Loading...</p>;
+  const handleLogin = async () => {
+    setError('');
+    setLoading(true);
+
+    const user = await login('admin', password);
+
+    setLoading(false);
+
+    if (!user) {
+      setError('Wrong password');
+      return;
+    }
+
+    setUser(user);
+    router.push('/admin-dashboard'); // only admin dashboard for now
+  };
 
   return (
-    <div style={{ padding: '1rem', fontFamily: 'Arial, sans-serif' }}>
-      <h1 style={{ marginBottom: '1rem', fontSize: '1.8rem', fontWeight: 'bold' }}>
-        Admin Dashboard
-      </h1>
+    <div
+      style={{
+        minHeight: '100vh',
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+        fontFamily: 'sans-serif',
+      }}
+    >
+      <div
+        style={{
+          background: 'white',
+          padding: '40px',
+          borderRadius: '12px',
+          boxShadow: '0 10px 25px rgba(0,0,0,0.2)',
+          width: '100%',
+          maxWidth: '400px',
+          textAlign: 'center',
+        }}
+      >
+        <h1 style={{ marginBottom: '24px', color: '#333' }}>Admin Login</h1>
 
-      {/* Notifications */}
-      <PushNotifications worker={selectedWorker} />
-
-      {/* Worker navigation */}
-      <WorkerNav selectedWorker={selectedWorker} onWorkerChange={setSelectedWorker} />
-
-      {/* Sections */}
-      <div style={{ marginTop: '1rem' }}>
-        {activeTab === 'appointments' && <AppointmentsSection worker={selectedWorker} />}
-        {activeTab === 'settings' && <SettingsSection worker={selectedWorker} />}
-      </div>
-
-      {/* Bottom Navbar */}
-      <div style={{ marginTop: '2rem' }}>
-        <Navbar
-          activeTab={activeTab}
-          onTabChange={(tab: 'appointments' | 'settings') => setActiveTab(tab)}
-          hideFinance // optional prop to hide finance tab
+        <input
+          type="password"
+          placeholder="Enter password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          style={{
+            width: '100%',
+            padding: '12px 16px',
+            marginBottom: '16px',
+            borderRadius: '8px',
+            border: '1px solid #ccc',
+            fontSize: '16px',
+          }}
         />
+
+        <button
+          onClick={handleLogin}
+          disabled={loading}
+          style={{
+            width: '100%',
+            padding: '12px 16px',
+            borderRadius: '8px',
+            border: 'none',
+            background: '#667eea',
+            color: 'white',
+            fontSize: '16px',
+            fontWeight: 'bold',
+            cursor: 'pointer',
+            transition: 'background 0.3s',
+          }}
+          onMouseOver={(e) =>
+            ((e.target as HTMLButtonElement).style.background = '#556cd6')
+          }
+          onMouseOut={(e) =>
+            ((e.target as HTMLButtonElement).style.background = '#667eea')
+          }
+        >
+          {loading ? 'Logging in...' : 'Login'}
+        </button>
+
+        {error && (
+          <p style={{ color: 'red', marginTop: '16px', fontWeight: 'bold' }}>
+            {error}
+          </p>
+        )}
       </div>
     </div>
   );
