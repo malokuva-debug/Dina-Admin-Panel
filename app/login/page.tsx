@@ -2,25 +2,30 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { login, UserKey } from '@/lib/auth';
+import { login } from '@/lib/auth';
 import { useAuth } from '@/lib/AuthContext';
 
 export default function LoginPage() {
   const router = useRouter();
   const { setUser } = useAuth();
 
-  const [userKey, setUserKey] = useState<UserKey>('dina');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
-  const [redirectTo, setRedirectTo] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (redirectTo) router.push(redirectTo);
-  }, [redirectTo, router]);
+    // Optionally, redirect if already logged in
+    // const current = localStorage.getItem('currentUser');
+    // if (current) router.push('/admin-dashboard');
+  }, [router]);
 
   const handleLogin = async () => {
     setError('');
-    const user = await login(userKey, password);
+    setLoading(true);
+
+    const user = await login('admin', password);
+
+    setLoading(false);
 
     if (!user) {
       setError('Wrong password');
@@ -28,31 +33,79 @@ export default function LoginPage() {
     }
 
     setUser(user);
-
-    setRedirectTo(
-      user.role === 'admin' ? '/admin-dashboard' : '/worker-dashboard'
-    );
+    router.push('/admin-dashboard'); // only admin dashboard for now
   };
 
   return (
-    <div className="login">
-      <h1>Login</h1>
+    <div
+      style={{
+        minHeight: '100vh',
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+        fontFamily: 'sans-serif',
+      }}
+    >
+      <div
+        style={{
+          background: 'white',
+          padding: '40px',
+          borderRadius: '12px',
+          boxShadow: '0 10px 25px rgba(0,0,0,0.2)',
+          width: '100%',
+          maxWidth: '400px',
+          textAlign: 'center',
+        }}
+      >
+        <h1 style={{ marginBottom: '24px', color: '#333' }}>Admin Login</h1>
 
-      <select value={userKey} onChange={(e) => setUserKey(e.target.value as UserKey)}>
-        <option value="dina">Dina</option>
-        <option value="kida">Kida</option>
-        <option value="admin">Admin</option>
-      </select>
+        <input
+          type="password"
+          placeholder="Enter password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          style={{
+            width: '100%',
+            padding: '12px 16px',
+            marginBottom: '16px',
+            borderRadius: '8px',
+            border: '1px solid #ccc',
+            fontSize: '16px',
+          }}
+        />
 
-      <input
-        type="password"
-        placeholder="Password"
-        value={password}
-        onChange={(e) => setPassword(e.target.value)}
-      />
+        <button
+          onClick={handleLogin}
+          disabled={loading}
+          style={{
+            width: '100%',
+            padding: '12px 16px',
+            borderRadius: '8px',
+            border: 'none',
+            background: '#667eea',
+            color: 'white',
+            fontSize: '16px',
+            fontWeight: 'bold',
+            cursor: 'pointer',
+            transition: 'background 0.3s',
+          }}
+          onMouseOver={(e) =>
+            ((e.target as HTMLButtonElement).style.background = '#556cd6')
+          }
+          onMouseOut={(e) =>
+            ((e.target as HTMLButtonElement).style.background = '#667eea')
+          }
+        >
+          {loading ? 'Logging in...' : 'Login'}
+        </button>
 
-      <button onClick={handleLogin}>Login</button>
-      {error && <p style={{ color: 'red' }}>{error}</p>}
+        {error && (
+          <p style={{ color: 'red', marginTop: '16px', fontWeight: 'bold' }}>
+            {error}
+          </p>
+        )}
+      </div>
     </div>
   );
 }
