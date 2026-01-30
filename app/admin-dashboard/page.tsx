@@ -23,20 +23,26 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Always redirect to login if not authenticated
+  const checkAuth = async () => {
+    // Always reset session on page load
+    await resetSession();
+
+    // Now user is guaranteed to be logged out
     if (!isAuthenticated()) {
       router.replace('/login');
       return;
     }
 
-    // Set default worker if role is worker
     const user = getCurrentUser();
     if (user?.role === 'worker') {
       setSelectedWorker(user.worker || 'dina');
     }
 
     setLoading(false);
-  }, [router]);
+  };
+
+  checkAuth();
+}, [router]);
 
   if (loading) return <p>Loading...</p>;
 
