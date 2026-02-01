@@ -15,6 +15,27 @@ if (!vapidPublicKey || !vapidPrivateKey || !vapidEmail) {
 // Business timezone
 const BUSINESS_TIMEZONE = 'America/New_York';
 
+// Helper to get current time in NY timezone
+function getNowInTimezone() {
+  const formatter = new Intl.DateTimeFormat('en-US', {
+    timeZone: BUSINESS_TIMEZONE,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false
+  });
+  
+  const parts = formatter.formatToParts(new Date());
+  const get = (type: string) => parts.find(p => p.type === type)?.value || '';
+  
+  // Create date string in ISO format for NY timezone
+  const dateStr = `${get('year')}-${get('month')}-${get('day')}T${get('hour')}:${get('minute')}:${get('second')}`;
+  return new Date(dateStr);
+}
+
 export async function GET(request: Request) {
   const authHeader = request.headers.get('authorization');
   const cronSecret = process.env.CRON_SECRET;
@@ -24,17 +45,16 @@ export async function GET(request: Request) {
   }
 
   try {
-    // Get current time in business timezone
-    const nowInTimezone = new Date().toLocaleString("en-US", { timeZone: BUSINESS_TIMEZONE });
-    const now = new Date(nowInTimezone);
+    // Get current time in NY timezone
+    const now = getNowInTimezone();
     
     // Get today's date in YYYY-MM-DD format
     const todayDate = now.toISOString().split('T')[0];
     
-    console.log('Cron running at (NY time):', now.toLocaleString('en-US', { timeZone: BUSINESS_TIMEZONE }));
+    console.log('Cron running at (NY time):', now.toISOString());
     console.log('Looking for appointments on:', todayDate);
 
-    // Fetch TODAY's appointments only (using date field, not datetime)
+    // Fetch TODAY's appointments only
     const { data: appointments, error } = await supabase
       .from('appointments')
       .select('*')
@@ -49,53 +69,65 @@ export async function GET(request: Request) {
 
     const notifications = [];
     const errors = [];
+    const debugLogs = [];
 
     for (const appointment of appointments || []) {
-  try {
-    // Combine date and time to create full datetime in NY timezone
-    const appointmentDateTimeStr = `${appointment.date}T${appointment.time}:00`;
-    const appointmentDateTime = new Date(appointmentDateTimeStr + ' GMT-0500'); // NY timezone
-    
-    const timeDiff = appointmentDateTime.getTime() - now.getTime();
-    const minutesUntil = Math.floor(timeDiff / 60000);
+      try {
+        // Combine date and time to create full datetime
+        const [hours, minutes] = appointment.time.split(':');
+        const appointmentDateTime = new Date(now);
+        appointmentDateTime.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+        
+        const timeDiff = appointmentDateTime.getTime() - now.getTime();
+        const minutesUntil = Math.floor(timeDiff / 60000);
 
-    console.log(`========================================`);
-    console.log(`Appointment ${appointment.id}:`);
-    console.log(`  Time: ${appointment.time}`);
-    console.log(`  Minutes until: ${minutesUntil}`);
-    console.log(`  1hr reminder sent: ${appointment.reminder_1hour_sent_at || 'NO'}`);
-    console.log(`  30min reminder sent: ${appointment.reminder_30min_sent_at || 'NO'}`);
-    console.log(`========================================`);
+        debugLogs.push({
+          id: appointment.id,
+          time: appointment.time,
+          minutesUntil,
+          reminder1hrSent: appointment.reminder_1hour_sent_at || null,
+          reminder30minSent: appointment.reminder_30min_sent_at || null,
+          isPast: minutesUntil < 0,
+          inWindow: (minutesUntil >= 55 && minutesUntil <= 65) || (minutesUntil >= 25 && minutesUntil <= 35)
+        });
 
-    // Skip past appointments
-    if (minutesUntil < 0) {
-      console.log(`⏭️ Skipping - appointment is in the past`);
-      continue;
-    }
+        console.log(`========================================`);
+        console.log(`Appointment ${appointment.id}:`);
+        console.log(`  Time: ${appointment.time}`);
+        console.log(`  Minutes until: ${minutesUntil}`);
+        console.log(`  1hr reminder sent: ${appointment.reminder_1hour_sent_at || 'NO'}`);
+        console.log(`  30min reminder sent: ${appointment.reminder_30min_sent_at || 'NO'}`);
+        console.log(`========================================`);
 
-    // Determine reminder type with buffer
-    let reminderType = null;
-    
-    if (minutesUntil >= 55 && minutesUntil <= 65) {
-      reminderType = '1 hour';
-      
-      if (appointment.reminder_1hour_sent_at) {
-        console.log(`1 hour reminder already sent for ${appointment.id}`);
-        continue;
-      }
-    } 
-    else if (minutesUntil >= 25 && minutesUntil <= 35) {
-      reminderType = '30 minutes';
-      
-      if (appointment.reminder_30min_sent_at) {
-        console.log(`30 min reminder already sent for ${appointment.id}`);
-        continue;
-      }
-    } else {
-      console.log(`⏭️ Skipping - not in reminder window (need 25-35 or 55-65 minutes)`);
-    }
+        // Skip past appointments
+        if (minutesUntil < 0) {
+          console.log(`⏭️ Skipping - appointment is in the past`);
+          continue;
+        }
 
-    if (!reminderType) continue;
+        // Determine reminder type with buffer
+        let reminderType = null;
+        
+        if (minutesUntil >= 55 && minutesUntil <= 65) {
+          reminderType = '1 hour';
+          
+          if (appointment.reminder_1hour_sent_at) {
+            console.log(`1 hour reminder already sent for ${appointment.id}`);
+            continue;
+          }
+        } 
+        else if (minutesUntil >= 25 && minutesUntil <= 35) {
+          reminderType = '30 minutes';
+          
+          if (appointment.reminder_30min_sent_at) {
+            console.log(`30 min reminder already sent for ${appointment.id}`);
+            continue;
+          }
+        } else {
+          console.log(`⏭️ Skipping - not in reminder window (need 25-35 or 55-65 minutes)`);
+        }
+
+        if (!reminderType) continue;
 
         console.log(`Sending ${reminderType} reminder for appointment ${appointment.id}`);
 
@@ -166,11 +198,12 @@ export async function GET(request: Request) {
 
     return NextResponse.json({
       success: true,
-      timestamp: now.toLocaleString('en-US', { timeZone: BUSINESS_TIMEZONE }),
+      timestamp: now.toISOString(),
       timezone: BUSINESS_TIMEZONE,
       checked: appointments?.length || 0,
       sent: notifications.length,
       failed: errors.length,
+      debugLogs,
       notifications,
       errors: errors.length > 0 ? errors : undefined
     });
