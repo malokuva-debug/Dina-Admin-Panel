@@ -33,13 +33,12 @@ export async function GET(request: Request) {
     
     console.log('Cron running at:', nowUTC.toISOString());
 
-    // Fetch appointments in the next hour that haven't been reminded yet
+    // Fetch appointments in the next hour - DON'T filter by reminder_sent_at
     const { data: appointments, error } = await supabase
       .from('appointments')
       .select('*')
       .gte('datetime', nowUTC.toISOString())
-      .lte('datetime', oneHourLater.toISOString())
-      .is('reminder_sent_at', null); // Only get appointments without reminders
+      .lte('datetime', oneHourLater.toISOString());
 
     if (error) {
       console.error('Error fetching appointments:', error);
@@ -64,8 +63,21 @@ export async function GET(request: Request) {
         
         if (minutesUntil >= 55 && minutesUntil <= 65) {
           reminderType = '1 hour';
-        } else if (minutesUntil >= 25 && minutesUntil <= 35) {
+          
+          // Check if 1 hour reminder already sent
+          if (appointment.reminder_1hour_sent_at) {
+            console.log(`1 hour reminder already sent for ${appointment.id}`);
+            continue;
+          }
+        } 
+        else if (minutesUntil >= 25 && minutesUntil <= 35) {
           reminderType = '30 minutes';
+          
+          // Check if 30 min reminder already sent
+          if (appointment.reminder_30min_sent_at) {
+            console.log(`30 min reminder already sent for ${appointment.id}`);
+            continue;
+          }
         }
 
         if (!reminderType) continue;
@@ -103,14 +115,19 @@ export async function GET(request: Request) {
 
         await webpush.sendNotification(subData.subscription, payload);
         
-        // Mark reminder as sent to prevent duplicates
-        await supabase
-          .from('appointments')
-          .update({ 
-            reminder_sent_at: nowUTC.toISOString(),
-            reminder_type: reminderType 
-          })
-          .eq('id', appointment.id);
+        // Mark the SPECIFIC reminder as sent to prevent duplicates
+        if (reminderType === '1 hour') {
+          await supabase
+            .from('appointments')
+            .update({ reminder_1hour_sent_at: nowUTC.toISOString() })
+            .eq('id', appointment.id);
+        } 
+        else if (reminderType === '30 minutes') {
+          await supabase
+            .from('appointments')
+            .update({ reminder_30min_sent_at: nowUTC.toISOString() })
+            .eq('id', appointment.id);
+        }
 
         console.log(`✅ Sent ${reminderType} reminder for appointment ${appointment.id}`);
         
