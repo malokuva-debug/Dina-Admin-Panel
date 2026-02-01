@@ -9,7 +9,7 @@ export async function GET() {
 
   const { data, error } = await supabaseAdmin.auth.admin.generateLink({
     type: 'recovery',
-    user_id: '6d8a7f6b-4de3-44b1-9ddd-568086ce2529',
+    email: 'admin@dinakida.com', // ✅ REQUIRED
   });
 
   if (error) {
