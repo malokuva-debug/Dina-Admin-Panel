@@ -36,86 +36,88 @@ export default function AddAppointmentModal({
     };
   }, []);
 
- useEffect(() => {
-  if (!selectedCategory) {
-    setFilteredServices([]);
-    setSelectedService('');
-    return;
-  }
+  useEffect(() => {
+    if (!selectedCategory) {
+      setFilteredServices([]);
+      setSelectedService('');
+      return;
+    }
 
-  const filtered = services.filter(s => s.category_id === selectedCategory);
-  setFilteredServices(filtered);
-  setSelectedService(filtered[0]?.id ?? '');
-}, [selectedCategory, services]);
+    const filtered = services.filter(s => s.category_id === selectedCategory);
+    setFilteredServices(filtered);
+    setSelectedService(filtered[0]?.id ?? '');
+  }, [selectedCategory, services]);
+
   console.log('Services prop:', services);
   console.log('Categories prop:', categories);
   
-    const handleAdd = async () => {
-  if (!selectedWorker || !selectedService || !date || !time) {
-    alert('Please fill all required fields');
-    return;
-  }
-
-  if (!selectedService) {
-  alert('Please select a service');
-  return;
-}
-
-const service = services.find(s => s.id === selectedService);
-if (!service) {
-  alert('Selected service not found');
-  return;
-}
-
- function mapAppointmentToDb(appointment: Appointment) {
-  return {
-    time: appointment.time,
-    date: appointment.date,
-    worker: appointment.worker,     
-    service: appointment.service,   
-    price: appointment.price,
-    duration: appointment.duration,
-    customer_name: appointment.customerName,
-    customer_phone: appointment.customerPhone,
-    is_done: appointment.is_done ?? false,
-  };
-}
-
-  const newAppointment: Appointment = {
-  id: `${Date.now()}-${Math.floor(Math.random() * 1000)}`,
-  worker: selectedWorker,
-  service: service.name, // will never be undefined because of step 1
-  price: service.price,
-  duration: service.duration,
-  date,
-  time,
-  customerName,
-  customerPhone,
-  is_done: false,
-};
-
-  try {
-    if (storageMode === 'supabase') {
-      const { error } = await supabase
-        .from('appointments')
-        .insert([mapAppointmentToDb(newAppointment)]);
-      if (error) throw error;
-    } else {
-      const allAppointments: Appointment[] =
-        storage.get(STORAGE_KEYS.APPOINTMENTS) || [];
-      storage.set(STORAGE_KEYS.APPOINTMENTS, [
-        ...allAppointments,
-        newAppointment,
-      ]);
+  const handleAdd = async () => {
+    if (!selectedWorker || !selectedService || !date || !time) {
+      alert('Please fill all required fields');
+      return;
     }
 
-    onAdded();
-    onClose();
-  } catch (err) {
-    console.error('Failed to add appointment', err);
-    alert('Failed to add appointment');
-  }
-};
+    if (!selectedService) {
+      alert('Please select a service');
+      return;
+    }
+
+    const service = services.find(s => s.id === selectedService);
+    if (!service) {
+      alert('Selected service not found');
+      return;
+    }
+
+    // Create appointment object with snake_case for database
+    const newAppointment: Appointment = {
+      id: `${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+      worker: selectedWorker,
+      service: service.name,
+      price: service.price,
+      duration: service.duration,
+      date,
+      time,
+      customer_name: customerName,  // Use snake_case
+      customer_phone: customerPhone, // Use snake_case
+      is_done: false,
+      status: 'pending', // Set initial status
+    };
+
+    try {
+      if (storageMode === 'supabase') {
+        // For Supabase, send the data directly (it already uses snake_case)
+        const { error } = await supabase
+          .from('appointments')
+          .insert([{
+            worker: newAppointment.worker,
+            service: newAppointment.service,
+            date: newAppointment.date,
+            time: newAppointment.time,
+            price: newAppointment.price,
+            duration: newAppointment.duration,
+            customer_name: newAppointment.customer_name,
+            customer_phone: newAppointment.customer_phone,
+            is_done: newAppointment.is_done,
+            status: newAppointment.status,
+          }]);
+        if (error) throw error;
+      } else {
+        // For localStorage
+        const allAppointments: Appointment[] =
+          storage.get(STORAGE_KEYS.APPOINTMENTS) || [];
+        storage.set(STORAGE_KEYS.APPOINTMENTS, [
+          ...allAppointments,
+          newAppointment,
+        ]);
+      }
+
+      onAdded();
+      onClose();
+    } catch (err) {
+      console.error('Failed to add appointment', err);
+      alert('Failed to add appointment');
+    }
+  };
 
   const handleBackdropClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (e.target === e.currentTarget) onClose();
@@ -130,43 +132,43 @@ if (!service) {
         <div className="row">
           <span>Worker</span>
           <select value={selectedWorker} onChange={e => setSelectedWorker(e.target.value as Worker)}>
-  {workers.map(w => (
-    <option key={w} value={w}>{w}</option>
-  ))}
-</select>
+            {workers.map(w => (
+              <option key={w} value={w}>{w}</option>
+            ))}
+          </select>
         </div>
 
         {/* Category Dropdown */}
-<div className="row">
-  <span>Category</span>
-  <select
-  value={selectedCategory}
-  onChange={e => setSelectedCategory(e.target.value)}
->
-  <option value="">Select Category</option>
-  {categories.map(c => (
-    <option key={c.id} value={c.id}>
-      {c.name}
-    </option>
-  ))}
-</select>
-</div>
+        <div className="row">
+          <span>Category</span>
+          <select
+            value={selectedCategory}
+            onChange={e => setSelectedCategory(e.target.value)}
+          >
+            <option value="">Select Category</option>
+            {categories.map(c => (
+              <option key={c.id} value={c.id}>
+                {c.name}
+              </option>
+            ))}
+          </select>
+        </div>
 
-{/* Service Dropdown */}
-<div className="row">
-  <span>Service</span>
-  <select
-  value={selectedService}
-  onChange={e => setSelectedService(e.target.value)}
->
-  <option value="">Select Service</option>
-  {filteredServices.map(s => (
-    <option key={s.id} value={s.id}>
-      {s.name} (${s.price})
-    </option>
-  ))}
-</select>
-</div>
+        {/* Service Dropdown */}
+        <div className="row">
+          <span>Service</span>
+          <select
+            value={selectedService}
+            onChange={e => setSelectedService(e.target.value)}
+          >
+            <option value="">Select Service</option>
+            {filteredServices.map(s => (
+              <option key={s.id} value={s.id}>
+                {s.name} (${s.price})
+              </option>
+            ))}
+          </select>
+        </div>
 
         {/* Customer Name */}
         <div className="row">
