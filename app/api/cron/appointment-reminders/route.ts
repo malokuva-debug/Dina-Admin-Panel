@@ -51,40 +51,51 @@ export async function GET(request: Request) {
     const errors = [];
 
     for (const appointment of appointments || []) {
-      try {
-        // Combine date and time to create full datetime in NY timezone
-        const appointmentDateTimeStr = `${appointment.date}T${appointment.time}:00`;
-        const appointmentDateTime = new Date(appointmentDateTimeStr + ' GMT-0500'); // NY timezone
-        
-        const timeDiff = appointmentDateTime.getTime() - now.getTime();
-        const minutesUntil = Math.floor(timeDiff / 60000);
+  try {
+    // Combine date and time to create full datetime in NY timezone
+    const appointmentDateTimeStr = `${appointment.date}T${appointment.time}:00`;
+    const appointmentDateTime = new Date(appointmentDateTimeStr + ' GMT-0500'); // NY timezone
+    
+    const timeDiff = appointmentDateTime.getTime() - now.getTime();
+    const minutesUntil = Math.floor(timeDiff / 60000);
 
-        console.log(`Appointment ${appointment.id}: ${appointment.time} - ${minutesUntil} minutes away`);
+    console.log(`========================================`);
+    console.log(`Appointment ${appointment.id}:`);
+    console.log(`  Time: ${appointment.time}`);
+    console.log(`  Minutes until: ${minutesUntil}`);
+    console.log(`  1hr reminder sent: ${appointment.reminder_1hour_sent_at || 'NO'}`);
+    console.log(`  30min reminder sent: ${appointment.reminder_30min_sent_at || 'NO'}`);
+    console.log(`========================================`);
 
-        // Skip past appointments
-        if (minutesUntil < 0) continue;
+    // Skip past appointments
+    if (minutesUntil < 0) {
+      console.log(`⏭️ Skipping - appointment is in the past`);
+      continue;
+    }
 
-        // Determine reminder type with buffer
-        let reminderType = null;
-        
-        if (minutesUntil >= 55 && minutesUntil <= 65) {
-          reminderType = '1 hour';
-          
-          if (appointment.reminder_1hour_sent_at) {
-            console.log(`1 hour reminder already sent for ${appointment.id}`);
-            continue;
-          }
-        } 
-        else if (minutesUntil >= 25 && minutesUntil <= 35) {
-          reminderType = '30 minutes';
-          
-          if (appointment.reminder_30min_sent_at) {
-            console.log(`30 min reminder already sent for ${appointment.id}`);
-            continue;
-          }
-        }
+    // Determine reminder type with buffer
+    let reminderType = null;
+    
+    if (minutesUntil >= 55 && minutesUntil <= 65) {
+      reminderType = '1 hour';
+      
+      if (appointment.reminder_1hour_sent_at) {
+        console.log(`1 hour reminder already sent for ${appointment.id}`);
+        continue;
+      }
+    } 
+    else if (minutesUntil >= 25 && minutesUntil <= 35) {
+      reminderType = '30 minutes';
+      
+      if (appointment.reminder_30min_sent_at) {
+        console.log(`30 min reminder already sent for ${appointment.id}`);
+        continue;
+      }
+    } else {
+      console.log(`⏭️ Skipping - not in reminder window (need 25-35 or 55-65 minutes)`);
+    }
 
-        if (!reminderType) continue;
+    if (!reminderType) continue;
 
         console.log(`Sending ${reminderType} reminder for appointment ${appointment.id}`);
 
