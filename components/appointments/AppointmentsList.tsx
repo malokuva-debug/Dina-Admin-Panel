@@ -179,8 +179,9 @@ export default function AppointmentsList({
         const isDone = apt.is_done || false;
         const status = apt.status || 'pending';
         const duration = apt.duration || 60;
-        const estimatedCompletion = apt.estimated_completion_time || 
-                                    calculateCompletionTime(apt.time, duration);
+        const autoCalculatedTime = calculateCompletionTime(apt.time, duration);
+        const estimatedCompletion = apt.estimated_completion_time || autoCalculatedTime;
+        const isManuallyEdited = apt.estimated_completion_time && apt.estimated_completion_time !== autoCalculatedTime;
         const statusStyle = getStatusColor(status);
         
         return (
@@ -293,16 +294,20 @@ export default function AppointmentsList({
                       <span 
                         onClick={() => handleTimeClick(apt.id, estimatedCompletion)}
                         style={{ 
-                          color: '#007aff', 
+                          color: isManuallyEdited ? '#ff9500' : '#007aff', 
                           fontSize: '14px',
                           fontWeight: '600',
                           cursor: 'pointer',
                           textDecoration: 'underline',
                           textDecorationStyle: 'dotted',
                         }}
-                        title="Click to edit completion time"
+                        title={isManuallyEdited ? "Manually set - click to edit" : "Auto-calculated - click to edit"}
                       >
-                        Est. done: {formatTime(estimatedCompletion)} ({duration} min)
+                        {isManuallyEdited ? (
+                          <>Done by: {formatTime(estimatedCompletion)} (edited)</>
+                        ) : (
+                          <>Est. done: {formatTime(estimatedCompletion)} ({duration} min)</>
+                        )}
                       </span>
                     )}
                   </div>
