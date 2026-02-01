@@ -2,32 +2,26 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
 export async function POST(req: Request) {
-  const { email, newPassword } = await req.json();
+  const { userId } = await req.json();
 
-  if (!email || !newPassword) {
-    return NextResponse.json({ error: 'Missing email or password' }, { status: 400 });
+  if (!userId) {
+    return NextResponse.json({ error: 'Missing userId' }, { status: 400 });
   }
 
   const supabaseAdmin = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
+    process.env.SUPABASE_SERVICE_ROLE_KEY! // 🔐 server only
   );
 
-  // 1️⃣ Get user by email
-  const { data: user, error: getUserError } = await supabaseAdmin.auth.admin.getUserByEmail(email);
-
-  if (getUserError || !user) {
-    return NextResponse.json({ error: 'User not found' }, { status: 404 });
-  }
-
-  // 2️⃣ Update password
-  const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(user.id, {
-    password: newPassword
+  const { data, error } = await supabaseAdmin.auth.admin.generateLink({
+    type: 'recovery',
+    user_id: userId,
+    redirect_to: 'https://dina-admin-panel.vercel.app/reset-password' // your live site
   });
 
-  if (updateError) {
-    return NextResponse.json({ error: updateError.message }, { status: 500 });
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  return NextResponse.json({ success: true });
+  return NextResponse.json({ link: data?.properties?.action_link });
 }
