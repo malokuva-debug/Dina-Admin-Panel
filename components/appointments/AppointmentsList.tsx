@@ -10,6 +10,7 @@ interface AppointmentsListProps {
   onMarkDone?: (id: string, isDone: boolean) => void;
   onUpdateStatus?: (id: string, status: 'pending' | 'confirmed' | 'arrived' | 'done') => void;
   onUpdateCompletionTime?: (id: string, time: string) => void;
+  onUpdateDuration?: (id: string, duration: number) => void;
   loading?: boolean;
 }
 
@@ -19,10 +20,11 @@ export default function AppointmentsList({
   onMarkDone,
   onUpdateStatus,
   onUpdateCompletionTime,
+  onUpdateDuration,
   loading = false 
 }: AppointmentsListProps) {
-  const [editingTime, setEditingTime] = useState<string | null>(null);
-  const [tempTime, setTempTime] = useState<string>('');
+  const [editingDuration, setEditingDuration] = useState<string | null>(null);
+  const [tempDuration, setTempDuration] = useState<number>(0);
 
   const calculateCompletionTime = (startTime: string, durationMinutes: number) => {
     const [hours, minutes] = startTime.split(':').map(Number);
@@ -88,22 +90,23 @@ export default function AppointmentsList({
     }
   };
 
-  const handleTimeClick = (id: string, currentTime: string) => {
-    setEditingTime(id);
-    setTempTime(currentTime);
+  const handleDurationClick = (id: string, currentDuration: number) => {
+    setEditingDuration(id);
+    setTempDuration(currentDuration);
   };
 
-  const handleTimeSave = (id: string) => {
-    if (onUpdateCompletionTime && tempTime) {
-      onUpdateCompletionTime(id, tempTime);
+  const handleDurationSave = async (id: string, startTime: string) => {
+    if (tempDuration && tempDuration > 0 && onUpdateDuration) {
+      // Update the duration, which will auto-recalculate completion time
+      await onUpdateDuration(id, tempDuration);
     }
-    setEditingTime(null);
-    setTempTime('');
+    setEditingDuration(null);
+    setTempDuration(0);
   };
 
-  const handleTimeCancel = () => {
-    setEditingTime(null);
-    setTempTime('');
+  const handleDurationCancel = () => {
+    setEditingDuration(null);
+    setTempDuration(0);
   };
 
   const getStatusColor = (status: string) => {
@@ -179,9 +182,7 @@ export default function AppointmentsList({
         const isDone = apt.is_done || false;
         const status = apt.status || 'pending';
         const duration = apt.duration || 60;
-        const autoCalculatedTime = calculateCompletionTime(apt.time, duration);
-        const estimatedCompletion = apt.estimated_completion_time || autoCalculatedTime;
-        const isManuallyEdited = apt.estimated_completion_time && apt.estimated_completion_time !== autoCalculatedTime;
+        const estimatedCompletion = calculateCompletionTime(apt.time, duration);
         const statusStyle = getStatusColor(status);
         
         return (
@@ -245,12 +246,15 @@ export default function AppointmentsList({
                       <circle cx="12" cy="12" r="10"></circle>
                       <polyline points="12 6 12 12 16 14"></polyline>
                     </svg>
-                    {editingTime === apt.id ? (
+                    {editingDuration === apt.id ? (
                       <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                         <input
-                          type="time"
-                          value={tempTime}
-                          onChange={(e) => setTempTime(e.target.value)}
+                          type="number"
+                          min="5"
+                          max="300"
+                          step="5"
+                          value={tempDuration}
+                          onChange={(e) => setTempDuration(parseInt(e.target.value) || 0)}
                           style={{
                             padding: '4px 8px',
                             background: '#2c2c2e',
@@ -258,11 +262,13 @@ export default function AppointmentsList({
                             borderRadius: '6px',
                             color: '#fff',
                             fontSize: '13px',
+                            width: '70px',
                           }}
                           autoFocus
                         />
+                        <span style={{ color: '#888', fontSize: '13px' }}>min</span>
                         <button
-                          onClick={() => handleTimeSave(apt.id)}
+                          onClick={() => handleDurationSave(apt.id, apt.time)}
                           style={{
                             padding: '4px 8px',
                             background: '#34c759',
@@ -276,7 +282,7 @@ export default function AppointmentsList({
                           ✓
                         </button>
                         <button
-                          onClick={handleTimeCancel}
+                          onClick={handleDurationCancel}
                           style={{
                             padding: '4px 8px',
                             background: '#ff3b30',
@@ -292,22 +298,18 @@ export default function AppointmentsList({
                       </div>
                     ) : (
                       <span 
-                        onClick={() => handleTimeClick(apt.id, estimatedCompletion)}
+                        onClick={() => handleDurationClick(apt.id, duration)}
                         style={{ 
-                          color: isManuallyEdited ? '#ff9500' : '#007aff', 
+                          color: '#007aff', 
                           fontSize: '14px',
                           fontWeight: '600',
                           cursor: 'pointer',
                           textDecoration: 'underline',
                           textDecorationStyle: 'dotted',
                         }}
-                        title={isManuallyEdited ? "Manually set - click to edit" : "Auto-calculated - click to edit"}
+                        title="Click to edit duration"
                       >
-                        {isManuallyEdited ? (
-                          <>Done by: {formatTime(estimatedCompletion)} (edited)</>
-                        ) : (
-                          <>Est. done: {formatTime(estimatedCompletion)} ({duration} min)</>
-                        )}
+                        Done by: {formatTime(estimatedCompletion)} ({duration} min)
                       </span>
                     )}
                   </div>
