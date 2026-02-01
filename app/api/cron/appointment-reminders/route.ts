@@ -2,38 +2,44 @@ import { NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
 import webpush from 'web-push';
 
-const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || '';
-const vapidPrivateKey = process.env.VAPID_PRIVATE_KEY || '';
-const vapidEmail = process.env.VAPID_EMAIL || 'mailto:valmir.mlku@gmail.com';
+// Validate environment variables
+const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+const vapidPrivateKey = process.env.VAPID_PRIVATE_KEY;
+const vapidEmail = process.env.VAPID_EMAIL;
 
-if (vapidPublicKey && vapidPrivateKey) {
+if (!vapidPublicKey || !vapidPrivateKey || !vapidEmail) {
+  console.error('Missing required VAPID environment variables');
+} else {
   webpush.setVapidDetails(vapidEmail, vapidPublicKey, vapidPrivateKey);
 }
 
-export async function GET() {
+// Authorization check for cron endpoint
+export async function GET(request: Request) {
+  // Verify cron secret to prevent unauthorized access
+  const authHeader = request.headers.get('authorization');
+  const cronSecret = process.env.CRON_SECRET;
+  
+  if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   try {
+    // Use UTC for consistency
     const now = new Date();
+    const nowUTC = new Date(now.toISOString());
     
-    // Get today's date in YYYY-MM-DD format
-    const today = now.toISOString().split('T')[0];
+    // Get current time + 1 hour window
+    const oneHourLater = new Date(nowUTC.getTime() + 60 * 60 * 1000);
     
-    // Current time in HH:MM format
-    const currentTime = now.toTimeString().slice(0, 5);
-    
-    // Time 1 hour from now
-    const oneHourLater = new Date(now.getTime() + 60 * 60 * 1000);
-    const oneHourTime = oneHourLater.toTimeString().slice(0, 5);
+    console.log('Cron running at:', nowUTC.toISOString());
 
-    console.log('Cron running at:', now.toISOString());
-    console.log('Checking appointments between', currentTime, 'and', oneHourTime);
-
-    // Fetch appointments happening in the next hour
+    // Fetch appointments in the next hour that haven't been reminded yet
     const { data: appointments, error } = await supabase
       .from('appointments')
       .select('*')
-      .eq('date', today)
-      .gte('time', currentTime)
-      .lte('time', oneHourTime);
+      .gte('datetime', nowUTC.toISOString())
+      .lte('datetime', oneHourLater.toISOString())
+      .is('reminder_sent_at', null); // Only get appointments without reminders
 
     if (error) {
       console.error('Error fetching appointments:', error);
@@ -43,74 +49,103 @@ export async function GET() {
     console.log(`Found ${appointments?.length || 0} appointments in next hour`);
 
     const notifications = [];
+    const errors = [];
 
     for (const appointment of appointments || []) {
-      // Combine date and time to get full datetime
-      const appointmentDateTime = new Date(`${appointment.date}T${appointment.time}`);
-      const timeDiff = appointmentDateTime.getTime() - now.getTime();
-      const minutesUntil = Math.floor(timeDiff / 60000);
+      try {
+        const appointmentDateTime = new Date(appointment.datetime);
+        const timeDiff = appointmentDateTime.getTime() - nowUTC.getTime();
+        const minutesUntil = Math.floor(timeDiff / 60000);
 
-      console.log(`Appointment ${appointment.id}: ${minutesUntil} minutes away`);
+        console.log(`Appointment ${appointment.id}: ${minutesUntil} minutes away`);
 
-      // Send reminder if approximately 30 mins or 1 hour before
-      // Using a 5-minute buffer to catch the appointment during cron runs
-      let reminderType = null;
-      
-      if (minutesUntil >= 55 && minutesUntil <= 65) {
-        reminderType = '1 hour';
-      } else if (minutesUntil >= 25 && minutesUntil <= 35) {
-        reminderType = '30 minutes';
-      }
-
-      if (reminderType) {
-        console.log(`Sending ${reminderType} reminder for appointment ${appointment.id}`);
+        // Determine reminder type with buffer
+        let reminderType = null;
         
-        // Fetch push subscription for the worker
-        const { data: subData } = await supabase
+        if (minutesUntil >= 55 && minutesUntil <= 65) {
+          reminderType = '1 hour';
+        } else if (minutesUntil >= 25 && minutesUntil <= 35) {
+          reminderType = '30 minutes';
+        }
+
+        if (!reminderType) continue;
+
+        console.log(`Sending ${reminderType} reminder for appointment ${appointment.id}`);
+
+        // Fetch push subscription
+        const { data: subData, error: subError } = await supabase
           .from('push_subscriptions')
           .select('subscription')
           .eq('user_id', appointment.worker)
           .single();
 
-        if (subData?.subscription) {
-          const payload = JSON.stringify({
-            title: `⏰ Appointment in ${reminderType}`,
-            body: `${appointment.customer_name || 'Client'} - ${appointment.service} at ${appointment.time}`,
-            icon: '/icon.png',
-            badge: '/icon.png',
-            data: { type: 'reminder', appointment, reminderType },
-          });
-
-          try {
-            await webpush.sendNotification(subData.subscription, payload);
-            console.log(`✅ Sent ${reminderType} reminder for appointment ${appointment.id}`);
-            notifications.push({ 
-              appointmentId: appointment.id, 
-              minutesUntil,
-              reminderType,
-              worker: appointment.worker 
-            });
-          } catch (pushError) {
-            console.error(`❌ Failed to send notification:`, pushError);
-          }
-        } else {
+        if (subError || !subData?.subscription) {
           console.log(`⚠️ No subscription found for ${appointment.worker}`);
+          errors.push({
+            appointmentId: appointment.id,
+            error: 'No push subscription',
+            worker: appointment.worker
+          });
+          continue;
         }
+
+        const payload = JSON.stringify({
+          title: `⏰ Appointment in ${reminderType}`,
+          body: `${appointment.customer_name || 'Client'} - ${appointment.service} at ${new Date(appointment.datetime).toLocaleTimeString()}`,
+          icon: '/icon.png',
+          badge: '/icon.png',
+          data: { 
+            type: 'reminder', 
+            appointmentId: appointment.id,
+            reminderType 
+          },
+        });
+
+        await webpush.sendNotification(subData.subscription, payload);
+        
+        // Mark reminder as sent to prevent duplicates
+        await supabase
+          .from('appointments')
+          .update({ 
+            reminder_sent_at: nowUTC.toISOString(),
+            reminder_type: reminderType 
+          })
+          .eq('id', appointment.id);
+
+        console.log(`✅ Sent ${reminderType} reminder for appointment ${appointment.id}`);
+        
+        notifications.push({
+          appointmentId: appointment.id,
+          minutesUntil,
+          reminderType,
+          worker: appointment.worker,
+          sentAt: nowUTC.toISOString()
+        });
+
+      } catch (appointmentError: any) {
+        console.error(`❌ Error processing appointment ${appointment.id}:`, appointmentError);
+        errors.push({
+          appointmentId: appointment.id,
+          error: appointmentError.message
+        });
       }
     }
 
-    return NextResponse.json({ 
+    return NextResponse.json({
       success: true,
-      timestamp: now.toISOString(),
+      timestamp: nowUTC.toISOString(),
       checked: appointments?.length || 0,
       sent: notifications.length,
-      notifications 
+      failed: errors.length,
+      notifications,
+      errors: errors.length > 0 ? errors : undefined
     });
+
   } catch (error: any) {
     console.error('Cron error:', error);
-    return NextResponse.json({ 
+    return NextResponse.json({
       error: error.message,
-      stack: error.stack 
+      timestamp: new Date().toISOString()
     }, { status: 500 });
   }
 }
