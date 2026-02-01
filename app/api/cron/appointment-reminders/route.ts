@@ -2,7 +2,6 @@ import { NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
 import webpush from 'web-push';
 
-// Validate environment variables
 const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
 const vapidPrivateKey = process.env.VAPID_PRIVATE_KEY;
 const vapidEmail = process.env.VAPID_EMAIL;
@@ -13,12 +12,10 @@ if (!vapidPublicKey || !vapidPrivateKey || !vapidEmail) {
   webpush.setVapidDetails(vapidEmail, vapidPublicKey, vapidPrivateKey);
 }
 
-// Add your business timezone
-const BUSINESS_TIMEZONE = 'America/New_York'; // Change to your timezone
+// Business timezone
+const BUSINESS_TIMEZONE = 'America/New_York';
 
-// Authorization check for cron endpoint
 export async function GET(request: Request) {
-  // Verify cron secret to prevent unauthorized access
   const authHeader = request.headers.get('authorization');
   const cronSecret = process.env.CRON_SECRET;
   
@@ -31,35 +28,41 @@ export async function GET(request: Request) {
     const nowInTimezone = new Date().toLocaleString("en-US", { timeZone: BUSINESS_TIMEZONE });
     const now = new Date(nowInTimezone);
     
-    // Get current time + 1 hour window
-    const oneHourLater = new Date(now.getTime() + 60 * 60 * 1000);
+    // Get today's date in YYYY-MM-DD format
+    const todayDate = now.toISOString().split('T')[0];
     
-    console.log('Cron running at (business timezone):', now.toISOString());
+    console.log('Cron running at (NY time):', now.toLocaleString('en-US', { timeZone: BUSINESS_TIMEZONE }));
+    console.log('Looking for appointments on:', todayDate);
 
-    // Fetch appointments in the next hour
+    // Fetch TODAY's appointments only (using date field, not datetime)
     const { data: appointments, error } = await supabase
       .from('appointments')
       .select('*')
-      .gte('datetime', now.toISOString())
-      .lte('datetime', oneHourLater.toISOString());
+      .eq('date', todayDate);
 
     if (error) {
       console.error('Error fetching appointments:', error);
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    console.log(`Found ${appointments?.length || 0} appointments in next hour`);
+    console.log(`Found ${appointments?.length || 0} appointments today`);
 
     const notifications = [];
     const errors = [];
 
     for (const appointment of appointments || []) {
       try {
-        const appointmentDateTime = new Date(appointment.datetime);
+        // Combine date and time to create full datetime in NY timezone
+        const appointmentDateTimeStr = `${appointment.date}T${appointment.time}:00`;
+        const appointmentDateTime = new Date(appointmentDateTimeStr + ' GMT-0500'); // NY timezone
+        
         const timeDiff = appointmentDateTime.getTime() - now.getTime();
         const minutesUntil = Math.floor(timeDiff / 60000);
 
-        console.log(`Appointment ${appointment.id}: ${minutesUntil} minutes away`);
+        console.log(`Appointment ${appointment.id}: ${appointment.time} - ${minutesUntil} minutes away`);
+
+        // Skip past appointments
+        if (minutesUntil < 0) continue;
 
         // Determine reminder type with buffer
         let reminderType = null;
@@ -67,7 +70,6 @@ export async function GET(request: Request) {
         if (minutesUntil >= 55 && minutesUntil <= 65) {
           reminderType = '1 hour';
           
-          // Check if 1 hour reminder already sent
           if (appointment.reminder_1hour_sent_at) {
             console.log(`1 hour reminder already sent for ${appointment.id}`);
             continue;
@@ -76,7 +78,6 @@ export async function GET(request: Request) {
         else if (minutesUntil >= 25 && minutesUntil <= 35) {
           reminderType = '30 minutes';
           
-          // Check if 30 min reminder already sent
           if (appointment.reminder_30min_sent_at) {
             console.log(`30 min reminder already sent for ${appointment.id}`);
             continue;
@@ -106,7 +107,7 @@ export async function GET(request: Request) {
 
         const payload = JSON.stringify({
           title: `⏰ Appointment in ${reminderType}`,
-          body: `${appointment.customer_name || 'Client'} - ${appointment.service} at ${new Date(appointment.datetime).toLocaleTimeString('en-US', { timeZone: BUSINESS_TIMEZONE })}`,
+          body: `${appointment.customer_name || 'Client'} - ${appointment.service} at ${appointment.time}`,
           icon: '/icon.png',
           badge: '/icon.png',
           data: { 
@@ -118,7 +119,7 @@ export async function GET(request: Request) {
 
         await webpush.sendNotification(subData.subscription, payload);
         
-        // Mark the SPECIFIC reminder as sent to prevent duplicates
+        // Mark the SPECIFIC reminder as sent
         if (reminderType === '1 hour') {
           await supabase
             .from('appointments')
@@ -136,6 +137,7 @@ export async function GET(request: Request) {
         
         notifications.push({
           appointmentId: appointment.id,
+          appointmentTime: appointment.time,
           minutesUntil,
           reminderType,
           worker: appointment.worker,
@@ -153,7 +155,7 @@ export async function GET(request: Request) {
 
     return NextResponse.json({
       success: true,
-      timestamp: now.toISOString(),
+      timestamp: now.toLocaleString('en-US', { timeZone: BUSINESS_TIMEZONE }),
       timezone: BUSINESS_TIMEZONE,
       checked: appointments?.length || 0,
       sent: notifications.length,
