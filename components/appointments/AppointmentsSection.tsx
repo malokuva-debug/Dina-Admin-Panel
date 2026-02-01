@@ -128,6 +128,28 @@ export default function AppointmentsSection({ worker }: AppointmentsSectionProps
     }
   };
 
+  const handleUpdateDuration = async (id: string, duration: number) => {
+    try {
+      if (storageMode === 'supabase') {
+        const { error } = await supabase
+          .from('appointments')
+          .update({ duration })
+          .eq('id', id);
+        if (error) throw error;
+      } else {
+        const allAppointments = (storage.get(STORAGE_KEYS.APPOINTMENTS) as Appointment[]) || [];
+        const updated = allAppointments.map((apt) =>
+          apt.id === id ? { ...apt, duration } : apt
+        );
+        storage.set(STORAGE_KEYS.APPOINTMENTS, updated);
+      }
+      await refresh();
+    } catch (error) {
+      console.error('Error updating duration:', error);
+      alert('Failed to update duration');
+    }
+  };
+
   return (
     <div id="appointments">
       <h2>Appointments</h2>
@@ -154,6 +176,7 @@ export default function AppointmentsSection({ worker }: AppointmentsSectionProps
         onMarkDone={handleMarkDone}
         onUpdateStatus={handleUpdateStatus}
         onUpdateCompletionTime={handleUpdateCompletionTime}
+        onUpdateDuration={handleUpdateDuration}
         loading={loading}
       />
 
