@@ -9,12 +9,13 @@ export async function GET() {
 
   const { data, error } = await supabaseAdmin.auth.admin.generateLink({
     type: 'recovery',
-    email: 'admin@dinakida.com', // ✅ REQUIRED
+    email: 'admin@dinakida.com', // must use email now
   });
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  return NextResponse.json({ link: data.action_link });
+  // ⚡ Correct path to the link
+  return NextResponse.json({ link: data.properties.action_link });
 }
