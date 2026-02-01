@@ -8,9 +8,10 @@ export async function GET() {
   );
 
   const { data, error } = await supabaseAdmin.auth.admin.generateLink({
-    type: 'recovery',
-    email: 'admin@dinakida.com', // must use email now
-  });
+  type: 'recovery',
+  email: 'admin@dinakida.com',
+  redirect_to: 'https://dina-admin-panel.vercel.app' // <-- live URL
+});
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
