@@ -47,16 +47,19 @@ export default function ExportReports() {
     let endDate: Date;
 
     if (months === 1) {
-      // For current month, get the entire month
+      // For current month, get the entire month (from 1st to last day)
       startDate = new Date(today.getFullYear(), today.getMonth(), 1);
       endDate = new Date(today.getFullYear(), today.getMonth() + 1, 0); // Last day of current month
     } else {
-      // For 6 or 12 months, go back X months but include the entire current month
+      // For 6 or 12 months, go back X months and include entire months
+      // Example: If today is Feb 1, 2026 and months = 6
+      // Start: Aug 1, 2025 (6 months back from Feb)
+      // End: Feb 28/29, 2026 (last day of current month)
       startDate = new Date(today.getFullYear(), today.getMonth() - months + 1, 1);
       endDate = new Date(today.getFullYear(), today.getMonth() + 1, 0); // Last day of current month
     }
     
-    // Set time to start of day for proper comparison
+    // Set time to cover the entire day range
     startDate.setHours(0, 0, 0, 0);
     endDate.setHours(23, 59, 59, 999);
 
