@@ -1,7 +1,8 @@
+// AppointmentSection.tsx
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Worker, Appointment, Category, Service } from '@/types';
+import { Worker, Appointment, Category, Service, AppointmentStatus } from '@/types';
 import { useAppointments } from '@/hooks/useAppointments';
 import AppointmentsList from './AppointmentsList';
 import { supabase } from '@/lib/supabase';
@@ -32,7 +33,7 @@ export default function AppointmentsSection({ worker }: AppointmentsSectionProps
   const [modalOpen, setModalOpen] = useState(false);
   const [services, setServices] = useState<Service[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
-  const [workers, setWorkers] = useState<Worker[]>(['dina', 'kida']); // default to your types
+  const [workers, setWorkers] = useState<Worker[]>(['dina', 'kida']);
 
   useEffect(() => {
     // Fetch categories and services from Supabase
@@ -60,13 +61,16 @@ export default function AppointmentsSection({ worker }: AppointmentsSectionProps
       if (storageMode === 'supabase') {
         const { error } = await supabase
           .from('appointments')
-          .update({ is_done: isDone })
+          .update({ 
+            is_done: isDone,
+            status: isDone ? 'done' : 'pending'
+          })
           .eq('id', id);
         if (error) throw error;
       } else {
         const allAppointments = (storage.get(STORAGE_KEYS.APPOINTMENTS) as Appointment[]) || [];
         const updated = allAppointments.map((apt) =>
-          apt.id === id ? { ...apt, is_done: isDone } : apt
+          apt.id === id ? { ...apt, is_done: isDone, status: isDone ? 'done' : 'pending' } : apt
         );
         storage.set(STORAGE_KEYS.APPOINTMENTS, updated);
       }
@@ -74,6 +78,53 @@ export default function AppointmentsSection({ worker }: AppointmentsSectionProps
     } catch (error) {
       console.error('Error marking appointment:', error);
       alert('Failed to update appointment status');
+    }
+  };
+
+  const handleUpdateStatus = async (id: string, status: AppointmentStatus) => {
+    try {
+      if (storageMode === 'supabase') {
+        const { error } = await supabase
+          .from('appointments')
+          .update({ 
+            status,
+            is_done: status === 'done'
+          })
+          .eq('id', id);
+        if (error) throw error;
+      } else {
+        const allAppointments = (storage.get(STORAGE_KEYS.APPOINTMENTS) as Appointment[]) || [];
+        const updated = allAppointments.map((apt) =>
+          apt.id === id ? { ...apt, status, is_done: status === 'done' } : apt
+        );
+        storage.set(STORAGE_KEYS.APPOINTMENTS, updated);
+      }
+      await refresh();
+    } catch (error) {
+      console.error('Error updating status:', error);
+      alert('Failed to update appointment status');
+    }
+  };
+
+  const handleUpdateCompletionTime = async (id: string, time: string) => {
+    try {
+      if (storageMode === 'supabase') {
+        const { error } = await supabase
+          .from('appointments')
+          .update({ estimated_completion_time: time })
+          .eq('id', id);
+        if (error) throw error;
+      } else {
+        const allAppointments = (storage.get(STORAGE_KEYS.APPOINTMENTS) as Appointment[]) || [];
+        const updated = allAppointments.map((apt) =>
+          apt.id === id ? { ...apt, estimated_completion_time: time } : apt
+        );
+        storage.set(STORAGE_KEYS.APPOINTMENTS, updated);
+      }
+      await refresh();
+    } catch (error) {
+      console.error('Error updating completion time:', error);
+      alert('Failed to update completion time');
     }
   };
 
@@ -101,6 +152,8 @@ export default function AppointmentsSection({ worker }: AppointmentsSectionProps
         appointments={appointments}
         onDelete={handleDelete}
         onMarkDone={handleMarkDone}
+        onUpdateStatus={handleUpdateStatus}
+        onUpdateCompletionTime={handleUpdateCompletionTime}
         loading={loading}
       />
 
@@ -130,7 +183,7 @@ export default function AppointmentsSection({ worker }: AppointmentsSectionProps
           categories={categories}
           services={services}
           onClose={() => setModalOpen(false)}
-          onAdded={refresh} // Refresh appointments after adding
+          onAdded={refresh}
         />
       )}
     </div>
