@@ -13,6 +13,9 @@ if (!vapidPublicKey || !vapidPrivateKey || !vapidEmail) {
   webpush.setVapidDetails(vapidEmail, vapidPublicKey, vapidPrivateKey);
 }
 
+// Add your business timezone
+const BUSINESS_TIMEZONE = 'America/New_York'; // Change to your timezone
+
 // Authorization check for cron endpoint
 export async function GET(request: Request) {
   // Verify cron secret to prevent unauthorized access
@@ -24,20 +27,20 @@ export async function GET(request: Request) {
   }
 
   try {
-    // Use UTC for consistency
-    const now = new Date();
-    const nowUTC = new Date(now.toISOString());
+    // Get current time in business timezone
+    const nowInTimezone = new Date().toLocaleString("en-US", { timeZone: BUSINESS_TIMEZONE });
+    const now = new Date(nowInTimezone);
     
     // Get current time + 1 hour window
-    const oneHourLater = new Date(nowUTC.getTime() + 60 * 60 * 1000);
+    const oneHourLater = new Date(now.getTime() + 60 * 60 * 1000);
     
-    console.log('Cron running at:', nowUTC.toISOString());
+    console.log('Cron running at (business timezone):', now.toISOString());
 
-    // Fetch appointments in the next hour - DON'T filter by reminder_sent_at
+    // Fetch appointments in the next hour
     const { data: appointments, error } = await supabase
       .from('appointments')
       .select('*')
-      .gte('datetime', nowUTC.toISOString())
+      .gte('datetime', now.toISOString())
       .lte('datetime', oneHourLater.toISOString());
 
     if (error) {
@@ -53,7 +56,7 @@ export async function GET(request: Request) {
     for (const appointment of appointments || []) {
       try {
         const appointmentDateTime = new Date(appointment.datetime);
-        const timeDiff = appointmentDateTime.getTime() - nowUTC.getTime();
+        const timeDiff = appointmentDateTime.getTime() - now.getTime();
         const minutesUntil = Math.floor(timeDiff / 60000);
 
         console.log(`Appointment ${appointment.id}: ${minutesUntil} minutes away`);
@@ -103,7 +106,7 @@ export async function GET(request: Request) {
 
         const payload = JSON.stringify({
           title: `⏰ Appointment in ${reminderType}`,
-          body: `${appointment.customer_name || 'Client'} - ${appointment.service} at ${new Date(appointment.datetime).toLocaleTimeString()}`,
+          body: `${appointment.customer_name || 'Client'} - ${appointment.service} at ${new Date(appointment.datetime).toLocaleTimeString('en-US', { timeZone: BUSINESS_TIMEZONE })}`,
           icon: '/icon.png',
           badge: '/icon.png',
           data: { 
@@ -119,13 +122,13 @@ export async function GET(request: Request) {
         if (reminderType === '1 hour') {
           await supabase
             .from('appointments')
-            .update({ reminder_1hour_sent_at: nowUTC.toISOString() })
+            .update({ reminder_1hour_sent_at: now.toISOString() })
             .eq('id', appointment.id);
         } 
         else if (reminderType === '30 minutes') {
           await supabase
             .from('appointments')
-            .update({ reminder_30min_sent_at: nowUTC.toISOString() })
+            .update({ reminder_30min_sent_at: now.toISOString() })
             .eq('id', appointment.id);
         }
 
@@ -136,7 +139,7 @@ export async function GET(request: Request) {
           minutesUntil,
           reminderType,
           worker: appointment.worker,
-          sentAt: nowUTC.toISOString()
+          sentAt: now.toISOString()
         });
 
       } catch (appointmentError: any) {
@@ -150,7 +153,8 @@ export async function GET(request: Request) {
 
     return NextResponse.json({
       success: true,
-      timestamp: nowUTC.toISOString(),
+      timestamp: now.toISOString(),
+      timezone: BUSINESS_TIMEZONE,
       checked: appointments?.length || 0,
       sent: notifications.length,
       failed: errors.length,
