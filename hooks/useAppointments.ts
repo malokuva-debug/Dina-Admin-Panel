@@ -91,7 +91,7 @@ export function useAppointments(options: UseAppointmentsOptions = {}) {
             service: appointment.service,
             date: appointment.date,
             time: appointment.time,
-            customer_name: appointment.customer_name,
+            customerName: appointment.customer_name,
           });
         } catch (notifError) {
           console.warn('Failed to send notification:', notifError);
