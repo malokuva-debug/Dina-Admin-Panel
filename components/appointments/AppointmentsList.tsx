@@ -1,11 +1,15 @@
+// AppointmentList.tsx
 'use client';
 
+import { useState } from 'react';
 import { Appointment } from '@/types';
 
 interface AppointmentsListProps {
   appointments: Appointment[];
   onDelete: (id: string) => void;
   onMarkDone?: (id: string, isDone: boolean) => void;
+  onUpdateStatus?: (id: string, status: 'pending' | 'confirmed' | 'arrived' | 'done') => void;
+  onUpdateCompletionTime?: (id: string, time: string) => void;
   loading?: boolean;
 }
 
@@ -13,8 +17,26 @@ export default function AppointmentsList({
   appointments, 
   onDelete,
   onMarkDone,
+  onUpdateStatus,
+  onUpdateCompletionTime,
   loading = false 
 }: AppointmentsListProps) {
+  const [editingTime, setEditingTime] = useState<string | null>(null);
+  const [tempTime, setTempTime] = useState<string>('');
+
+  const calculateCompletionTime = (startTime: string, durationMinutes: number) => {
+    const [hours, minutes] = startTime.split(':').map(Number);
+    const startDate = new Date();
+    startDate.setHours(hours, minutes, 0, 0);
+    
+    const endDate = new Date(startDate.getTime() + durationMinutes * 60000);
+    
+    const endHours = String(endDate.getHours()).padStart(2, '0');
+    const endMinutes = String(endDate.getMinutes()).padStart(2, '0');
+    
+    return `${endHours}:${endMinutes}`;
+  };
+
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr + 'T00:00:00');
     return date.toLocaleDateString('en-US', { 
@@ -57,6 +79,43 @@ export default function AppointmentsList({
   const handleMarkDone = (id: string, currentStatus: boolean) => {
     if (onMarkDone) {
       onMarkDone(id, !currentStatus);
+    }
+  };
+
+  const handleStatusChange = (id: string, newStatus: 'pending' | 'confirmed' | 'arrived' | 'done') => {
+    if (onUpdateStatus) {
+      onUpdateStatus(id, newStatus);
+    }
+  };
+
+  const handleTimeClick = (id: string, currentTime: string) => {
+    setEditingTime(id);
+    setTempTime(currentTime);
+  };
+
+  const handleTimeSave = (id: string) => {
+    if (onUpdateCompletionTime && tempTime) {
+      onUpdateCompletionTime(id, tempTime);
+    }
+    setEditingTime(null);
+    setTempTime('');
+  };
+
+  const handleTimeCancel = () => {
+    setEditingTime(null);
+    setTempTime('');
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'confirmed':
+        return { bg: '#007aff20', color: '#007aff', text: 'Confirmed' };
+      case 'arrived':
+        return { bg: '#ff950020', color: '#ff9500', text: 'Arrived' };
+      case 'done':
+        return { bg: '#34c75920', color: '#34c759', text: 'Done' };
+      default:
+        return { bg: '#88888820', color: '#888', text: 'Pending' };
     }
   };
 
@@ -117,15 +176,22 @@ export default function AppointmentsList({
   return (
     <div id="appointmentsList">
       {appointments.map(apt => {
-        const isDone = (apt as any).is_done || false;
+        const isDone = apt.is_done || false;
+        const status = apt.status || 'pending';
+        const duration = apt.duration || 60;
+        const estimatedCompletion = apt.estimated_completion_time || 
+                                    calculateCompletionTime(apt.time, duration);
+        const statusStyle = getStatusColor(status);
         
         return (
           <div 
             key={apt.id} 
             className="card"
             style={{
-              opacity: isDone ? 0.6 : 1,
-              background: isDone ? '#1a1a1c' : '#1c1c1e',
+              opacity: isDone || status === 'done' ? 0.6 : 1,
+              background: isDone || status === 'done' ? '#1a1a1c' : '#1c1c1e',
+              border: status === 'arrived' ? '2px solid #ff9500' : 
+                      status === 'confirmed' ? '2px solid #007aff' : 'none',
             }}
           >
             <div style={{ marginBottom: '15px' }}>
@@ -136,7 +202,7 @@ export default function AppointmentsList({
                     fontSize: '18px', 
                     fontWeight: '600', 
                     marginBottom: '8px',
-                    textDecoration: isDone ? 'line-through' : 'none',
+                    textDecoration: isDone || status === 'done' ? 'line-through' : 'none',
                   }}>
                     {apt.service}
                   </h3>
@@ -163,8 +229,86 @@ export default function AppointmentsList({
                     </span>
                   </div>
 
+                  {/* Estimated Completion Time */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+                    <svg
+                      viewBox="0 0 24 24"
+                      style={{
+                        width: '16px',
+                        height: '16px',
+                        stroke: '#007aff',
+                        fill: 'none',
+                        strokeWidth: 2,
+                      }}
+                    >
+                      <circle cx="12" cy="12" r="10"></circle>
+                      <polyline points="12 6 12 12 16 14"></polyline>
+                    </svg>
+                    {editingTime === apt.id ? (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <input
+                          type="time"
+                          value={tempTime}
+                          onChange={(e) => setTempTime(e.target.value)}
+                          style={{
+                            padding: '4px 8px',
+                            background: '#2c2c2e',
+                            border: '1px solid #007aff',
+                            borderRadius: '6px',
+                            color: '#fff',
+                            fontSize: '13px',
+                          }}
+                          autoFocus
+                        />
+                        <button
+                          onClick={() => handleTimeSave(apt.id)}
+                          style={{
+                            padding: '4px 8px',
+                            background: '#34c759',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '4px',
+                            fontSize: '12px',
+                            cursor: 'pointer',
+                          }}
+                        >
+                          ✓
+                        </button>
+                        <button
+                          onClick={handleTimeCancel}
+                          style={{
+                            padding: '4px 8px',
+                            background: '#ff3b30',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '4px',
+                            fontSize: '12px',
+                            cursor: 'pointer',
+                          }}
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    ) : (
+                      <span 
+                        onClick={() => handleTimeClick(apt.id, estimatedCompletion)}
+                        style={{ 
+                          color: '#007aff', 
+                          fontSize: '14px',
+                          fontWeight: '600',
+                          cursor: 'pointer',
+                          textDecoration: 'underline',
+                          textDecorationStyle: 'dotted',
+                        }}
+                        title="Click to edit completion time"
+                      >
+                        Est. done: {formatTime(estimatedCompletion)} ({duration} min)
+                      </span>
+                    )}
+                  </div>
+
                   {/* Customer Name */}
-                    {(apt as any).customer_name && (
+                  {apt.customer_name && (
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
                       <svg
                         viewBox="0 0 24 24"
@@ -180,13 +324,13 @@ export default function AppointmentsList({
                         <circle cx="12" cy="7" r="4"></circle>
                       </svg>
                       <span style={{ color: '#888', fontSize: '14px', fontWeight: '500' }}>
-                        {(apt as any).customer_name}
+                        {apt.customer_name}
                       </span>
                     </div>
                   )}
 
                   {/* Phone Number with Call Button */}
-                  {(apt as any).customer_phone && (
+                  {apt.customer_phone && (
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                       <svg
                         viewBox="0 0 24 24"
@@ -201,10 +345,10 @@ export default function AppointmentsList({
                         <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
                       </svg>
                       <span style={{ color: '#888', fontSize: '14px' }}>
-                        {formatPhone((apt as any).customer_phone)}
+                        {formatPhone(apt.customer_phone)}
                       </span>
                       <button
-                        onClick={() => handleCall((apt as any).customer_phone)}
+                        onClick={() => handleCall(apt.customer_phone!)}
                         style={{
                           marginLeft: '8px',
                           padding: '6px 12px',
@@ -243,7 +387,7 @@ export default function AppointmentsList({
                   <div style={{ 
                     fontSize: '22px', 
                     fontWeight: '700', 
-                    color: isDone ? '#888' : '#007aff',
+                    color: isDone || status === 'done' ? '#888' : '#007aff',
                     marginBottom: '8px',
                   }}>
                     ${apt.price.toFixed(2)}
@@ -257,71 +401,119 @@ export default function AppointmentsList({
                     fontSize: '12px',
                     fontWeight: '600',
                     textTransform: 'capitalize',
+                    marginBottom: '8px',
                   }}>
                     {apt.worker}
                   </div>
-                  {isDone && (
-                    <div style={{
-                      marginTop: '8px',
-                      padding: '4px 10px',
-                      background: '#34c75920',
-                      color: '#34c759',
-                      borderRadius: '6px',
-                      fontSize: '11px',
-                      fontWeight: '600',
-                    }}>
-                      ✓ Done
-                    </div>
-                  )}
+                  <div style={{
+                    display: 'inline-block',
+                    padding: '4px 10px',
+                    background: statusStyle.bg,
+                    color: statusStyle.color,
+                    borderRadius: '6px',
+                    fontSize: '11px',
+                    fontWeight: '600',
+                  }}>
+                    {statusStyle.text}
+                  </div>
                 </div>
               </div>
             </div>
 
-            {/* Action Buttons */}
+            {/* Status Action Buttons */}
+            {onUpdateStatus && status !== 'done' && (
+              <div style={{ display: 'flex', gap: '8px', marginBottom: '10px', flexWrap: 'wrap' }}>
+                {status === 'pending' && (
+                  <button
+                    onClick={() => handleStatusChange(apt.id, 'confirmed')}
+                    style={{
+                      flex: 1,
+                      minWidth: '120px',
+                      padding: '10px',
+                      background: '#007aff',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '8px',
+                      fontSize: '13px',
+                      fontWeight: '600',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '6px',
+                    }}
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M5 12l5 5l10 -10"></path>
+                    </svg>
+                    Confirm
+                  </button>
+                )}
+                
+                {status === 'confirmed' && (
+                  <button
+                    onClick={() => handleStatusChange(apt.id, 'arrived')}
+                    style={{
+                      flex: 1,
+                      minWidth: '120px',
+                      padding: '10px',
+                      background: '#ff9500',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '8px',
+                      fontSize: '13px',
+                      fontWeight: '600',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '6px',
+                    }}
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M9 11l3 3l8 -8"></path>
+                      <path d="M20 12v6a2 2 0 0 1 -2 2h-12a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h9"></path>
+                    </svg>
+                    Mark Arrived
+                  </button>
+                )}
+                
+                {status === 'arrived' && (
+                  <button
+                    onClick={() => handleStatusChange(apt.id, 'done')}
+                    style={{
+                      flex: 1,
+                      minWidth: '120px',
+                      padding: '10px',
+                      background: '#34c759',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '8px',
+                      fontSize: '13px',
+                      fontWeight: '600',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '6px',
+                    }}
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M5 12l5 5l10 -10"></path>
+                    </svg>
+                    Complete
+                  </button>
+                )}
+              </div>
+            )}
+
+            {/* Delete Button */}
             <div style={{ display: 'flex', gap: '10px' }}>
-              {onMarkDone && (
-                <button
-                  onClick={() => handleMarkDone(apt.id, isDone)}
-                  style={{
-                    flex: 1,
-                    padding: '12px',
-                    background: isDone ? '#ff9500' : '#34c759',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '8px',
-                    fontSize: '14px',
-                    fontWeight: '600',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '6px',
-                  }}
-                >
-                  {isDone ? (
-                    <>
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path d="M3 12a9 9 0 1 0 18 0a9 9 0 0 0 -18 0"></path>
-                        <path d="M12 7v5l3 3"></path>
-                      </svg>
-                      Mark as Pending
-                    </>
-                  ) : (
-                    <>
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path d="M5 12l5 5l10 -10"></path>
-                      </svg>
-                      Mark as Done
-                    </>
-                  )}
-                </button>
-              )}
-              
               <button
                 onClick={() => handleDelete(apt.id, apt.service)}
                 className="btn-remove"
                 style={{ 
-                  flex: onMarkDone ? 0.5 : 1,
+                  flex: 1,
                   padding: '12px',
                 }}
               >
