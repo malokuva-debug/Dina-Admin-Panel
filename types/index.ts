@@ -5,6 +5,7 @@
 // ----------------------
 export type Worker = 'dina' | 'kida';
 export type Role = 'admin' | 'worker';
+export type AppointmentStatus = 'pending' | 'confirmed' | 'arrived' | 'done';
 
 // ----------------------
 // Auth / User
@@ -46,9 +47,13 @@ export interface Appointment {
   time: string;
   price: number;
   duration?: number;
-  customerName?: string;
-  customerPhone?: string;
+  customer_name?: string;
+  customer_phone?: string;
   is_done?: boolean;
+  status?: AppointmentStatus;
+  estimated_completion_time?: string;
+  reminder_sent?: boolean;
+  created_at?: string;
 }
 
 export interface Expense {
