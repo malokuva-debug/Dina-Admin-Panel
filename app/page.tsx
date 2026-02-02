@@ -1,5 +1,4 @@
 'use client';
-
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { isAuthenticated, getCurrentUser } from '@/lib/auth';
@@ -24,22 +23,37 @@ export default function AdminPage() {
       router.push('/login');
     } else {
       const user = getCurrentUser();
-      if (user?.role === 'worker') setSelectedWorker(user.worker || 'dina');
+      
+      // Load the previously selected worker from localStorage
+      const savedWorker = localStorage.getItem('selectedWorker') as Worker | null;
+      
+      if (user?.role === 'worker') {
+        // If user is a worker, use their assigned worker
+        setSelectedWorker(user.worker || 'dina');
+      } else if (savedWorker) {
+        // If there's a saved preference, use that
+        setSelectedWorker(savedWorker);
+      }
+      // Otherwise, keep the default 'dina'
     }
     setLoading(false);
-  }, []);
+  }, [router]);
+
+  // Save worker selection to localStorage whenever it changes
+  const handleWorkerChange = (worker: Worker) => {
+    setSelectedWorker(worker);
+    localStorage.setItem('selectedWorker', worker);
+  };
 
   if (loading) return <p>Loading...</p>;
 
   return (
     <div className="container">
       <PushNotifications worker={selectedWorker} />
-      <WorkerNav selectedWorker={selectedWorker} onWorkerChange={setSelectedWorker} />
-
+      <WorkerNav selectedWorker={selectedWorker} onWorkerChange={handleWorkerChange} />
       {activeTab === 'finance' && <FinanceSection worker={selectedWorker} />}
       {activeTab === 'appointments' && <AppointmentsSection worker={selectedWorker} />}
       {activeTab === 'settings' && <SettingsSection worker={selectedWorker} />}
-
       <Navbar activeTab={activeTab} onTabChange={setActiveTab} />
     </div>
   );
