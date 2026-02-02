@@ -14,28 +14,32 @@ import { Worker } from '@/types';
 export default function AdminPage() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<'appointments' | 'settings' | 'finance'>('appointments');
-  const [selectedWorker, setSelectedWorker] = useState<Worker>('dina');
+  const [selectedWorker, setSelectedWorker] = useState<Worker | null>(null); // Start with null
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     // Redirect to login if not authenticated
     if (!isAuthenticated()) {
       router.push('/login');
-    } else {
-      const user = getCurrentUser();
-      
-      // Load the previously selected worker from localStorage
-      const savedWorker = localStorage.getItem('selectedWorker') as Worker | null;
-      
-      if (user?.role === 'worker') {
-        // If user is a worker, use their assigned worker
-        setSelectedWorker(user.worker || 'dina');
-      } else if (savedWorker) {
-        // If there's a saved preference, use that
-        setSelectedWorker(savedWorker);
-      }
-      // Otherwise, keep the default 'dina'
+      return;
     }
+
+    const user = getCurrentUser();
+    
+    // Load the previously selected worker from localStorage
+    const savedWorker = localStorage.getItem('selectedWorker') as Worker | null;
+    
+    if (user?.role === 'worker') {
+      // If user is a worker, use their assigned worker
+      setSelectedWorker(user.worker || 'dina');
+    } else if (savedWorker) {
+      // If there's a saved preference, use that
+      setSelectedWorker(savedWorker);
+    } else {
+      // Default fallback
+      setSelectedWorker('dina');
+    }
+    
     setLoading(false);
   }, [router]);
 
@@ -45,7 +49,7 @@ export default function AdminPage() {
     localStorage.setItem('selectedWorker', worker);
   };
 
-  if (loading) return <p>Loading...</p>;
+  if (loading || !selectedWorker) return <p>Loading...</p>;
 
   return (
     <div className="container">
