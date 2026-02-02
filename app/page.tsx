@@ -10,6 +10,7 @@ import AppointmentsSection from '@/components/appointments/AppointmentsSection';
 import SettingsSection from '@/components/settings/SettingsSection';
 import PushNotifications from '@/components/PushNotifications';
 import { Worker } from '@/types';
+import { storage, STORAGE_KEYS } from '@/lib/storage';
 
 export default function AdminPage() {
   const router = useRouter();
@@ -18,8 +19,6 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    console.log('Component mounted, checking auth...');
-    
     // Redirect to login if not authenticated
     if (!isAuthenticated()) {
       router.push('/login');
@@ -27,36 +26,31 @@ export default function AdminPage() {
     }
 
     const user = getCurrentUser();
-    console.log('Current user:', user);
     
-    // Load the previously selected worker from localStorage
-    const savedWorker = localStorage.getItem('selectedWorker') as Worker | null;
-    console.log('Saved worker from localStorage:', savedWorker);
+    // Load the previously selected worker using your storage system
+    const savedWorker = storage.get<Worker>(STORAGE_KEYS.CURRENT_WORKER);
     
     if (user?.role === 'worker') {
       // If user is a worker, use their assigned worker
       const workerToSet = user.worker || 'dina';
-      console.log('User is worker role, setting to:', workerToSet);
       setSelectedWorker(workerToSet);
+      storage.set(STORAGE_KEYS.CURRENT_WORKER, workerToSet);
     } else if (savedWorker) {
       // If there's a saved preference, use that
-      console.log('Using saved worker:', savedWorker);
       setSelectedWorker(savedWorker);
     } else {
       // Default fallback
-      console.log('No saved worker, defaulting to dina');
       setSelectedWorker('dina');
+      storage.set(STORAGE_KEYS.CURRENT_WORKER, 'dina');
     }
     
     setLoading(false);
   }, [router]);
 
-  // Save worker selection to localStorage whenever it changes
+  // Save worker selection using your storage system
   const handleWorkerChange = (worker: Worker) => {
-    console.log('Worker changed to:', worker);
     setSelectedWorker(worker);
-    localStorage.setItem('selectedWorker', worker);
-    console.log('Saved to localStorage:', localStorage.getItem('selectedWorker'));
+    storage.set(STORAGE_KEYS.CURRENT_WORKER, worker);
   };
 
   if (loading || !selectedWorker) return <p>Loading...</p>;
