@@ -1,3 +1,4 @@
+// app/api/appointments/route.ts (or wherever your send logic is)
 import { NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
 import webpush from 'web-push';
@@ -19,7 +20,7 @@ export async function POST(request: Request) {
     console.log('Body parsed:', body);
     
     const { date, service, clientName, worker, price = 0 } = body;
-
+    
     if (!date || !service || !clientName || !worker) {
       return NextResponse.json(
         { error: 'Missing required fields' },
@@ -31,7 +32,7 @@ export async function POST(request: Request) {
     const dateObj = new Date(date);
     const dateString = dateObj.toISOString().split('T')[0];
     const timeString = dateObj.toTimeString().slice(0, 5);
-
+    
     console.log('Inserting appointment...');
     
     // Insert appointment
@@ -58,19 +59,19 @@ export async function POST(request: Request) {
 
     console.log('Appointment created:', appointment);
 
-    // Send push notification to 'dina'
+    // 🔥 UPDATED: Send push notification to ALL devices for this worker
     try {
-      console.log('Fetching push subscription for dina...');
+      console.log(`Fetching ALL push subscriptions for ${worker}...`);
       
-      const { data: subData, error: subError } = await supabase
+      // Changed from .single() to get all subscriptions
+      const { data: subscriptions, error: subError } = await supabase
         .from('push_subscriptions')
-        .select('subscription')
-        .eq('user_id', 'dina')
-        .single();
+        .select('subscription, endpoint')
+        .eq('user_id', worker); // Use the worker from the appointment
 
-      console.log('Subscription fetch result:', { subData, subError });
+      console.log('Subscriptions found:', subscriptions?.length || 0);
 
-      if (!subError && subData?.subscription) {
+      if (!subError && subscriptions && subscriptions.length > 0) {
         const payload = JSON.stringify({
           title: '📅 New Appointment',
           body: `${clientName} booked ${service} on ${dateObj.toLocaleDateString()} at ${timeString}`,
@@ -79,11 +80,34 @@ export async function POST(request: Request) {
           data: { type: 'new_appointment', appointment },
         });
 
-        console.log('Sending push notification...');
-        await webpush.sendNotification(subData.subscription, payload);
-        console.log('✅ Notification sent successfully');
+        // Send notification to ALL subscriptions
+        const sendPromises = subscriptions.map(async (sub) => {
+          try {
+            console.log('Sending to endpoint:', sub.endpoint);
+            await webpush.sendNotification(sub.subscription, payload);
+            console.log('✅ Notification sent to:', sub.endpoint);
+            return { success: true, endpoint: sub.endpoint };
+          } catch (err: any) {
+            console.error('❌ Failed to send to:', sub.endpoint, err);
+            
+            // If subscription is expired/invalid, delete it
+            if (err.statusCode === 410 || err.statusCode === 404) {
+              console.log('Removing invalid subscription:', sub.endpoint);
+              await supabase
+                .from('push_subscriptions')
+                .delete()
+                .eq('endpoint', sub.endpoint);
+            }
+            
+            return { success: false, endpoint: sub.endpoint, error: err.message };
+          }
+        });
+
+        const results = await Promise.all(sendPromises);
+        const successCount = results.filter(r => r.success).length;
+        console.log(`✅ Notifications sent: ${successCount}/${subscriptions.length}`);
       } else {
-        console.log('⚠️ No push subscription found for dina');
+        console.log(`⚠️ No push subscriptions found for ${worker}`);
       }
     } catch (notifError: any) {
       console.error('❌ Notification error:', notifError);
