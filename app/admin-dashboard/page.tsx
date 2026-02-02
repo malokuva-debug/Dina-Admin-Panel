@@ -1,44 +1,67 @@
 'use client';
-
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { login, logout, getCurrentUser, setCurrentUser } from '@/lib/auth';
+import { isAuthenticated, getCurrentUser } from '@/lib/auth';
+import { useState } from 'react';
 import Navbar from '@/components/layout/Navbar';
 import WorkerNav from '@/components/layout/WorkerNav';
 import FinanceSection from '@/components/finance/FinanceSection';
 import AppointmentsSection from '@/components/appointments/AppointmentsSection';
 import SettingsSection from '@/components/settings/SettingsSection';
 import PushNotifications from '@/components/PushNotifications';
-import type { Worker } from '@/types';
+import { Worker } from '@/types';
+import { storage, STORAGE_KEYS } from '@/lib/storage';
 
-export default function AdminDashboard() {
+export default function AdminPage() {
   const router = useRouter();
-  const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'appointments' | 'settings' | 'finance'>('appointments');
-  const [selectedWorker, setSelectedWorker] = useState<Worker>('dina');
+  const [selectedWorker, setSelectedWorker] = useState<Worker | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Check memory-only session
-    const user = getCurrentUser();
-    if (!user || user.role !== 'admin') {
-      router.replace('/login'); // redirect to login every refresh or PWA reopen
+    // Redirect to login if not authenticated
+    if (!isAuthenticated()) {
+      router.push('/login');
       return;
     }
 
+    const user = getCurrentUser();
+    
+    // Load the previously selected worker using your storage system
+    const savedWorker = storage.get<Worker>(STORAGE_KEYS.CURRENT_WORKER);
+    
+    if (user?.role === 'worker') {
+      // If user is a worker, use their assigned worker
+      const workerToSet = user.worker || 'dina';
+      setSelectedWorker(workerToSet);
+      storage.set(STORAGE_KEYS.CURRENT_WORKER, workerToSet);
+    } else if (savedWorker) {
+      // If there's a saved preference, use that
+      setSelectedWorker(savedWorker);
+    } else {
+      // Default fallback
+      setSelectedWorker('dina');
+      storage.set(STORAGE_KEYS.CURRENT_WORKER, 'dina');
+    }
+    
     setLoading(false);
   }, [router]);
 
-  if (loading) return <p>Loading...</p>;
+  // Save worker selection using your storage system
+  const handleWorkerChange = (worker: Worker) => {
+    setSelectedWorker(worker);
+    storage.set(STORAGE_KEYS.CURRENT_WORKER, worker);
+  };
+
+  if (loading || !selectedWorker) return <p>Loading...</p>;
 
   return (
     <div className="container">
       <PushNotifications worker={selectedWorker} />
-      <WorkerNav selectedWorker={selectedWorker} onWorkerChange={setSelectedWorker} />
-
+      <WorkerNav selectedWorker={selectedWorker} onWorkerChange={handleWorkerChange} />
       {activeTab === 'finance' && <FinanceSection worker={selectedWorker} />}
       {activeTab === 'appointments' && <AppointmentsSection worker={selectedWorker} />}
       {activeTab === 'settings' && <SettingsSection worker={selectedWorker} />}
-
       <Navbar activeTab={activeTab} onTabChange={setActiveTab} />
     </div>
   );
