@@ -26,7 +26,7 @@ export const requestNotificationPermission = async (): Promise<NotificationPermi
   return await Notification.requestPermission();
 };
 
-// Register service worker
+// Register service worker and wait for it to be ready
 export const registerServiceWorker = async (): Promise<ServiceWorkerRegistration | null> => {
   if (!('serviceWorker' in navigator)) {
     console.warn('Service workers not supported');
@@ -34,8 +34,21 @@ export const registerServiceWorker = async (): Promise<ServiceWorkerRegistration
   }
 
   try {
-    const registration = await navigator.serviceWorker.register('/sw.js');
-    console.log('Service Worker registered:', registration);
+    // First, try to get existing registration
+    let registration = await navigator.serviceWorker.getRegistration('/');
+    
+    if (!registration) {
+      // If no registration exists, create one
+      registration = await navigator.serviceWorker.register('/sw.js');
+      console.log('Service Worker registered:', registration);
+    } else {
+      console.log('Service Worker already registered:', registration);
+    }
+
+    // Wait for the service worker to be ready
+    await navigator.serviceWorker.ready;
+    console.log('Service Worker is ready');
+    
     return registration;
   } catch (error) {
     console.error('Service Worker registration failed:', error);
@@ -43,9 +56,10 @@ export const registerServiceWorker = async (): Promise<ServiceWorkerRegistration
   }
 };
 
-// Subscribe to push notifications
+// Subscribe to push notifications with retry logic
 export const subscribeToPush = async (
-  registration: ServiceWorkerRegistration
+  registration: ServiceWorkerRegistration,
+  retries = 3
 ): Promise<globalThis.PushSubscription | null> => {
   try {
     const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
@@ -55,6 +69,17 @@ export const subscribeToPush = async (
       return null;
     }
 
+    // Wait a bit for service worker to be fully ready (especially on iOS)
+    await new Promise(resolve => setTimeout(resolve, 500));
+
+    // Check if already subscribed
+    const existingSubscription = await registration.pushManager.getSubscription();
+    if (existingSubscription) {
+      console.log('Using existing push subscription:', existingSubscription);
+      return existingSubscription;
+    }
+
+    // Create new subscription
     const subscription = await registration.pushManager.subscribe({
       userVisibleOnly: true,
       applicationServerKey: urlBase64ToUint8Array(vapidPublicKey) as BufferSource,
@@ -63,7 +88,14 @@ export const subscribeToPush = async (
     console.log('Push subscription created:', subscription);
     return subscription;
   } catch (error) {
-    console.error('Failed to subscribe to push:', error);
+    console.error('Failed to subscribe to push (attempt remaining: ' + retries + '):', error);
+    
+    // Retry if we have attempts left
+    if (retries > 0) {
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      return subscribeToPush(registration, retries - 1);
+    }
+    
     return null;
   }
 };
@@ -90,7 +122,6 @@ export const saveSubscription = async (
   userId: string
 ): Promise<boolean> => {
   try {
-    // 🔥 UPDATED: Changed endpoint from /api/notifications/subscribe to /api/push/subscribe
     const response = await fetch('/api/push/subscribe', {
       method: 'POST',
       headers: {
@@ -117,7 +148,6 @@ export const sendNotification = async (
   data?: any
 ): Promise<boolean> => {
   try {
-    // 🔥 UPDATED: Changed endpoint from /api/notifications/send to /api/push/send
     const response = await fetch('/api/push/send', {
       method: 'POST',
       headers: {
