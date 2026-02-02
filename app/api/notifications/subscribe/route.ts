@@ -1,3 +1,4 @@
+// app/api/push/subscribe/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
 
@@ -21,16 +22,17 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 3️⃣ Upsert into Supabase
+    // 3️⃣ Upsert into Supabase - now using endpoint as unique identifier
     const { error } = await supabase
       .from('push_subscriptions')
       .upsert(
         {
           user_id: userId,
+          endpoint: subscription.endpoint,
           subscription,
           updated_at: new Date().toISOString(),
         },
-        { onConflict: 'user_id' }
+        { onConflict: 'user_id,endpoint' } // Updated: composite key
       );
 
     if (error) {
