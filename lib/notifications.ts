@@ -90,7 +90,8 @@ export const saveSubscription = async (
   userId: string
 ): Promise<boolean> => {
   try {
-    const response = await fetch('/api/notifications/subscribe', {
+    // 🔥 UPDATED: Changed endpoint from /api/notifications/subscribe to /api/push/subscribe
+    const response = await fetch('/api/push/subscribe', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -116,7 +117,8 @@ export const sendNotification = async (
   data?: any
 ): Promise<boolean> => {
   try {
-    const response = await fetch('/api/notifications/send', {
+    // 🔥 UPDATED: Changed endpoint from /api/notifications/send to /api/push/send
+    const response = await fetch('/api/push/send', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
