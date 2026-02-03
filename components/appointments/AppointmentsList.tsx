@@ -37,6 +37,12 @@ export default function AppointmentsList({
   const [tempTime, setTempTime] = useState<string>('');
   const [editingName, setEditingName] = useState<string | null>(null);
   const [tempName, setTempName] = useState<string>('');
+  const [editingDate, setEditingDate] = useState<string | null>(null);
+  const [tempDate, setTempDate] = useState<string>('');
+  const [editingTime, setEditingTime] = useState<string | null>(null);
+  const [tempTime, setTempTime] = useState<string>('');
+  const [editingName, setEditingName] = useState<string | null>(null);
+  const [tempName, setTempName] = useState<string>('');
 
   const calculateCompletionTime = (startTime: string, durationMinutes: number) => {
     const [hours, minutes] = startTime.split(':').map(Number);
@@ -346,15 +352,15 @@ export default function AppointmentsList({
                       </div>
                     ) : (
                       <span 
-                        onClick={() => onUpdateDate && handleDateClick(apt.id, apt.date)}
+                        onClick={() => handleDateClick(apt.id, apt.date)}
                         style={{ 
                           color: '#888', 
                           fontSize: '14px',
-                          cursor: onUpdateDate ? 'pointer' : 'default',
-                          textDecoration: onUpdateDate ? 'underline' : 'none',
+                          cursor: 'pointer',
+                          textDecoration: 'underline',
                           textDecorationStyle: 'dotted',
                         }}
-                        title={onUpdateDate ? "Click to edit date" : undefined}
+                        title="Click to edit date"
                       >
                         {formatDate(apt.date)}
                       </span>
@@ -407,15 +413,15 @@ export default function AppointmentsList({
                       </div>
                     ) : (
                       <span 
-                        onClick={() => onUpdateTime && handleTimeClick(apt.id, apt.time)}
+                        onClick={() => handleTimeClick(apt.id, apt.time)}
                         style={{ 
                           color: '#888', 
                           fontSize: '14px',
-                          cursor: onUpdateTime ? 'pointer' : 'default',
-                          textDecoration: onUpdateTime ? 'underline' : 'none',
+                          cursor: 'pointer',
+                          textDecoration: 'underline',
                           textDecorationStyle: 'dotted',
                         }}
-                        title={onUpdateTime ? "Click to edit time" : undefined}
+                        title="Click to edit time"
                       >
                         {formatTime(apt.time)}
                       </span>
@@ -570,16 +576,16 @@ export default function AppointmentsList({
                         </div>
                       ) : (
                         <span 
-                          onClick={() => onUpdateCustomerName && handleNameClick(apt.id, apt.customer_name || '')}
+                          onClick={() => handleNameClick(apt.id, apt.customer_name || '')}
                           style={{ 
                             color: '#888', 
                             fontSize: '14px', 
                             fontWeight: '500',
-                            cursor: onUpdateCustomerName ? 'pointer' : 'default',
-                            textDecoration: onUpdateCustomerName ? 'underline' : 'none',
+                            cursor: 'pointer',
+                            textDecoration: 'underline',
                             textDecorationStyle: 'dotted',
                           }}
-                          title={onUpdateCustomerName ? "Click to edit name" : undefined}
+                          title="Click to edit name"
                         >
                           {apt.customer_name}
                         </span>
