@@ -11,6 +11,9 @@ interface AppointmentsListProps {
   onUpdateStatus?: (id: string, status: 'pending' | 'confirmed' | 'arrived' | 'done') => void;
   onUpdateCompletionTime?: (id: string, time: string) => void;
   onUpdateDuration?: (id: string, duration: number) => void;
+  onUpdateDate?: (id: string, date: string) => void;
+  onUpdateTime?: (id: string, time: string) => void;
+  onUpdateCustomerName?: (id: string, name: string) => void;
   loading?: boolean;
 }
 
@@ -21,10 +24,19 @@ export default function AppointmentsList({
   onUpdateStatus,
   onUpdateCompletionTime,
   onUpdateDuration,
+  onUpdateDate,
+  onUpdateTime,
+  onUpdateCustomerName,
   loading = false 
 }: AppointmentsListProps) {
   const [editingDuration, setEditingDuration] = useState<string | null>(null);
   const [tempDuration, setTempDuration] = useState<number>(0);
+  const [editingDate, setEditingDate] = useState<string | null>(null);
+  const [tempDate, setTempDate] = useState<string>('');
+  const [editingTime, setEditingTime] = useState<string | null>(null);
+  const [tempTime, setTempTime] = useState<string>('');
+  const [editingName, setEditingName] = useState<string | null>(null);
+  const [tempName, setTempName] = useState<string>('');
 
   const calculateCompletionTime = (startTime: string, durationMinutes: number) => {
     const [hours, minutes] = startTime.split(':').map(Number);
@@ -107,6 +119,60 @@ export default function AppointmentsList({
   const handleDurationCancel = () => {
     setEditingDuration(null);
     setTempDuration(0);
+  };
+
+  const handleDateClick = (id: string, currentDate: string) => {
+    setEditingDate(id);
+    setTempDate(currentDate);
+  };
+
+  const handleDateSave = async (id: string) => {
+    if (tempDate && onUpdateDate) {
+      await onUpdateDate(id, tempDate);
+    }
+    setEditingDate(null);
+    setTempDate('');
+  };
+
+  const handleDateCancel = () => {
+    setEditingDate(null);
+    setTempDate('');
+  };
+
+  const handleTimeClick = (id: string, currentTime: string) => {
+    setEditingTime(id);
+    setTempTime(currentTime);
+  };
+
+  const handleTimeSave = async (id: string) => {
+    if (tempTime && onUpdateTime) {
+      await onUpdateTime(id, tempTime);
+    }
+    setEditingTime(null);
+    setTempTime('');
+  };
+
+  const handleTimeCancel = () => {
+    setEditingTime(null);
+    setTempTime('');
+  };
+
+  const handleNameClick = (id: string, currentName: string) => {
+    setEditingName(id);
+    setTempName(currentName);
+  };
+
+  const handleNameSave = async (id: string) => {
+    if (tempName && onUpdateCustomerName) {
+      await onUpdateCustomerName(id, tempName);
+    }
+    setEditingName(null);
+    setTempName('');
+  };
+
+  const handleNameCancel = () => {
+    setEditingName(null);
+    setTempName('');
   };
 
   const getStatusColor = (status: string) => {
@@ -233,9 +299,127 @@ export default function AppointmentsList({
                       <line x1="8" y1="2" x2="8" y2="6"></line>
                       <line x1="3" y1="10" x2="21" y2="10"></line>
                     </svg>
-                    <span style={{ color: '#888', fontSize: '14px' }}>
-                      {formatDate(apt.date)} at {formatTime(apt.time)}
-                    </span>
+                    {editingDate === apt.id ? (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <input
+                          type="date"
+                          value={tempDate}
+                          onChange={(e) => setTempDate(e.target.value)}
+                          style={{
+                            padding: '4px 8px',
+                            background: '#2c2c2e',
+                            border: '1px solid #007aff',
+                            borderRadius: '6px',
+                            color: '#fff',
+                            fontSize: '13px',
+                          }}
+                          autoFocus
+                        />
+                        <button
+                          onClick={() => handleDateSave(apt.id)}
+                          style={{
+                            padding: '4px 8px',
+                            background: '#34c759',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '4px',
+                            fontSize: '12px',
+                            cursor: 'pointer',
+                          }}
+                        >
+                          ✓
+                        </button>
+                        <button
+                          onClick={handleDateCancel}
+                          style={{
+                            padding: '4px 8px',
+                            background: '#ff3b30',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '4px',
+                            fontSize: '12px',
+                            cursor: 'pointer',
+                          }}
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    ) : (
+                      <span 
+                        onClick={() => onUpdateDate && handleDateClick(apt.id, apt.date)}
+                        style={{ 
+                          color: '#888', 
+                          fontSize: '14px',
+                          cursor: onUpdateDate ? 'pointer' : 'default',
+                          textDecoration: onUpdateDate ? 'underline' : 'none',
+                          textDecorationStyle: 'dotted',
+                        }}
+                        title={onUpdateDate ? "Click to edit date" : undefined}
+                      >
+                        {formatDate(apt.date)}
+                      </span>
+                    )}
+                    <span style={{ color: '#888', fontSize: '14px' }}>at</span>
+                    {editingTime === apt.id ? (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <input
+                          type="time"
+                          value={tempTime}
+                          onChange={(e) => setTempTime(e.target.value)}
+                          style={{
+                            padding: '4px 8px',
+                            background: '#2c2c2e',
+                            border: '1px solid #007aff',
+                            borderRadius: '6px',
+                            color: '#fff',
+                            fontSize: '13px',
+                          }}
+                          autoFocus
+                        />
+                        <button
+                          onClick={() => handleTimeSave(apt.id)}
+                          style={{
+                            padding: '4px 8px',
+                            background: '#34c759',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '4px',
+                            fontSize: '12px',
+                            cursor: 'pointer',
+                          }}
+                        >
+                          ✓
+                        </button>
+                        <button
+                          onClick={handleTimeCancel}
+                          style={{
+                            padding: '4px 8px',
+                            background: '#ff3b30',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '4px',
+                            fontSize: '12px',
+                            cursor: 'pointer',
+                          }}
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    ) : (
+                      <span 
+                        onClick={() => onUpdateTime && handleTimeClick(apt.id, apt.time)}
+                        style={{ 
+                          color: '#888', 
+                          fontSize: '14px',
+                          cursor: onUpdateTime ? 'pointer' : 'default',
+                          textDecoration: onUpdateTime ? 'underline' : 'none',
+                          textDecorationStyle: 'dotted',
+                        }}
+                        title={onUpdateTime ? "Click to edit time" : undefined}
+                      >
+                        {formatTime(apt.time)}
+                      </span>
+                    )}
                   </div>
 
                   {/* Estimated Completion Time */}
@@ -337,9 +521,69 @@ export default function AppointmentsList({
                         <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
                         <circle cx="12" cy="7" r="4"></circle>
                       </svg>
-                      <span style={{ color: '#888', fontSize: '14px', fontWeight: '500' }}>
-                        {apt.customer_name}
-                      </span>
+                      {editingName === apt.id ? (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flex: 1 }}>
+                          <input
+                            type="text"
+                            value={tempName}
+                            onChange={(e) => setTempName(e.target.value)}
+                            style={{
+                              padding: '4px 8px',
+                              background: '#2c2c2e',
+                              border: '1px solid #007aff',
+                              borderRadius: '6px',
+                              color: '#fff',
+                              fontSize: '13px',
+                              flex: 1,
+                            }}
+                            autoFocus
+                            placeholder="Customer name"
+                          />
+                          <button
+                            onClick={() => handleNameSave(apt.id)}
+                            style={{
+                              padding: '4px 8px',
+                              background: '#34c759',
+                              color: 'white',
+                              border: 'none',
+                              borderRadius: '4px',
+                              fontSize: '12px',
+                              cursor: 'pointer',
+                            }}
+                          >
+                            ✓
+                          </button>
+                          <button
+                            onClick={handleNameCancel}
+                            style={{
+                              padding: '4px 8px',
+                              background: '#ff3b30',
+                              color: 'white',
+                              border: 'none',
+                              borderRadius: '4px',
+                              fontSize: '12px',
+                              cursor: 'pointer',
+                            }}
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      ) : (
+                        <span 
+                          onClick={() => onUpdateCustomerName && handleNameClick(apt.id, apt.customer_name || '')}
+                          style={{ 
+                            color: '#888', 
+                            fontSize: '14px', 
+                            fontWeight: '500',
+                            cursor: onUpdateCustomerName ? 'pointer' : 'default',
+                            textDecoration: onUpdateCustomerName ? 'underline' : 'none',
+                            textDecorationStyle: 'dotted',
+                          }}
+                          title={onUpdateCustomerName ? "Click to edit name" : undefined}
+                        >
+                          {apt.customer_name}
+                        </span>
+                      )}
                     </div>
                   )}
 
