@@ -150,6 +150,72 @@ export default function AppointmentsSection({ worker }: AppointmentsSectionProps
     }
   };
 
+  const handleUpdateDate = async (id: string, date: string) => {
+    try {
+      if (storageMode === 'supabase') {
+        const { error } = await supabase
+          .from('appointments')
+          .update({ date })
+          .eq('id', id);
+        if (error) throw error;
+      } else {
+        const allAppointments = (storage.get(STORAGE_KEYS.APPOINTMENTS) as Appointment[]) || [];
+        const updated = allAppointments.map((apt) =>
+          apt.id === id ? { ...apt, date } : apt
+        );
+        storage.set(STORAGE_KEYS.APPOINTMENTS, updated);
+      }
+      await refresh();
+    } catch (error) {
+      console.error('Error updating date:', error);
+      alert('Failed to update date');
+    }
+  };
+
+  const handleUpdateTime = async (id: string, time: string) => {
+    try {
+      if (storageMode === 'supabase') {
+        const { error } = await supabase
+          .from('appointments')
+          .update({ time })
+          .eq('id', id);
+        if (error) throw error;
+      } else {
+        const allAppointments = (storage.get(STORAGE_KEYS.APPOINTMENTS) as Appointment[]) || [];
+        const updated = allAppointments.map((apt) =>
+          apt.id === id ? { ...apt, time } : apt
+        );
+        storage.set(STORAGE_KEYS.APPOINTMENTS, updated);
+      }
+      await refresh();
+    } catch (error) {
+      console.error('Error updating time:', error);
+      alert('Failed to update time');
+    }
+  };
+
+  const handleUpdateCustomerName = async (id: string, customer_name: string) => {
+    try {
+      if (storageMode === 'supabase') {
+        const { error } = await supabase
+          .from('appointments')
+          .update({ customer_name })
+          .eq('id', id);
+        if (error) throw error;
+      } else {
+        const allAppointments = (storage.get(STORAGE_KEYS.APPOINTMENTS) as Appointment[]) || [];
+        const updated = allAppointments.map((apt) =>
+          apt.id === id ? { ...apt, customer_name } : apt
+        );
+        storage.set(STORAGE_KEYS.APPOINTMENTS, updated);
+      }
+      await refresh();
+    } catch (error) {
+      console.error('Error updating customer name:', error);
+      alert('Failed to update customer name');
+    }
+  };
+
   return (
     <div id="appointments">
       <h2>Appointments</h2>
@@ -177,6 +243,9 @@ export default function AppointmentsSection({ worker }: AppointmentsSectionProps
         onUpdateStatus={handleUpdateStatus}
         onUpdateCompletionTime={handleUpdateCompletionTime}
         onUpdateDuration={handleUpdateDuration}
+        onUpdateDate={handleUpdateDate}
+        onUpdateTime={handleUpdateTime}
+        onUpdateCustomerName={handleUpdateCustomerName}
         loading={loading}
       />
 
