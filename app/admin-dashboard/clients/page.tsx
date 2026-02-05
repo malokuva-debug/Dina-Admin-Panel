@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase';
 import ClientsTable from '@/components/ClientsTable';
 import ClientModal from '@/components/ClientModal';
 import { Worker } from '@/types';
+import { storage, STORAGE_KEYS } from '@/lib/storage';
 
 export interface Client {
   id: string;
@@ -16,34 +17,38 @@ export interface Client {
   created_at?: string;
 }
 
-interface ClientsPageProps {
-  worker: Worker;
-}
-
-export default function ClientsPage({ worker }: ClientsPageProps) {
+export default function ClientsPage() {
+  const [worker, setWorker] = useState<Worker | null>(null);
   const [clients, setClients] = useState<Client[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [search, setSearch] = useState<string>('');
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
   const [editingClient, setEditingClient] = useState<Client | null>(null);
-  const [modalOpen, setModalOpen] = useState<boolean>(false);
+  const [modalOpen, setModalOpen] = useState(false);
 
   useEffect(() => {
-    loadClients();
+    const storedWorker = storage.get<Worker>(STORAGE_KEYS.CURRENT_WORKER);
+    if (storedWorker) {
+      setWorker(storedWorker);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (worker) loadClients();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [worker]);
 
   const loadClients = async () => {
+    if (!worker) return;
+
     setLoading(true);
 
-    const { data, error } = await supabase
+    const { data } = await supabase
       .from('clients')
       .select('*')
       .eq('worker', worker)
       .order('created_at', { ascending: false });
 
-    if (!error && data) {
-      setClients(data as Client[]);
-    }
-
+    if (data) setClients(data);
     setLoading(false);
   };
 
@@ -53,7 +58,7 @@ export default function ClientsPage({ worker }: ClientsPageProps) {
       (c) =>
         c.name.toLowerCase().includes(q) ||
         c.phone.includes(q) ||
-        (c.email?.toLowerCase().includes(q) ?? false)
+        c.email?.toLowerCase().includes(q)
     );
   }, [clients, search]);
 
@@ -71,6 +76,8 @@ export default function ClientsPage({ worker }: ClientsPageProps) {
     setEditingClient(null);
     loadClients();
   };
+
+  if (!worker) return <div className="p-6">Loading…</div>;
 
   return (
     <div className="section">
@@ -102,7 +109,7 @@ export default function ClientsPage({ worker }: ClientsPageProps) {
       <ClientsTable
         clients={filtered}
         loading={loading}
-        onEdit={(client: Client) => {
+        onEdit={(client) => {
           setEditingClient(client);
           setModalOpen(true);
         }}
