@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { supabase } from '@/lib/supabase';
-import ClientsList from '@/components/ClientsList';
+import ClientsTable from '@/components/ClientsTable';
 import ClientModal from '@/components/ClientModal';
 import { Worker } from '@/types';
 
