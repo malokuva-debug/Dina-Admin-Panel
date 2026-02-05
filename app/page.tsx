@@ -62,7 +62,10 @@ export default function AdminPage() {
       {activeTab === 'finance' && <FinanceSection worker={selectedWorker} />}
       {activeTab === 'appointments' && <AppointmentsSection worker={selectedWorker} />}
       {activeTab === 'settings' && <SettingsSection worker={selectedWorker} />}
-      <Navbar activeTab={activeTab} onTabChange={setActiveTab} />
+      <Navbar
+  activeTab={activeTab}
+  onTabChange={(tab: 'appointments' | 'settings' | 'finance') => setActiveTab(tab)}
+/>
     </div>
   );
 }
