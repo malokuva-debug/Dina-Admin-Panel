@@ -16,7 +16,7 @@ type Tab = 'appointments' | 'settings' | 'finance' | 'clients';
 
 export default function AdminPage() {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<'appointments' | 'clients' | 'settings' | 'finance'>('appointments'); // added 'clients'
+  const [activeTab, setActiveTab] = useState<Tab>('appointments'); // Use Tab type
   const [selectedWorker, setSelectedWorker] = useState<Worker | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -55,14 +55,16 @@ export default function AdminPage() {
       <PushNotifications worker={selectedWorker} />
       <WorkerNav selectedWorker={selectedWorker} onWorkerChange={handleWorkerChange} />
 
-      {/* Render active tab */}
       {activeTab === 'appointments' && <AppointmentsSection worker={selectedWorker} />}
-      {activeTab === 'clients' && <ClientsPage />} {/* <-- Clients logic */}
+      {activeTab === 'clients' && <ClientsPage />}
       {activeTab === 'settings' && <SettingsSection worker={selectedWorker} />}
       {activeTab === 'finance' && <FinanceSection worker={selectedWorker} />}
 
-      {/* Navbar */}
-      <Navbar activeTab={activeTab} onTabChange={setActiveTab} />
+      {/* Wrap setActiveTab so it matches Navbar type */}
+      <Navbar
+        activeTab={activeTab}
+        onTabChange={(tab: Tab) => setActiveTab(tab)}
+      />
     </div>
   );
 }
