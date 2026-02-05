@@ -19,7 +19,7 @@ export default function AdminPage() {
   const router = useRouter();
 
   // Use Tab type for state
-  const [activeTab, setActiveTab] = useState<'appointments' | 'settings' | 'clients'>('appointments');
+  const [activeTab, setActiveTab] = useState<'appointments' | 'settings' | 'clients' | 'finance'>('appointments');
   const [selectedWorker, setSelectedWorker] = useState<Worker | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -60,10 +60,10 @@ export default function AdminPage() {
       <WorkerNav selectedWorker={selectedWorker} onWorkerChange={handleWorkerChange} />
 
       {/* Render the currently active tab */}
-      {activeTab === 'appointments' && <AppointmentsSection worker={selectedWorker} />}
       {activeTab === 'clients' && <ClientsPage />}
-      {activeTab === 'settings' && <SettingsSection worker={selectedWorker} />}
-      {activeTab === 'finance' && <FinanceSection worker={selectedWorker} />}
+{activeTab === 'settings' && <SettingsSection worker={selectedWorker} />}
+{activeTab === 'appointments' && <AppointmentsSection worker={selectedWorker} />}
+{activeTab === 'finance' && <FinanceSection worker={selectedWorker} />}
 
       {/* Navbar: wrap setActiveTab in a function to match Navbar's expected type */}
       <Navbar
