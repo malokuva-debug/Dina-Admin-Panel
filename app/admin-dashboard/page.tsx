@@ -12,6 +12,8 @@ import ClientsPage from './clients/page'; // <-- add your clients page import
 import { Worker } from '@/types';
 import { storage, STORAGE_KEYS } from '@/lib/storage';
 
+type Tab = 'appointments' | 'settings' | 'finance' | 'clients';
+
 export default function AdminPage() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<'appointments' | 'clients' | 'settings' | 'finance'>('appointments'); // added 'clients'
