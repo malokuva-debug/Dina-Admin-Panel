@@ -1,81 +1,104 @@
-'use client'
+'use client';
 
-import { useEffect, useState } from 'react'
-import { supabase } from '@/lib/supabase'
-import ClientTable from '@/components/ClientTable'
-import ClientModal from '@/components/ClientModal'
-import SearchBar from '@/components/SearchBar'
+import { useEffect, useMemo, useState } from 'react';
+import { supabase } from '@/lib/supabase';
+import ClientsList from '@/components/clients/ClientsList';
+import ClientModal from '@/components/clients/ClientModal';
+import SearchBar from '@/components/SearchBar';
+import { Worker } from '@/types';
 
-export default function ClientsPage() {
-  const [clients, setClients] = useState<any[]>([])
-  const [filtered, setFiltered] = useState<any[]>([])
-  const [loading, setLoading] = useState(true)
-  const [modalOpen, setModalOpen] = useState(false)
-  const [editingClient, setEditingClient] = useState<any | null>(null)
+export interface Client {
+  id: string;
+  name: string;
+  phone: string;
+  email?: string | null;
+  notes?: string | null;
+  worker?: Worker | null;
+  created_at?: string;
+}
 
-  async function loadClients() {
-    setLoading(true)
-    const { data, error } = await supabase
-      .from('client_stats')
-      .select('*')
-      .order('name')
+interface ClientsPageProps {
+  worker: Worker;
+}
 
-    if (!error && data) {
-      setClients(data)
-      setFiltered(data)
-    }
-    setLoading(false)
-  }
+export default function ClientsPage({ worker }: ClientsPageProps) {
+  const [clients, setClients] = useState<Client[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [search, setSearch] = useState<string>('');
+  const [editingClient, setEditingClient] = useState<Client | null>(null);
+  const [modalOpen, setModalOpen] = useState<boolean>(false);
 
   useEffect(() => {
-    loadClients()
-  }, [])
+    loadClients();
+  }, [worker]);
 
-  function handleSearch(value: string) {
-    const v = value.toLowerCase()
-    setFiltered(
-      clients.filter(c =>
-        c.name.toLowerCase().includes(v) ||
-        c.phone.includes(v) ||
-        c.email?.toLowerCase().includes(v)
-      )
-    )
-  }
+  const loadClients = async () => {
+    setLoading(true);
+
+    const { data, error } = await supabase
+      .from('clients')
+      .select('*')
+      .eq('worker', worker)
+      .order('created_at', { ascending: false });
+
+    if (!error && data) {
+      setClients(data as Client[]);
+    }
+
+    setLoading(false);
+  };
+
+  const filtered = useMemo(() => {
+    const q = search.toLowerCase();
+    return clients.filter(
+      (c) =>
+        c.name.toLowerCase().includes(q) ||
+        c.phone.includes(q) ||
+        (c.email?.toLowerCase().includes(q) ?? false)
+    );
+  }, [clients, search]);
 
   return (
-    <div className="max-w-6xl mx-auto p-6">
-      <header className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-semibold">Client Management</h1>
+    <div className="section">
+      <div className="section-header">
+        <h2>Clients</h2>
         <button
-          className="btn btn-primary"
+          className="primary"
           onClick={() => {
-            setEditingClient(null)
-            setModalOpen(true)
+            setEditingClient(null);
+            setModalOpen(true);
           }}
         >
-          + Add Client
+          + New Client
         </button>
-      </header>
+      </div>
 
-      <SearchBar onSearch={handleSearch} />
+      <SearchBar
+        value={search}
+        onChange={setSearch}
+        placeholder="Search by name, phone or email"
+      />
 
-      <ClientTable
+      <ClientsList
         clients={filtered}
         loading={loading}
-        onEdit={(c) => {
-          setEditingClient(c)
-          setModalOpen(true)
+        onEdit={(c: Client) => {
+          setEditingClient(c);
+          setModalOpen(true);
         }}
-        onRefresh={loadClients}
       />
 
       {modalOpen && (
         <ClientModal
           client={editingClient}
+          worker={worker}
           onClose={() => setModalOpen(false)}
-          onSaved={loadClients}
+          onSaved={() => {
+            setModalOpen(false);
+            loadClients();
+          }}
         />
       )}
     </div>
-  )
+  );
 }
