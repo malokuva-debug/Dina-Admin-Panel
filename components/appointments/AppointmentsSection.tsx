@@ -274,6 +274,7 @@ export default function AppointmentsSection({ worker }: AppointmentsSectionProps
           workers={workers}
           categories={categories}
           services={services}
+          clients={clients}
           onClose={() => setModalOpen(false)}
           onAdded={refresh}
         />
