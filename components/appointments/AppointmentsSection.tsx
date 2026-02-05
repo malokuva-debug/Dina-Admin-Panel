@@ -221,18 +221,18 @@ export default function AppointmentsSection({ worker }: AppointmentsSectionProps
         </div>
       )}
 
-      <AppointmentsList
-        appointments={appointments}
-        onDelete={handleDelete}
-        onMarkDone={() => {}}
-        onUpdateStatus={() => {}}
-        onUpdateCompletionTime={() => {}}
-        onUpdateDuration={() => {}}
-        onUpdateDate={() => {}}
-        onUpdateTime={() => {}}
-        onUpdateCustomerName={() => {}}
-        loading={loading}
-      />
+<AppointmentsList
+  appointments={appointments}
+  onDelete={handleDelete}
+  onMarkDone={handleMarkDone}
+  onUpdateStatus={handleUpdateStatus}
+  onUpdateCompletionTime={handleUpdateCompletionTime}
+  onUpdateDuration={handleUpdateDuration}
+  onUpdateDate={handleUpdateDate}
+  onUpdateTime={handleUpdateTime}
+  onUpdateCustomerName={handleUpdateCustomerName}
+  loading={loading}
+/>
 
       <div style={{ marginTop: '20px', textAlign: 'center' }}>
         <button
