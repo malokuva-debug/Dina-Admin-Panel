@@ -205,11 +205,11 @@ export default function AddAppointmentModal({
                 </div>
               ))}
               <div
-                className="p-2 hover:bg-gray-100 cursor-pointer font-semibold"
-                onClick={() => setShowDropdown(false)}
-              >
-                Add "{customerName}" as new client
-              </div>
+  className="p-2 hover:bg-gray-100 cursor-pointer font-semibold"
+  onClick={() => setShowDropdown(false)}
+>
+  Add &quot;{customerName}&quot; as new client
+</div>
             </div>
           )}
         </div>
