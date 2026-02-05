@@ -2,12 +2,9 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { supabase } from '@/lib/supabase';
-import ClientsList from '@/components/clients/ClientsList';
-import ClientModal from '@/components/clients/ClientModal';
-import SearchBar from '@/components/SearchBar';
 import { Worker } from '@/types';
 
-export interface Client {
+interface Client {
   id: string;
   name: string;
   phone: string;
@@ -25,8 +22,8 @@ export default function ClientsPage({ worker }: ClientsPageProps) {
   const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [search, setSearch] = useState<string>('');
-  const [editingClient, setEditingClient] = useState<Client | null>(null);
   const [modalOpen, setModalOpen] = useState<boolean>(false);
+  const [editingClient, setEditingClient] = useState<Client | null>(null);
 
   useEffect(() => {
     loadClients();
@@ -35,16 +32,13 @@ export default function ClientsPage({ worker }: ClientsPageProps) {
   const loadClients = async () => {
     setLoading(true);
 
-    const { data, error } = await supabase
+    const { data } = await supabase
       .from('clients')
       .select('*')
       .eq('worker', worker)
       .order('created_at', { ascending: false });
 
-    if (!error && data) {
-      setClients(data as Client[]);
-    }
-
+    setClients((data ?? []) as Client[]);
     setLoading(false);
   };
 
@@ -58,6 +52,26 @@ export default function ClientsPage({ worker }: ClientsPageProps) {
     );
   }, [clients, search]);
 
+  const saveClient = async () => {
+    if (!editingClient) return;
+
+    if (editingClient.id) {
+      await supabase
+        .from('clients')
+        .update(editingClient)
+        .eq('id', editingClient.id);
+    } else {
+      await supabase.from('clients').insert({
+        ...editingClient,
+        worker,
+      });
+    }
+
+    setModalOpen(false);
+    setEditingClient(null);
+    loadClients();
+  };
+
   return (
     <div className="section">
       <div className="section-header">
@@ -65,7 +79,7 @@ export default function ClientsPage({ worker }: ClientsPageProps) {
         <button
           className="primary"
           onClick={() => {
-            setEditingClient(null);
+            setEditingClient({ id: '', name: '', phone: '' });
             setModalOpen(true);
           }}
         >
@@ -73,31 +87,77 @@ export default function ClientsPage({ worker }: ClientsPageProps) {
         </button>
       </div>
 
-      <SearchBar
+      <input
+        className="input"
+        placeholder="Search clients..."
         value={search}
-        onChange={setSearch}
-        placeholder="Search by name, phone or email"
+        onChange={(e) => setSearch(e.target.value)}
       />
 
-      <ClientsList
-        clients={filtered}
-        loading={loading}
-        onEdit={(c: Client) => {
-          setEditingClient(c);
-          setModalOpen(true);
-        }}
-      />
+      {loading && <p>Loading…</p>}
 
-      {modalOpen && (
-        <ClientModal
-          client={editingClient}
-          worker={worker}
-          onClose={() => setModalOpen(false)}
-          onSaved={() => {
-            setModalOpen(false);
-            loadClients();
-          }}
-        />
+      {!loading && (
+        <ul className="list">
+          {filtered.map((c) => (
+            <li key={c.id} className="list-item">
+              <div>
+                <strong>{c.name}</strong>
+                <div>{c.phone}</div>
+                {c.email && <div>{c.email}</div>}
+              </div>
+              <button
+                onClick={() => {
+                  setEditingClient(c);
+                  setModalOpen(true);
+                }}
+              >
+                Edit
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {modalOpen && editingClient && (
+        <div className="modal">
+          <div className="modal-content">
+            <h3>{editingClient.id ? 'Edit Client' : 'New Client'}</h3>
+
+            <input
+              className="input"
+              placeholder="Name"
+              value={editingClient.name}
+              onChange={(e) =>
+                setEditingClient({ ...editingClient, name: e.target.value })
+              }
+            />
+
+            <input
+              className="input"
+              placeholder="Phone"
+              value={editingClient.phone}
+              onChange={(e) =>
+                setEditingClient({ ...editingClient, phone: e.target.value })
+              }
+            />
+
+            <input
+              className="input"
+              placeholder="Email"
+              value={editingClient.email ?? ''}
+              onChange={(e) =>
+                setEditingClient({ ...editingClient, email: e.target.value })
+              }
+            />
+
+            <div className="modal-actions">
+              <button onClick={() => setModalOpen(false)}>Cancel</button>
+              <button className="primary" onClick={saveClient}>
+                Save
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
