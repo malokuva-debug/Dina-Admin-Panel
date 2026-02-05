@@ -1,24 +1,39 @@
-import { supabase } from '@/lib/supabase'
+import { supabase } from '@/lib/supabase';
 
-export default function ClientTable({
+export interface Client {
+  id: string;
+  name: string;
+  phone: string;
+  email?: string | null;
+  total_appointments?: number;
+  total_spent?: number;
+}
+
+interface ClientsTableProps {
+  clients: Client[];
+  loading: boolean;
+  onEdit: (client: Client) => void;
+  onRefresh: () => void;
+}
+
+export default function ClientsTable({
   clients,
   loading,
   onEdit,
-  onRefresh
-}: any) {
-
+  onRefresh,
+}: ClientsTableProps) {
   async function deleteClient(id: string, name: string) {
-    if (!confirm(`Delete "${name}"?`)) return
-    await supabase.from('clients').delete().eq('id', id)
-    onRefresh()
+    if (!confirm(`Delete "${name}"?`)) return;
+    await supabase.from('clients').delete().eq('id', id);
+    onRefresh();
   }
 
   if (loading) {
-    return <div className="text-center py-10">Loading clients…</div>
+    return <div className="text-center py-10">Loading clients…</div>;
   }
 
   if (!clients.length) {
-    return <div className="text-center py-16">No clients yet 👥</div>
+    return <div className="text-center py-16">No clients yet 👥</div>;
   }
 
   return (
@@ -33,7 +48,7 @@ export default function ClientTable({
         </tr>
       </thead>
       <tbody>
-        {clients.map((c: any) => (
+        {clients.map((c) => (
           <tr key={c.id}>
             <td>
               <div className="font-semibold">{c.name}</div>
@@ -52,5 +67,5 @@ export default function ClientTable({
         ))}
       </tbody>
     </table>
-  )
+  );
 }
