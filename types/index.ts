@@ -72,6 +72,13 @@ export interface FinanceData {
   byWorker: Record<Worker, number>;
 }
 
+export interface Client {
+  id: string;
+  name: string;
+  phone?: string;
+  email?: string;
+}
+
 // ----------------------
 // Business settings
 // ----------------------
