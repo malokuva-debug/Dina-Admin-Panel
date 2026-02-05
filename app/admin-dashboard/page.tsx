@@ -67,9 +67,9 @@ export default function AdminPage() {
 
       {/* Navbar: wrap setActiveTab in a function to match Navbar's expected type */}
       <Navbar
-        activeTab={activeTab}
-        onTabChange={(tab: Tab) => setActiveTab(tab)}
-      />
+  activeTab={activeTab}
+  onTabChange={(tab: Tab) => setActiveTab(tab)}
+/>
     </div>
   );
 }
