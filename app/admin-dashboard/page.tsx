@@ -59,9 +59,10 @@ export default function AdminPage() {
     <div className="container">
       <PushNotifications worker={selectedWorker} />
       <WorkerNav selectedWorker={selectedWorker} onWorkerChange={handleWorkerChange} />
-      {activeTab === 'finance' && <FinanceSection worker={selectedWorker} />}
-      {activeTab === 'appointments' && <AppointmentsSection worker={selectedWorker} />}
-      {activeTab === 'settings' && <SettingsSection worker={selectedWorker} />}
+      {activeTab === 'appointments' && <Appointments />}
+{activeTab === 'clients' && <ClientsPage />}
+{activeTab === 'settings' && <Settings />}
+{activeTab === 'finance' && <Finance />}
       <Navbar activeTab={activeTab} onTabChange={setActiveTab} />
     </div>
   );
