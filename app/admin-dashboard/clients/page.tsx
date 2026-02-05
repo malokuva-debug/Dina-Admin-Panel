@@ -34,13 +34,16 @@ export default function ClientsPage({ worker }: ClientsPageProps) {
   const loadClients = async () => {
     setLoading(true);
 
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('clients')
       .select('*')
       .eq('worker', worker)
       .order('created_at', { ascending: false });
 
-    setClients((data ?? []) as Client[]);
+    if (!error && data) {
+      setClients(data as Client[]);
+    }
+
     setLoading(false);
   };
 
@@ -58,7 +61,10 @@ export default function ClientsPage({ worker }: ClientsPageProps) {
     if (client.id) {
       await supabase.from('clients').update(client).eq('id', client.id);
     } else {
-      await supabase.from('clients').insert({ ...client, worker });
+      await supabase.from('clients').insert({
+        ...client,
+        worker,
+      });
     }
 
     setModalOpen(false);
@@ -70,10 +76,15 @@ export default function ClientsPage({ worker }: ClientsPageProps) {
     <div className="section">
       <div className="section-header">
         <h2>Clients</h2>
+
         <button
           className="primary"
           onClick={() => {
-            setEditingClient({ id: '', name: '', phone: '' });
+            setEditingClient({
+              id: '',
+              name: '',
+              phone: '',
+            });
             setModalOpen(true);
           }}
         >
@@ -88,11 +99,11 @@ export default function ClientsPage({ worker }: ClientsPageProps) {
         onChange={(e) => setSearch(e.target.value)}
       />
 
-      <ClientsList
+      <ClientsTable
         clients={filtered}
         loading={loading}
-        onEdit={(c: Client) => {
-          setEditingClient(c);
+        onEdit={(client: Client) => {
+          setEditingClient(client);
           setModalOpen(true);
         }}
       />
