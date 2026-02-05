@@ -55,7 +55,7 @@ export default function AdminPage() {
 
       {/* Render active tab */}
       {activeTab === 'appointments' && <AppointmentsSection worker={selectedWorker} />}
-      {activeTab === 'clients' && <ClientsPage worker={selectedWorker} />} {/* <-- Clients logic */}
+      {activeTab === 'clients' && <ClientsPage />} {/* <-- Clients logic */}
       {activeTab === 'settings' && <SettingsSection worker={selectedWorker} />}
       {activeTab === 'finance' && <FinanceSection worker={selectedWorker} />}
 
