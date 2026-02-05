@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { supabase } from '@/lib/supabaseClient'
+import { supabase } from '@/lib/supabase'
 import ClientTable from '@/components/ClientTable'
 import ClientModal from '@/components/ClientModal'
 import SearchBar from '@/components/SearchBar'
