@@ -16,7 +16,7 @@ type Tab = 'appointments' | 'settings' | 'finance' | 'clients';
 
 export default function AdminPage() {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<Tab>('appointments'); // Use Tab type
+  const [activeTab, setActiveTab] = useState<Tab>('appointments');
   const [selectedWorker, setSelectedWorker] = useState<Worker | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -60,10 +60,9 @@ export default function AdminPage() {
       {activeTab === 'settings' && <SettingsSection worker={selectedWorker} />}
       {activeTab === 'finance' && <FinanceSection worker={selectedWorker} />}
 
-      {/* Wrap setActiveTab so it matches Navbar type */}
       <Navbar
         activeTab={activeTab}
-        onTabChange={(tab: Tab) => setActiveTab(tab)}
+        onTabChange={(tab: Tab) => setActiveTab(tab)} // ✅ Wrap in callback
       />
     </div>
   );
