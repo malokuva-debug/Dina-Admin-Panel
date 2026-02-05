@@ -19,7 +19,7 @@ export default function AdminPage() {
   const router = useRouter();
 
   // Use Tab type for state
-  const [activeTab, setActiveTab] = useState<Tab>('appointments');
+  const [activeTab, setActiveTab] = useState<'appointments' | 'settings' | 'clients'>('appointments');
   const [selectedWorker, setSelectedWorker] = useState<Worker | null>(null);
   const [loading, setLoading] = useState(true);
 
