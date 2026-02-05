@@ -11,7 +11,7 @@ import PushNotifications from '@/components/PushNotifications';
 export default function WorkerDashboard() {
   const { user, logout } = useAuth();
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<'appointments' | 'settings'>('appointments');
+  const [activeTab, setActiveTab] = useState<'appointments' | 'settings' | 'clients'>('appointments');
 
   useEffect(() => {
     if (!user) router.push('/login');
@@ -58,10 +58,14 @@ export default function WorkerDashboard() {
       {activeTab === 'settings' && <SettingsSection worker={user.worker!} />}
 
       <Navbar
-        activeTab={activeTab}
-        onTabChange={(tab) => { if (tab !== 'finance') setActiveTab(tab); }}
-        hideFinance
-      />
+  activeTab={activeTab}
+  onTabChange={(tab) => {
+    if (tab === 'appointments' || tab === 'settings' || tab === 'clients') {
+      setActiveTab(tab);
+    }
+  }}
+  hideFinance
+/>
     </div>
   );
 }
