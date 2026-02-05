@@ -1,17 +1,25 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Worker, Category, Service, Appointment, Client } from '@/types';
+import { Worker, Category, Service, Appointment } from '@/types';
 import { supabase } from '@/lib/supabase';
 import { storage, STORAGE_KEYS, storageMode } from '@/lib/storage';
+
+interface Client {
+  id: string;
+  name: string;
+  phone: string;
+  email?: string | null;
+  notes?: string | null;
+}
 
 interface AddAppointmentModalProps {
   workers: Worker[];
   categories: Category[];
   services: Service[];
-  clients: Client[]; // pass existing clients here
+  clients: Client[];
   onClose: () => void;
-  onAdded: () => void;
+  onAdded: () => void; // callback to refresh
 }
 
 export default function AddAppointmentModal({
@@ -30,11 +38,10 @@ export default function AddAppointmentModal({
   const [customerPhone, setCustomerPhone] = useState('');
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
   const [time, setTime] = useState('09:00');
-
-  const [suggestions, setSuggestions] = useState<Client[]>([]);
+  const [matchedClients, setMatchedClients] = useState<Client[]>([]);
   const [showDropdown, setShowDropdown] = useState(false);
 
-  // Lock body scroll when modal is open
+  // Lock scroll while modal is open
   useEffect(() => {
     document.body.style.overflow = 'hidden';
     return () => {
@@ -42,7 +49,7 @@ export default function AddAppointmentModal({
     };
   }, []);
 
-  // Filter services when category changes
+  // Filter services by category
   useEffect(() => {
     if (!selectedCategory) {
       setFilteredServices([]);
@@ -54,19 +61,16 @@ export default function AddAppointmentModal({
     setSelectedService(filtered[0]?.id ?? '');
   }, [selectedCategory, services]);
 
-  // Filter client suggestions when typing
+  // Filter clients by name input
   useEffect(() => {
     if (!customerName) {
-      setSuggestions([]);
-      setShowDropdown(false);
+      setMatchedClients([]);
       return;
     }
-
-    const filtered = clients.filter(c =>
+    const matches = clients.filter(c =>
       c.name.toLowerCase().includes(customerName.toLowerCase())
     );
-    setSuggestions(filtered);
-    setShowDropdown(true);
+    setMatchedClients(matches);
   }, [customerName, clients]);
 
   const handleSelectClient = (client: Client) => {
@@ -103,28 +107,22 @@ export default function AddAppointmentModal({
 
     try {
       if (storageMode === 'supabase') {
-        const { error } = await supabase
-          .from('appointments')
-          .insert([{
-            worker: newAppointment.worker,
-            service: newAppointment.service,
-            date: newAppointment.date,
-            time: newAppointment.time,
-            price: newAppointment.price,
-            duration: newAppointment.duration,
-            customer_name: newAppointment.customer_name,
-            customer_phone: newAppointment.customer_phone,
-            is_done: newAppointment.is_done,
-            status: newAppointment.status,
-          }]);
+        const { error } = await supabase.from('appointments').insert([{
+          worker: newAppointment.worker,
+          service: newAppointment.service,
+          date: newAppointment.date,
+          time: newAppointment.time,
+          price: newAppointment.price,
+          duration: newAppointment.duration,
+          customer_name: newAppointment.customer_name,
+          customer_phone: newAppointment.customer_phone,
+          is_done: newAppointment.is_done,
+          status: newAppointment.status,
+        }]);
         if (error) throw error;
       } else {
-        const allAppointments: Appointment[] =
-          storage.get(STORAGE_KEYS.APPOINTMENTS) || [];
-        storage.set(STORAGE_KEYS.APPOINTMENTS, [
-          ...allAppointments,
-          newAppointment,
-        ]);
+        const allAppointments: Appointment[] = storage.get(STORAGE_KEYS.APPOINTMENTS) || [];
+        storage.set(STORAGE_KEYS.APPOINTMENTS, [...allAppointments, newAppointment]);
       }
 
       onAdded();
@@ -144,7 +142,7 @@ export default function AddAppointmentModal({
       <div className="modal-content">
         <h3>Add Appointment</h3>
 
-        {/* Worker Dropdown */}
+        {/* Worker */}
         <div className="row">
           <span>Worker</span>
           <select value={selectedWorker} onChange={e => setSelectedWorker(e.target.value as Worker)}>
@@ -152,25 +150,19 @@ export default function AddAppointmentModal({
           </select>
         </div>
 
-        {/* Category Dropdown */}
+        {/* Category */}
         <div className="row">
           <span>Category</span>
-          <select
-            value={selectedCategory}
-            onChange={e => setSelectedCategory(e.target.value)}
-          >
+          <select value={selectedCategory} onChange={e => setSelectedCategory(e.target.value)}>
             <option value="">Select Category</option>
             {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
           </select>
         </div>
 
-        {/* Service Dropdown */}
+        {/* Service */}
         <div className="row">
           <span>Service</span>
-          <select
-            value={selectedService}
-            onChange={e => setSelectedService(e.target.value)}
-          >
+          <select value={selectedService} onChange={e => setSelectedService(e.target.value)}>
             <option value="">Select Service</option>
             {filteredServices.map(s => (
               <option key={s.id} value={s.id}>
@@ -180,37 +172,36 @@ export default function AddAppointmentModal({
           </select>
         </div>
 
-        {/* Customer Name with autocomplete */}
-        <div className="row" style={{ position: 'relative' }}>
+        {/* Customer Name */}
+        <div className="row relative">
           <span>Customer Name</span>
           <input
             type="text"
             value={customerName}
-            onChange={e => setCustomerName(e.target.value)}
-            onFocus={() => customerName && setShowDropdown(true)}
-            autoComplete="off"
+            onChange={e => {
+              setCustomerName(e.target.value);
+              setShowDropdown(true);
+            }}
+            onFocus={() => setShowDropdown(true)}
           />
-          {showDropdown && suggestions.length > 0 && (
-            <div
-              className="absolute bg-white border w-full max-h-40 overflow-auto mt-1 z-50"
-              style={{ borderRadius: '8px', boxShadow: '0 2px 8px rgba(0,0,0,0.15)' }}
-            >
-              {suggestions.map(s => (
-                <div
-                  key={s.id}
-                  className="p-2 hover:bg-gray-100 cursor-pointer"
-                  onClick={() => handleSelectClient(s)}
+          {showDropdown && matchedClients.length > 0 && (
+            <ul className="absolute top-full left-0 right-0 bg-white border max-h-48 overflow-y-auto z-50">
+              {matchedClients.map(c => (
+                <li
+                  key={c.id}
+                  className="p-2 cursor-pointer hover:bg-gray-200"
+                  onClick={() => handleSelectClient(c)}
                 >
-                  {s.name} ({s.phone})
-                </div>
+                  {c.name} - {c.phone}
+                </li>
               ))}
-              <div
-  className="p-2 hover:bg-gray-100 cursor-pointer font-semibold"
-  onClick={() => setShowDropdown(false)}
->
-  Add &quot;{customerName}&quot; as new client
-</div>
-            </div>
+              <li
+                className="p-2 cursor-pointer hover:bg-gray-200 font-semibold"
+                onClick={() => setShowDropdown(false)}
+              >
+                Add as new client
+              </li>
+            </ul>
           )}
         </div>
 
@@ -231,7 +222,7 @@ export default function AddAppointmentModal({
         </div>
 
         {/* Buttons */}
-        <div style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
+        <div className="flex gap-3 mt-4">
           <button className="btn-primary" onClick={handleAdd}>Add</button>
           <button
             style={{
