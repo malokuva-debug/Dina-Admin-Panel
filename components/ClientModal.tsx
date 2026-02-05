@@ -1,73 +1,49 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { supabase } from '@/lib/supabase';
-
-export interface Client {
-  id?: string;
-  name: string;
-  phone: string;
-  email?: string;
-  notes?: string;
-}
+import { Client } from '@/app/admin-dashboard/clients/page';
 
 interface ClientModalProps {
-  client: Client | null;
   open: boolean;
+  client: Client | null;
   onClose: () => void;
-  onSave: () => void;
+  onSave: (client: Client) => void;
 }
 
 export default function ClientModal({
-  client,
   open,
+  client,
   onClose,
   onSave,
 }: ClientModalProps) {
   const [form, setForm] = useState<Client>({
+    id: '',
     name: '',
     phone: '',
-    email: '',
-    notes: '',
+    email: null,
+    notes: null,
   });
 
   useEffect(() => {
-    if (client) {
-      setForm({
-        name: client.name ?? '',
-        phone: client.phone ?? '',
-        email: client.email ?? '',
-        notes: client.notes ?? '',
-      });
-    }
+    if (client) setForm(client);
   }, [client]);
 
   if (!open) return null;
 
-  async function handleSubmit(e: React.FormEvent) {
+  function submit(e: React.FormEvent) {
     e.preventDefault();
-
-    if (client?.id) {
-      await supabase.from('clients').update(form).eq('id', client.id);
-    } else {
-      await supabase.from('clients').insert(form);
-    }
-
-    onSave();
-    onClose();
+    onSave(form);
   }
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <form
-        onSubmit={handleSubmit}
-        className="bg-white p-6 rounded-xl w-full max-w-md"
-      >
+      <form onSubmit={submit} className="bg-white p-6 rounded-xl w-full max-w-md">
         <h2 className="text-lg font-semibold mb-4">
-          {client ? 'Edit Client' : 'Add Client'}
+          {client?.id ? 'Edit Client' : 'New Client'}
         </h2>
 
         <input
+          className="input"
           placeholder="Name"
           value={form.name}
           onChange={(e) => setForm({ ...form, name: e.target.value })}
@@ -75,6 +51,7 @@ export default function ClientModal({
         />
 
         <input
+          className="input"
           placeholder="Phone"
           value={form.phone}
           onChange={(e) => setForm({ ...form, phone: e.target.value })}
@@ -82,22 +59,24 @@ export default function ClientModal({
         />
 
         <input
+          className="input"
           placeholder="Email"
-          value={form.email}
+          value={form.email ?? ''}
           onChange={(e) => setForm({ ...form, email: e.target.value })}
         />
 
         <textarea
+          className="input"
           placeholder="Notes"
-          value={form.notes}
+          value={form.notes ?? ''}
           onChange={(e) => setForm({ ...form, notes: e.target.value })}
         />
 
-        <div className="flex gap-3 mt-4 justify-end">
+        <div className="flex justify-end gap-3 mt-4">
           <button type="button" onClick={onClose}>
             Cancel
           </button>
-          <button type="submit" className="primary">
+          <button className="primary" type="submit">
             Save
           </button>
         </div>
