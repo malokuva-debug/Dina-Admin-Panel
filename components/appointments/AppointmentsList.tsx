@@ -39,6 +39,7 @@ export default function AppointmentsList({
   const [editingName, setEditingName] = useState<string | null>(null);
   const [tempName, setTempName] = useState<string>('');
   const [clients, setClients] = useState<any[]>([]);
+  const [appointmentClientIds, setAppointmentClientIds] = useState<Record<string, string>>({});
 
 // Load existing clients from Supabase on mount and subscribe to changes
 useEffect(() => {
@@ -53,6 +54,15 @@ useEffect(() => {
   };
 
   loadClients();
+
+  // Initialize appointment client IDs from props
+  const initialClientIds: Record<string, string> = {};
+  appointments.forEach(apt => {
+    if (apt.client_id) {
+      initialClientIds[apt.id] = apt.client_id;
+    }
+  });
+  setAppointmentClientIds(initialClientIds);
 
   // Set up real-time subscription to clients table
   const clientsSubscription = supabase
@@ -80,16 +90,41 @@ useEffect(() => {
     )
     .subscribe();
 
-  // Cleanup subscription on unmount
+  // Set up real-time subscription to appointments table for client_id updates
+  const appointmentsSubscription = supabase
+    .channel('appointments-changes')
+    .on(
+      'postgres_changes',
+      {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'appointments'
+      },
+      (payload) => {
+        if (payload.new.client_id) {
+          setAppointmentClientIds(prev => ({
+            ...prev,
+            [payload.new.id]: payload.new.client_id
+          }));
+        }
+      }
+    )
+    .subscribe();
+
+  // Cleanup subscriptions on unmount
   return () => {
     supabase.removeChannel(clientsSubscription);
+    supabase.removeChannel(appointmentsSubscription);
   };
-}, []);
+}, [appointments]);
 
 const getClientInfo = (apt: Appointment) => {
+  // Check local state first for the most up-to-date client_id
+  const clientId = appointmentClientIds[apt.id] || apt.client_id;
+  
   // If appointment has a client_id, use the client data from the clients table
-  if (apt.client_id) {
-    const client = clients.find(c => c.id === apt.client_id);
+  if (clientId) {
+    const client = clients.find(c => c.id === clientId);
     if (client) {
       // Always use the latest client data from the clients table
       return { name: client.name, phone: client.phone };
@@ -649,7 +684,7 @@ const getClientInfo = (apt: Appointment) => {
                           </span>
                           
                           {/* + Icon only if customer does NOT exist in clients table */}
-                          {!apt.client_id && !clients.some(c => c.name === customerName) && (
+                          {!appointmentClientIds[apt.id] && !apt.client_id && !clients.some(c => c.name === customerName) && (
                             <span
                               style={{
                                 color: '#34c759',
@@ -688,11 +723,19 @@ const getClientInfo = (apt: Appointment) => {
 
                                   const newClient = data[0];
 
-                                  // Update appointment with client_id
-                                  await supabase
+                                  // Update appointment with client_id in database
+                                  const { error: updateError } = await supabase
                                     .from('appointments')
                                     .update({ client_id: newClient.id })
                                     .eq('id', apt.id);
+
+                                  if (updateError) throw updateError;
+
+                                  // Update local state immediately to hide the + button
+                                  setAppointmentClientIds(prev => ({
+                                    ...prev,
+                                    [apt.id]: newClient.id
+                                  }));
                                     
                                   alert(`Added ${customerName} as a new client`);
                                 } catch (err: any) {
