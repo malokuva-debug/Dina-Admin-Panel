@@ -605,45 +605,41 @@ const getClientInfo = (apt: Appointment) => {
   {displayName}
 </span>
 
-{!clients.some(c => c.name === displayName) && (
-  <span
-    onClick={async () => {
-      try {
-        const { data, error } = await supabase.from('clients').insert({
-          name: displayName,
-          phone: displayPhone || '',
-        }).select();
+{/* + Icon only if customer does NOT exist */}
+          {!clients.some(c => c.name === apt.customer_name) && (
+            <span
+              style={{
+                color: '#34c759',
+                fontSize: '16px',
+                cursor: 'pointer',
+                fontWeight: '600',
+                userSelect: 'none',
+              }}
+              title="Add to clients"
+              onClick={async () => {
+                try {
+                  // Insert client into Supabase
+                  const { data, error } = await supabase.from('clients').insert({
+                    name: apt.customer_name,
+                    phone: apt.customer_phone || '',
+                  }).select();
 
-        const handleAddAsClient = async (apt: Appointment) => {
-  try {
-    const { data, error } = await supabase.from('clients').insert({
-      name: apt.customer_name,
-      phone: apt.customer_phone || '',
-    }).select();
+                  if (error) throw error;
 
-    if (error) throw error;
-    if (data && data.length > 0) {
-      const newClient = data[0];
+                  alert(`Added ${apt.customer_name} as a new client`);
 
-      // Update local state
-      setClients(prev => [...prev, newClient]);
-
-      // Update appointment to link to this client
-      // You might want to update Supabase appointment row here too
-      await supabase.from('appointments').update({ client_id: newClient.id }).eq('id', apt.id);
-
-      // Also update local appointments state if you have it
-      // setAppointments(prev => prev.map(a => a.id === apt.id ? {...a, client_id: newClient.id} : a));
-    }
-  } catch (err) {
-    console.error('Failed to add client:', err);
-    alert('Failed to add client');
-  }
-};
-    title="Add to clients"
-  >
-    +
-  </span>
+                  // Update local state immediately
+                  if (data && data.length > 0) {
+                    setClients(prev => [...prev, data[0]]);
+                  }
+                } catch (err) {
+                  console.error('Failed to add client:', err);
+                  alert('Failed to add client');
+                }
+              }}
+            >
+              +
+            </span>
 )}
 
 <span style={{ color: '#888', fontSize: '14px' }}>
