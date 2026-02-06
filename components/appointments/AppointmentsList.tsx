@@ -633,7 +633,7 @@ const getClientInfo = (apt: Appointment) => {
 <span style={{ color: '#888', fontSize: '14px' }}>
   {formatPhone(displayPhone)}
 </span>
-        </div>
+        </div> {/
     )}
   </div>
 )}
