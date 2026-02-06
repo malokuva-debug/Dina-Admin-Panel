@@ -38,7 +38,7 @@ export default function AppointmentsList({
   const [tempTime, setTempTime] = useState<string>('');
   const [editingName, setEditingName] = useState<string | null>(null);
   const [tempName, setTempName] = useState<string>('');
-  const clients: { name: string }[] = [];
+  const [clients, setClients] = useState<any[]>([]);
   const calculateCompletionTime = (startTime: string, durationMinutes: number) => {
     const [hours, minutes] = startTime.split(':').map(Number);
     const startDate = new Date();
