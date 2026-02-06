@@ -119,16 +119,32 @@ export default function AddAppointmentModal({
   };
 
   try {
-    const { error } = await supabase
+    // 1️⃣ Insert the appointment
+    const { error: appointmentError } = await supabase
       .from('appointments')
       .insert([mapAppointmentToDb(newAppointment)]);
-    if (error) throw error;
+    if (appointmentError) throw appointmentError;
+
+    // 2️⃣ Check if client exists
+    const { data: existingClients } = await supabase
+      .from('clients')
+      .select('id')
+      .eq('name', customer_name)
+      .eq('phone', customer_phone);
+
+    if (!existingClients?.length) {
+      // 3️⃣ Insert new client if not exists
+      const { error: clientError } = await supabase
+        .from('clients')
+        .insert([{ name: customer_name, phone: customer_phone }]);
+      if (clientError) throw clientError;
+    }
 
     onAdded();
     onClose();
   } catch (err) {
-    console.error('Failed to add appointment', err);
-    alert('Failed to add appointment');
+    console.error('Failed to add appointment or client', err);
+    alert('Failed to add appointment or client');
   }
 };
 
