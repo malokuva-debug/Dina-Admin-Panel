@@ -57,11 +57,11 @@ useEffect(() => {
 
 // Helper: Get display info for customer
 const getClientInfo = (apt: Appointment) => {
-  // Check if client exists
-  const client = clients.find(c => c.name === apt.customer_name);
-  if (client) {
-    return { name: client.name, phone: client.phone || apt.customer_phone };
-  }
+  if (!apt.client_id) return { name: apt.customer_name, phone: apt.customer_phone };
+
+  const client = clients.find(c => c.id === apt.client_id);
+  return client ? { name: client.name, phone: client.phone } : { name: apt.customer_name, phone: apt.customer_phone };
+};
   // fallback to old appointment info
   return { name: apt.customer_name, phone: apt.customer_phone };
 };
@@ -614,14 +614,32 @@ const getClientInfo = (apt: Appointment) => {
           phone: displayPhone || '',
         }).select();
 
-        if (error) throw error;
-        alert(`Added ${displayName} as a new client`);
-        if (data && data.length > 0) setClients(prev => [...prev, data[0]]);
-      } catch (err) {
-        console.error('Failed to add client:', err);
-        alert('Failed to add client');
-      }
-    }}
+        const handleAddAsClient = async (apt: Appointment) => {
+  try {
+    const { data, error } = await supabase.from('clients').insert({
+      name: apt.customer_name,
+      phone: apt.customer_phone || '',
+    }).select();
+
+    if (error) throw error;
+    if (data && data.length > 0) {
+      const newClient = data[0];
+
+      // Update local state
+      setClients(prev => [...prev, newClient]);
+
+      // Update appointment to link to this client
+      // You might want to update Supabase appointment row here too
+      await supabase.from('appointments').update({ client_id: newClient.id }).eq('id', apt.id);
+
+      // Also update local appointments state if you have it
+      // setAppointments(prev => prev.map(a => a.id === apt.id ? {...a, client_id: newClient.id} : a));
+    }
+  } catch (err) {
+    console.error('Failed to add client:', err);
+    alert('Failed to add client');
+  }
+};
     title="Add to clients"
   >
     +
