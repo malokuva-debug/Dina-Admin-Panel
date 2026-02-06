@@ -10,7 +10,6 @@ interface Client {
   name: string;
   phone: string;
   email?: string | null;
-  notes?: string | null;
 }
 
 interface AddAppointmentModalProps {
@@ -41,15 +40,6 @@ export default function AddAppointmentModal({
   const [matchedClients, setMatchedClients] = useState<Client[]>([]);
   const [showDropdown, setShowDropdown] = useState(false);
 
-  // Lock scroll
-  useEffect(() => {
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.body.style.overflow = 'unset';
-    };
-  }, []);
-
-  // Filter services by category
   useEffect(() => {
     if (!selectedCategory) {
       setFilteredServices([]);
@@ -61,17 +51,22 @@ export default function AddAppointmentModal({
     setSelectedService(filtered[0]?.id ?? '');
   }, [selectedCategory, services]);
 
-  // Filter clients
   useEffect(() => {
-    if (!customerName) {
+    if (!customerName.trim()) {
       setMatchedClients([]);
       return;
     }
+
     const matches = clients.filter(c =>
       c.name.toLowerCase().includes(customerName.toLowerCase())
     );
+
     setMatchedClients(matches);
   }, [customerName, clients]);
+
+  const exactMatchExists = clients.some(
+    c => c.name.toLowerCase() === customerName.toLowerCase()
+  );
 
   const handleSelectClient = (client: Client) => {
     setCustomerName(client.name);
@@ -80,16 +75,13 @@ export default function AddAppointmentModal({
   };
 
   const handleAdd = async () => {
-    if (!selectedService || !date || !time || !customerName || !customerPhone) {
-      alert('Name and phone are required');
+    if (!selectedWorker || !selectedService || !date || !time || !customerName) {
+      alert('Please fill all required fields');
       return;
     }
 
     const service = services.find(s => s.id === selectedService);
-    if (!service) {
-      alert('Service not found');
-      return;
-    }
+    if (!service) return;
 
     const newAppointment: Appointment = {
       id: `${Date.now()}`,
@@ -101,25 +93,12 @@ export default function AddAppointmentModal({
       time,
       customer_name: customerName,
       customer_phone: customerPhone,
-      is_done: false,
       status: 'pending',
     };
 
     try {
       if (storageMode === 'supabase') {
-        const { error } = await supabase.from('appointments').insert([{
-          worker: newAppointment.worker,
-          service: newAppointment.service,
-          date: newAppointment.date,
-          time: newAppointment.time,
-          price: newAppointment.price,
-          duration: newAppointment.duration,
-          customer_name: newAppointment.customer_name,
-          customer_phone: newAppointment.customer_phone,
-          is_done: false,
-          status: 'pending',
-        }]);
-        if (error) throw error;
+        await supabase.from('appointments').insert([newAppointment]);
       } else {
         const all = storage.get(STORAGE_KEYS.APPOINTMENTS) || [];
         storage.set(STORAGE_KEYS.APPOINTMENTS, [...all, newAppointment]);
@@ -127,54 +106,19 @@ export default function AddAppointmentModal({
 
       onAdded();
       onClose();
-    } catch (err) {
-      console.error(err);
+    } catch {
       alert('Failed to add appointment');
     }
   };
 
   return (
-    <div className="modal active" onClick={e => e.target === e.currentTarget && onClose()}>
+    <div className="modal active">
       <div className="modal-content">
         <h3>Add Appointment</h3>
 
-        {/* Worker */}
-        <div className="row">
-          <span>Worker</span>
-          <select value={selectedWorker} onChange={e => setSelectedWorker(e.target.value as Worker)}>
-            {workers.map(w => (
-              <option key={w} value={w}>{w}</option>
-            ))}
-          </select>
-        </div>
-
-        {/* Category */}
-        <div className="row">
-          <span>Category</span>
-          <select value={selectedCategory} onChange={e => setSelectedCategory(e.target.value)}>
-            <option value="">Select category</option>
-            {categories.map(c => (
-              <option key={c.id} value={c.id}>{c.name}</option>
-            ))}
-          </select>
-        </div>
-
-        {/* Service */}
-        <div className="row">
-          <span>Service</span>
-          <select value={selectedService} onChange={e => setSelectedService(e.target.value)}>
-            <option value="">Select service</option>
-            {filteredServices.map(s => (
-              <option key={s.id} value={s.id}>
-                {s.name} (${s.price})
-              </option>
-            ))}
-          </select>
-        </div>
-
         {/* Customer Name */}
         <div className="row relative">
-          <span>Customer</span>
+          <span>Customer Name</span>
           <input
             value={customerName}
             onChange={e => {
@@ -184,16 +128,13 @@ export default function AddAppointmentModal({
             onFocus={() => setShowDropdown(true)}
           />
 
-          {showDropdown && matchedClients.length > 0 && (
+          {showDropdown && customerName && (
             <ul
-              className="absolute top-full left-0 right-0 z-50"
+              className="absolute top-full left-0 right-0 z-50 max-h-48 overflow-y-auto"
               style={{
                 background: '#3a3a3c',
-                border: '1px solid #555',
                 borderRadius: '8px',
-                marginTop: '4px',
-                maxHeight: '200px',
-                overflowY: 'auto',
+                border: '1px solid #555',
               }}
             >
               {matchedClients.map(c => (
@@ -203,29 +144,33 @@ export default function AddAppointmentModal({
                   style={{
                     padding: '10px',
                     cursor: 'pointer',
-                    color: '#fff',
+                    color: 'white',
                   }}
-                  onMouseEnter={e => (e.currentTarget.style.background = '#4a4a4c')}
-                  onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                  onMouseEnter={e =>
+                    (e.currentTarget.style.background = '#4a4a4c')
+                  }
+                  onMouseLeave={e =>
+                    (e.currentTarget.style.background = 'transparent')
+                  }
                 >
-                  {c.name} — {c.phone}
+                  {c.name} – {c.phone}
                 </li>
               ))}
 
-              <li
-                onClick={() => setShowDropdown(false)}
-                style={{
-                  padding: '10px',
-                  cursor: 'pointer',
-                  color: '#fff',
-                  fontWeight: 600,
-                  borderTop: '1px solid #555',
-                }}
-                onMouseEnter={e => (e.currentTarget.style.background = '#4a4a4c')}
-                onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
-              >
-                ➕ Add as new client
-              </li>
+              {!exactMatchExists && (
+                <li
+                  onClick={() => setShowDropdown(false)}
+                  style={{
+                    padding: '10px',
+                    cursor: 'pointer',
+                    background: '#2f2f31',
+                    color: 'white',
+                    fontWeight: 600,
+                  }}
+                >
+                  ➕ Add as new client
+                </li>
+              )}
             </ul>
           )}
         </div>
@@ -233,43 +178,15 @@ export default function AddAppointmentModal({
         {/* Phone */}
         <div className="row">
           <span>Phone</span>
-          <input value={customerPhone} onChange={e => setCustomerPhone(e.target.value)} />
+          <input
+            value={customerPhone}
+            onChange={e => setCustomerPhone(e.target.value)}
+          />
         </div>
 
-        {/* Date */}
-        <div className="row">
-          <span>Date</span>
-          <input type="date" value={date} onChange={e => setDate(e.target.value)} />
-        </div>
-
-        {/* Time */}
-        <div className="row">
-          <span>Time</span>
-          <input type="time" value={time} onChange={e => setTime(e.target.value)} />
-        </div>
-
-        {/* Buttons */}
-        <div className="flex gap-3 mt-4">
-          <button className="btn-primary" onClick={handleAdd}>
-            Add
-          </button>
-
-          <button
-            onClick={onClose}
-            style={{
-              background: '#3a3a3c',
-              color: '#fff',
-              padding: '14px',
-              borderRadius: '12px',
-              flex: 1,
-              border: 'none',
-              cursor: 'pointer',
-              fontWeight: 600,
-            }}
-          >
-            Cancel
-          </button>
-        </div>
+        <button className="btn-primary" onClick={handleAdd}>
+          Add Appointment
+        </button>
       </div>
     </div>
   );
