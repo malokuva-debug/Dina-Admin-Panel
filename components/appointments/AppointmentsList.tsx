@@ -271,13 +271,11 @@ const getClientInfo = (apt: Appointment) => {
   }
 
   // Sort appointments by date and time (nearest first)
-  const sortedAppointments = useMemo(() => {
-  return [...appointments].sort((a, b) => {
-    const dateA = new Date(`${a.date}T${a.time || '00:00'}`);
-    const dateB = new Date(`${b.date}T${b.time || '00:00'}`);
-    return dateA.getTime() - dateB.getTime();
-  });
-}, [appointments]);
+  const sortedAppointments = [...appointments].sort((a, b) => {
+  const dateA = new Date(`${a.date}T${a.time}`);
+  const dateB = new Date(`${b.date}T${b.time}`);
+  return dateA.getTime() - dateB.getTime();
+});
 
   return (
     <div id="appointmentsList">
