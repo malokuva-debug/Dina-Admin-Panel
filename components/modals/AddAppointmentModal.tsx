@@ -32,8 +32,8 @@ export default function AddAppointmentModal({
   const [selectedCategory, setSelectedCategory] = useState('');
   const [filteredServices, setFilteredServices] = useState<Service[]>([]);
   const [selectedService, setSelectedService] = useState('');
-  const [customerName, setCustomerName] = useState('');
-  const [customerPhone, setCustomerPhone] = useState('');
+  const [customer_name, setCustomerName] = useState(''); // renamed
+  const [customer_phone, setCustomerPhone] = useState(''); // renamed
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
   const [time, setTime] = useState('09:00');
   const [matchedClients, setMatchedClients] = useState<Client[]>([]);
@@ -58,18 +58,18 @@ export default function AddAppointmentModal({
   }, [selectedCategory, services]);
 
   useEffect(() => {
-    if (!customerName.trim()) {
+    if (!customer_name.trim()) {
       setMatchedClients([]);
       return;
     }
     const matches = clients.filter(c =>
-      c.name.toLowerCase().includes(customerName.toLowerCase())
+      c.name.toLowerCase().includes(customer_name.toLowerCase())
     );
     setMatchedClients(matches);
-  }, [customerName, clients]);
+  }, [customer_name, clients]);
 
   const exactMatchExists = clients.some(
-    c => c.name.toLowerCase() === customerName.toLowerCase()
+    c => c.name.toLowerCase() === customer_name.toLowerCase()
   );
 
   const handleSelectClient = (client: Client) => {
@@ -86,14 +86,14 @@ export default function AddAppointmentModal({
       service: appointment.service,
       price: appointment.price,
       duration: appointment.duration,
-      customer_name: appointment.customerName,
-      customer_phone: appointment.customerPhone,
+      customer_name: appointment.customer_name, // use renamed
+      customer_phone: appointment.customer_phone, // use renamed
       is_done: appointment.is_done ?? false,
     };
   }
 
   const handleAdd = async () => {
-    if (!selectedWorker || !selectedService || !date || !time || !customerName) {
+    if (!selectedWorker || !selectedService || !date || !time || !customer_name) {
       alert('Please fill all required fields');
       return;
     }
@@ -112,8 +112,8 @@ export default function AddAppointmentModal({
       duration: service.duration,
       date,
       time,
-      customerName,
-      customerPhone,
+      customer_name,
+      customer_phone,
       is_done: false,
     };
 
@@ -188,14 +188,14 @@ export default function AddAppointmentModal({
           <span>Customer Name</span>
           <input
             type="text"
-            value={customerName}
+            value={customer_name}
             onChange={e => {
               setCustomerName(e.target.value);
               setShowDropdown(true);
             }}
             onFocus={() => setShowDropdown(true)}
           />
-          {showDropdown && customerName && (
+          {showDropdown && customer_name && (
             <ul
               className="absolute top-full left-0 right-0 z-50 max-h-48 overflow-y-auto"
               style={{
@@ -246,7 +246,7 @@ export default function AddAppointmentModal({
           <span>Phone</span>
           <input
             type="text"
-            value={customerPhone}
+            value={customer_phone}
             onChange={e => setCustomerPhone(e.target.value)}
           />
         </div>
