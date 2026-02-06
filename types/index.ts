@@ -50,6 +50,7 @@ export interface Appointment {
   customer_name?: string;
   customer_phone?: string;
   is_done?: boolean;
+  client_id?: string;
   status?: AppointmentStatus;
   estimated_completion_time?: string;
   reminder_sent?: boolean;
