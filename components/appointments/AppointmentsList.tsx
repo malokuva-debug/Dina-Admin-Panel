@@ -588,22 +588,42 @@ export default function AppointmentsList({
         </span>
         
         {/* + Icon only if customer does NOT exist */}
-{!clients.some(c => c.name === apt.customer_name) && (
-  <span
-    style={{
-      color: '#34c759',
-      fontSize: '16px',
-      cursor: 'pointer',
-      fontWeight: '600',
-      userSelect: 'none',
-    }}
-    title="Add as client"
-    onClick={() => handleAddClient(apt)}
-  >
-    +
-  </span>
-)}
-      </div>
+          {!clients.some(c => c.name === apt.customer_name) && (
+            <span
+              style={{
+                color: '#34c759',
+                fontSize: '16px',
+                cursor: 'pointer',
+                fontWeight: '600',
+                userSelect: 'none',
+              }}
+              title="Add to clients"
+              onClick={async () => {
+                try {
+                  // Insert client into Supabase
+                  const { data, error } = await supabase.from('clients').insert({
+                    name: apt.customer_name,
+                    phone: apt.customer_phone || '',
+                  }).select();
+
+                  if (error) throw error;
+
+                  alert(`Added ${apt.customer_name} as a new client`);
+
+                  // Update local state immediately
+                  if (data && data.length > 0) {
+                    setClients(prev => [...prev, data[0]]);
+                  }
+                } catch (err) {
+                  console.error('Failed to add client:', err);
+                  alert('Failed to add client');
+                }
+              }}
+            >
+              +
+            </span>
+          )}
+        </div>
     )}
   </div>
 )}
