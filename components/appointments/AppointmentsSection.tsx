@@ -33,10 +33,15 @@ export default function AppointmentsSection({ worker }: AppointmentsSectionProps
 
 if (cls) {
   const normalizedClients: Client[] = cls
-    .filter(c => typeof c.phone === 'string' && c.phone.trim() !== '')
+    .filter(
+      (c): c is { id: string; name: string; phone: string; email?: string } =>
+        typeof c.phone === 'string' && c.phone.trim() !== ''
+    )
     .map(c => ({
-      ...c,
-      phone: c.phone!, // guaranteed by filter
+      id: c.id,
+      name: c.name,
+      phone: c.phone,
+      email: c.email ?? undefined,
     }));
 
   setClients(normalizedClients);
