@@ -1,4 +1,4 @@
-// AppointmentList.tsx
+ // AppointmentList.tsx
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -54,17 +54,6 @@ useEffect(() => {
 
   loadClients();
 }, []);
-
-// Helper: Get display info for customer
-const getClientInfo = (apt: Appointment) => {
-  if (!apt.client_id) return { name: apt.customer_name, phone: apt.customer_phone };
-
-  const client = clients.find(c => c.id === apt.client_id);
-  return client ? { name: client.name, phone: client.phone } : { name: apt.customer_name, phone: apt.customer_phone };
-};
-  // fallback to old appointment info
-  return { name: apt.customer_name, phone: apt.customer_phone };
-};
 
   const calculateCompletionTime = (startTime: string, durationMinutes: number) => {
     const [hours, minutes] = startTime.split(':').map(Number);
@@ -272,10 +261,10 @@ const getClientInfo = (apt: Appointment) => {
 
   // Sort appointments by date and time (nearest first)
   const sortedAppointments = [...appointments].sort((a, b) => {
-  const dateA = new Date(`${a.date}T${a.time}`);
-  const dateB = new Date(`${b.date}T${b.time}`);
-  return dateA.getTime() - dateB.getTime();
-});
+    const dateA = new Date(`${a.date}T${a.time}`);
+    const dateB = new Date(`${b.date}T${b.time}`);
+    return dateA.getTime() - dateB.getTime();
+  });
 
   return (
     <div id="appointmentsList">
@@ -285,7 +274,7 @@ const getClientInfo = (apt: Appointment) => {
         const duration = apt.duration || 60;
         const estimatedCompletion = calculateCompletionTime(apt.time, duration);
         const statusStyle = getStatusColor(status);
-        const { name: displayName, phone: displayPhone } = getClientInfo(apt);
+        
         return (
           <div 
             key={apt.id} 
@@ -534,6 +523,7 @@ const getClientInfo = (apt: Appointment) => {
                   </div>
 
                   {/* Customer Name */}
+{apt.customer_name && (
   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
     <svg
       viewBox="0 0 24 24"
@@ -598,14 +588,22 @@ const getClientInfo = (apt: Appointment) => {
       </div>
     ) : (
       <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flex: 1 }}>
-<span 
-  onClick={() => handleNameClick(apt.id, displayName)}
-  title="Click to edit name"
->
-  {displayName}
-</span>
-
-{/* + Icon only if customer does NOT exist */}
+        <span 
+          onClick={() => handleNameClick(apt.id, apt.customer_name || '')}
+          style={{ 
+            color: '#888', 
+            fontSize: '14px', 
+            fontWeight: '500',
+            cursor: 'pointer',
+            textDecoration: 'underline',
+            textDecorationStyle: 'dotted',
+          }}
+          title="Click to edit name"
+        >
+          {apt.customer_name}
+        </span>
+        
+        {/* + Icon only if customer does NOT exist */}
           {!clients.some(c => c.name === apt.customer_name) && (
             <span
               style={{
@@ -640,14 +638,11 @@ const getClientInfo = (apt: Appointment) => {
             >
               +
             </span>
-)}
-
-<span style={{ color: '#888', fontSize: '14px' }}>
-  {formatPhone(displayPhone)}
-</span>
+          )}
         </div>
     )}
   </div>
+)}
 
                   {/* Phone Number with Call Button */}
                   {apt.customer_phone && (
