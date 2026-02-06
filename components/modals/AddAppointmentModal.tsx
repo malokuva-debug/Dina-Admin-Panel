@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import { Worker, Category, Service, Appointment } from '@/types';
 import { supabase } from '@/lib/supabase';
-import { storage, STORAGE_KEYS, storageMode } from '@/lib/storage';
 
 interface Client {
   id: string;
@@ -60,7 +59,6 @@ export default function AddAppointmentModal({
     const matches = clients.filter(c =>
       c.name.toLowerCase().includes(customerName.toLowerCase())
     );
-
     setMatchedClients(matches);
   }, [customerName, clients]);
 
@@ -83,8 +81,7 @@ export default function AddAppointmentModal({
     const service = services.find(s => s.id === selectedService);
     if (!service) return;
 
-    const newAppointment: Appointment = {
-      id: `${Date.now()}`,
+    const newAppointment: Omit<Appointment, 'id'> = {
       worker: selectedWorker,
       service: service.name,
       price: service.price,
@@ -97,16 +94,14 @@ export default function AddAppointmentModal({
     };
 
     try {
-      if (storageMode === 'supabase') {
-        await supabase.from('appointments').insert([newAppointment]);
-      } else {
-        const all = storage.get(STORAGE_KEYS.APPOINTMENTS) || [];
-        storage.set(STORAGE_KEYS.APPOINTMENTS, [...all, newAppointment]);
-      }
+      // Insert appointment directly into Supabase
+      const { error } = await supabase.from('appointments').insert([newAppointment]);
+      if (error) throw error;
 
       onAdded();
       onClose();
-    } catch {
+    } catch (err) {
+      console.error(err);
       alert('Failed to add appointment');
     }
   };
