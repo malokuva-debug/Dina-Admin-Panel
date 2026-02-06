@@ -55,6 +55,17 @@ useEffect(() => {
   loadClients();
 }, []);
 
+// Helper: Get display info for customer
+const getClientInfo = (apt: Appointment) => {
+  // Check if client exists
+  const client = clients.find(c => c.name === apt.customer_name);
+  if (client) {
+    return { name: client.name, phone: client.phone || apt.customer_phone };
+  }
+  // fallback to old appointment info
+  return { name: apt.customer_name, phone: apt.customer_phone };
+};
+
   const calculateCompletionTime = (startTime: string, durationMinutes: number) => {
     const [hours, minutes] = startTime.split(':').map(Number);
     const startDate = new Date();
@@ -260,11 +271,13 @@ useEffect(() => {
   }
 
   // Sort appointments by date and time (nearest first)
-  const sortedAppointments = [...appointments].sort((a, b) => {
-    const dateA = new Date(`${a.date}T${a.time}`);
-    const dateB = new Date(`${b.date}T${b.time}`);
+  const sortedAppointments = useMemo(() => {
+  return [...appointments].sort((a, b) => {
+    const dateA = new Date(`${a.date}T${a.time || '00:00'}`);
+    const dateB = new Date(`${b.date}T${b.time || '00:00'}`);
     return dateA.getTime() - dateB.getTime();
   });
+}, [appointments]);
 
   return (
     <div id="appointmentsList">
@@ -523,7 +536,8 @@ useEffect(() => {
                   </div>
 
                   {/* Customer Name */}
-{apt.customer_name && (
+const { name: displayName, phone: displayPhone } = getClientInfo(apt);
+
   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
     <svg
       viewBox="0 0 24 24"
@@ -588,57 +602,39 @@ useEffect(() => {
       </div>
     ) : (
       <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flex: 1 }}>
-        <span 
-          onClick={() => handleNameClick(apt.id, apt.customer_name || '')}
-          style={{ 
-            color: '#888', 
-            fontSize: '14px', 
-            fontWeight: '500',
-            cursor: 'pointer',
-            textDecoration: 'underline',
-            textDecorationStyle: 'dotted',
-          }}
-          title="Click to edit name"
-        >
-          {apt.customer_name}
-        </span>
-        
-        {/* + Icon only if customer does NOT exist */}
-          {!clients.some(c => c.name === apt.customer_name) && (
-            <span
-              style={{
-                color: '#34c759',
-                fontSize: '16px',
-                cursor: 'pointer',
-                fontWeight: '600',
-                userSelect: 'none',
-              }}
-              title="Add to clients"
-              onClick={async () => {
-                try {
-                  // Insert client into Supabase
-                  const { data, error } = await supabase.from('clients').insert({
-                    name: apt.customer_name,
-                    phone: apt.customer_phone || '',
-                  }).select();
+<span 
+  onClick={() => handleNameClick(apt.id, displayName)}
+  title="Click to edit name"
+>
+  {displayName}
+</span>
 
-                  if (error) throw error;
+{!clients.some(c => c.name === displayName) && (
+  <span
+    onClick={async () => {
+      try {
+        const { data, error } = await supabase.from('clients').insert({
+          name: displayName,
+          phone: displayPhone || '',
+        }).select();
 
-                  alert(`Added ${apt.customer_name} as a new client`);
+        if (error) throw error;
+        alert(`Added ${displayName} as a new client`);
+        if (data && data.length > 0) setClients(prev => [...prev, data[0]]);
+      } catch (err) {
+        console.error('Failed to add client:', err);
+        alert('Failed to add client');
+      }
+    }}
+    title="Add to clients"
+  >
+    +
+  </span>
+)}
 
-                  // Update local state immediately
-                  if (data && data.length > 0) {
-                    setClients(prev => [...prev, data[0]]);
-                  }
-                } catch (err) {
-                  console.error('Failed to add client:', err);
-                  alert('Failed to add client');
-                }
-              }}
-            >
-              +
-            </span>
-          )}
+<span style={{ color: '#888', fontSize: '14px' }}>
+  {formatPhone(displayPhone)}
+</span>
         </div>
     )}
   </div>
