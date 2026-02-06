@@ -39,6 +39,22 @@ export default function AppointmentsList({
   const [editingName, setEditingName] = useState<string | null>(null);
   const [tempName, setTempName] = useState<string>('');
   const [clients, setClients] = useState<any[]>([]);
+
+// Load existing clients from Supabase on mount
+useEffect(() => {
+  const loadClients = async () => {
+    try {
+      const { data, error } = await supabase.from('clients').select('*');
+      if (error) throw error;
+      setClients(data || []);
+    } catch (err) {
+      console.error('Failed to load clients:', err);
+    }
+  };
+
+  loadClients();
+}, []);
+
   const calculateCompletionTime = (startTime: string, durationMinutes: number) => {
     const [hours, minutes] = startTime.split(':').map(Number);
     const startDate = new Date();
