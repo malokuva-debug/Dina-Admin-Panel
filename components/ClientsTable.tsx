@@ -15,7 +15,6 @@ export default function ClientsTable({
 }: ClientsTableProps) {
   const [appointmentCounts, setAppointmentCounts] = useState<Record<string, number>>({});
 
-  // Fetch number of appointments per client
   useEffect(() => {
     const fetchCounts = async () => {
       const counts: Record<string, number> = {};
@@ -43,35 +42,34 @@ export default function ClientsTable({
   }
 
   return (
-    <table className="w-full bg-gray-900 text-white rounded-xl shadow overflow-hidden">
-      <thead>
-        <tr className="bg-gray-800">
-          <th className="p-3 text-left">Client</th>
-          <th className="p-3 text-left">Contact</th>
-          <th className="p-3 text-left">Appointments</th>
-          <th className="p-3 text-left" />
-        </tr>
-      </thead>
-      <tbody>
-        {clients.map((c) => (
-          <tr key={c.id} className="border-b border-gray-700">
-            <td className="p-3">
-              <div className="font-semibold">{c.name}</div>
-              <div className="text-sm text-gray-400">{c.phone}</div>
-            </td>
-            <td className="p-3">{c.email || '—'}</td>
-            <td className="p-3">{appointmentCounts[c.id] ?? 0}</td>
-            <td className="p-3">
-              <button
-                className="text-blue-400 hover:underline"
-                onClick={() => onEdit(c)}
-              >
-                Edit
-              </button>
-            </td>
+    <div className="overflow-x-auto">
+      <table className="w-full min-w-[500px] bg-gray-900 text-white rounded-xl shadow overflow-hidden">
+        <thead>
+          <tr className="bg-gray-800">
+            <th className="p-3 text-left">Client</th>
+            <th className="p-3 text-left">Phone</th>
+            <th className="p-3 text-left">Appointments</th>
+            <th className="p-3 text-left" />
           </tr>
-        ))}
-      </tbody>
-    </table>
+        </thead>
+        <tbody>
+          {clients.map((c) => (
+            <tr key={c.id} className="border-b border-gray-700">
+              <td className="p-3 font-semibold">{c.name}</td>
+              <td className="p-3">{c.phone}</td>
+              <td className="p-3">{appointmentCounts[c.id] ?? 0}</td>
+              <td className="p-3">
+                <button
+                  className="text-blue-400 hover:underline"
+                  onClick={() => onEdit(c)}
+                >
+                  Edit
+                </button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   );
 }
