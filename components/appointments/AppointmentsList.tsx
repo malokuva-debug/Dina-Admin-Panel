@@ -280,6 +280,7 @@ const getClientInfo = (apt: Appointment) => {
         const duration = apt.duration || 60;
         const estimatedCompletion = calculateCompletionTime(apt.time, duration);
         const statusStyle = getStatusColor(status);
+        const { name: customerName, phone: customerPhone } = getClientInfo(apt);
         
         return (
           <div 
@@ -529,7 +530,6 @@ const getClientInfo = (apt: Appointment) => {
                   </div>
 
                   {/* Customer Name */}
-const { name: customerName, phone: customerPhone } = getClientInfo(apt);
 {customerName && (
   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
     <svg
