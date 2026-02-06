@@ -4,29 +4,40 @@ import { useState, useEffect } from 'react';
 import { Worker, Category, Service, Appointment } from '@/types';
 import { supabase } from '@/lib/supabase';
 
+interface Client {
+  id: string;
+  name: string;
+  phone: string;
+  email?: string | null;
+}
+
 interface AddAppointmentModalProps {
   workers: Worker[];
   categories: Category[];
   services: Service[];
+  clients: Client[];
   onClose: () => void;
-  onAdded: () => void; // callback to refresh
+  onAdded: () => void;
 }
 
 export default function AddAppointmentModal({
   workers,
   categories,
   services,
+  clients,
   onClose,
   onAdded,
 }: AddAppointmentModalProps) {
   const [selectedWorker, setSelectedWorker] = useState<Worker>('dina');
-  const [selectedCategory, setSelectedCategory] = useState<string>('');
+  const [selectedCategory, setSelectedCategory] = useState('');
   const [filteredServices, setFilteredServices] = useState<Service[]>([]);
   const [selectedService, setSelectedService] = useState('');
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
   const [time, setTime] = useState('09:00');
+  const [matchedClients, setMatchedClients] = useState<Client[]>([]);
+  const [showDropdown, setShowDropdown] = useState(false);
 
   useEffect(() => {
     document.body.style.overflow = 'hidden';
@@ -41,17 +52,48 @@ export default function AddAppointmentModal({
       setSelectedService('');
       return;
     }
-
     const filtered = services.filter(s => s.category_id === selectedCategory);
     setFilteredServices(filtered);
     setSelectedService(filtered[0]?.id ?? '');
   }, [selectedCategory, services]);
 
-  console.log('Services prop:', services);
-  console.log('Categories prop:', categories);
+  useEffect(() => {
+    if (!customerName.trim()) {
+      setMatchedClients([]);
+      return;
+    }
+    const matches = clients.filter(c =>
+      c.name.toLowerCase().includes(customerName.toLowerCase())
+    );
+    setMatchedClients(matches);
+  }, [customerName, clients]);
+
+  const exactMatchExists = clients.some(
+    c => c.name.toLowerCase() === customerName.toLowerCase()
+  );
+
+  const handleSelectClient = (client: Client) => {
+    setCustomerName(client.name);
+    setCustomerPhone(client.phone);
+    setShowDropdown(false);
+  };
+
+  function mapAppointmentToDb(appointment: Appointment) {
+    return {
+      time: appointment.time,
+      date: appointment.date,
+      worker: appointment.worker,
+      service: appointment.service,
+      price: appointment.price,
+      duration: appointment.duration,
+      customer_name: appointment.customerName,
+      customer_phone: appointment.customerPhone,
+      is_done: appointment.is_done ?? false,
+    };
+  }
 
   const handleAdd = async () => {
-    if (!selectedWorker || !selectedService || !date || !time) {
+    if (!selectedWorker || !selectedService || !date || !time || !customerName) {
       alert('Please fill all required fields');
       return;
     }
@@ -60,20 +102,6 @@ export default function AddAppointmentModal({
     if (!service) {
       alert('Selected service not found');
       return;
-    }
-
-    function mapAppointmentToDb(appointment: Appointment) {
-      return {
-        time: appointment.time,
-        date: appointment.date,
-        worker: appointment.worker,
-        service: appointment.service,
-        price: appointment.price,
-        duration: appointment.duration,
-        customer_name: appointment.customerName,
-        customer_phone: appointment.customerPhone,
-        is_done: appointment.is_done ?? false,
-      };
     }
 
     const newAppointment: Appointment = {
@@ -90,7 +118,6 @@ export default function AddAppointmentModal({
     };
 
     try {
-      // ONLY Supabase now
       const { error } = await supabase
         .from('appointments')
         .insert([mapAppointmentToDb(newAppointment)]);
@@ -121,9 +148,7 @@ export default function AddAppointmentModal({
             onChange={e => setSelectedWorker(e.target.value as Worker)}
           >
             {workers.map(w => (
-              <option key={w} value={w}>
-                {w}
-              </option>
+              <option key={w} value={w}>{w}</option>
             ))}
           </select>
         </div>
@@ -137,9 +162,7 @@ export default function AddAppointmentModal({
           >
             <option value="">Select Category</option>
             {categories.map(c => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-              </option>
+              <option key={c.id} value={c.id}>{c.name}</option>
             ))}
           </select>
         </div>
@@ -161,13 +184,61 @@ export default function AddAppointmentModal({
         </div>
 
         {/* Customer Name */}
-        <div className="row">
+        <div className="row relative">
           <span>Customer Name</span>
           <input
             type="text"
             value={customerName}
-            onChange={e => setCustomerName(e.target.value)}
+            onChange={e => {
+              setCustomerName(e.target.value);
+              setShowDropdown(true);
+            }}
+            onFocus={() => setShowDropdown(true)}
           />
+          {showDropdown && customerName && (
+            <ul
+              className="absolute top-full left-0 right-0 z-50 max-h-48 overflow-y-auto"
+              style={{
+                background: '#3a3a3c',
+                borderRadius: '8px',
+                border: '1px solid #555',
+              }}
+            >
+              {matchedClients.map(c => (
+                <li
+                  key={c.id}
+                  onClick={() => handleSelectClient(c)}
+                  style={{
+                    padding: '10px',
+                    cursor: 'pointer',
+                    color: 'white',
+                  }}
+                  onMouseEnter={e =>
+                    (e.currentTarget.style.background = '#4a4a4c')
+                  }
+                  onMouseLeave={e =>
+                    (e.currentTarget.style.background = 'transparent')
+                  }
+                >
+                  {c.name} – {c.phone}
+                </li>
+              ))}
+              {!exactMatchExists && (
+                <li
+                  onClick={() => setShowDropdown(false)}
+                  style={{
+                    padding: '10px',
+                    cursor: 'pointer',
+                    background: '#2f2f31',
+                    color: 'white',
+                    fontWeight: 600,
+                  }}
+                >
+                  ➕ Add as new client
+                </li>
+              )}
+            </ul>
+          )}
         </div>
 
         {/* Customer Phone */}
@@ -183,26 +254,16 @@ export default function AddAppointmentModal({
         {/* Date & Time */}
         <div className="row">
           <span>Date</span>
-          <input
-            type="date"
-            value={date}
-            onChange={e => setDate(e.target.value)}
-          />
+          <input type="date" value={date} onChange={e => setDate(e.target.value)} />
         </div>
         <div className="row">
           <span>Time</span>
-          <input
-            type="time"
-            value={time}
-            onChange={e => setTime(e.target.value)}
-          />
+          <input type="time" value={time} onChange={e => setTime(e.target.value)} />
         </div>
 
         {/* Buttons */}
         <div style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
-          <button className="btn-primary" onClick={handleAdd}>
-            Add
-          </button>
+          <button className="btn-primary" onClick={handleAdd}>Add</button>
           <button
             style={{
               background: '#3a3a3c',
