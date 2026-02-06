@@ -29,11 +29,21 @@ export default function AppointmentsSection({ worker }: AppointmentsSectionProps
       try {
         const { data: cats } = await supabase.from('categories').select('*');
         const { data: svcs } = await supabase.from('services').select('*');
-        const { data: cls } = await supabase.from('clients').select('*'); // <-- fetch clients
+        const { data: cls } = await supabase.from('clients').select('*');
+
+if (cls) {
+  const normalizedClients: Client[] = cls
+    .filter(c => typeof c.phone === 'string' && c.phone.trim() !== '')
+    .map(c => ({
+      ...c,
+      phone: c.phone!, // guaranteed by filter
+    }));
+
+  setClients(normalizedClients);
+}
 
         if (cats) setCategories(cats as Category[]);
         if (svcs) setServices(svcs as Service[]);
-        if (cls) setClients(cls as Client[]);
       } catch (err) {
         console.error('Failed to fetch categories, services, or clients:', err);
       }
