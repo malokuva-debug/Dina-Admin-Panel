@@ -40,7 +40,7 @@ export default function AppointmentsList({
   const [tempName, setTempName] = useState<string>('');
   const [clients, setClients] = useState<any[]>([]);
 
-// Load existing clients from Supabase on mount
+// Load existing clients from Supabase on mount and subscribe to changes
 useEffect(() => {
   const loadClients = async () => {
     try {
@@ -53,12 +53,50 @@ useEffect(() => {
   };
 
   loadClients();
+
+  // Set up real-time subscription to clients table
+  const clientsSubscription = supabase
+    .channel('clients-changes')
+    .on(
+      'postgres_changes',
+      {
+        event: '*', // Listen to all events (INSERT, UPDATE, DELETE)
+        schema: 'public',
+        table: 'clients'
+      },
+      (payload) => {
+        if (payload.eventType === 'INSERT') {
+          setClients(prev => [...prev, payload.new]);
+        } else if (payload.eventType === 'UPDATE') {
+          setClients(prev => 
+            prev.map(client => 
+              client.id === payload.new.id ? payload.new : client
+            )
+          );
+        } else if (payload.eventType === 'DELETE') {
+          setClients(prev => prev.filter(client => client.id !== payload.old.id));
+        }
+      }
+    )
+    .subscribe();
+
+  // Cleanup subscription on unmount
+  return () => {
+    supabase.removeChannel(clientsSubscription);
+  };
 }, []);
 
 const getClientInfo = (apt: Appointment) => {
-  if (!apt.client_id) return { name: apt.customer_name, phone: apt.customer_phone };
-  const client = clients.find(c => c.id === apt.client_id);
-  return client ? { name: client.name, phone: client.phone } : { name: apt.customer_name, phone: apt.customer_phone };
+  // If appointment has a client_id, use the client data from the clients table
+  if (apt.client_id) {
+    const client = clients.find(c => c.id === apt.client_id);
+    if (client) {
+      // Always use the latest client data from the clients table
+      return { name: client.name, phone: client.phone };
+    }
+  }
+  // Fallback to appointment's own customer data if no client_id or client not found
+  return { name: apt.customer_name, phone: apt.customer_phone };
 };
 
   const calculateCompletionTime = (startTime: string, durationMinutes: number) => {
@@ -607,11 +645,11 @@ const getClientInfo = (apt: Appointment) => {
                             }}
                             title="Click to edit name"
                           >
-                            {apt.customer_name}
+                            {customerName}
                           </span>
                           
-                          {/* + Icon only if customer does NOT exist */}
-                          {!clients.some(c => c.name === apt.customer_name) && (
+                          {/* + Icon only if customer does NOT exist in clients table */}
+                          {!apt.client_id && !clients.some(c => c.name === customerName) && (
                             <span
                               style={{
                                 color: '#34c759',
@@ -625,21 +663,20 @@ const getClientInfo = (apt: Appointment) => {
                                 try {
                                   // Insert client into Supabase
                                   const { data, error } = await supabase.from('clients').insert({
-                                    name: apt.customer_name,
-                                    phone: apt.customer_phone || '',
+                                    name: customerName,
+                                    phone: customerPhone || '',
                                   }).select();
 
                                   if (error) throw error;
 
                                   const newClient = data[0]; // the newly added client
 
-                                  // Update local state
-                                  setClients(prev => [...prev, newClient]);
-
                                   // Update appointment with client_id
                                   await supabase.from('appointments')
                                     .update({ client_id: newClient.id })
                                     .eq('id', apt.id);
+                                    
+                                  alert(`Added ${customerName} as a new client`);
                                 } catch (err) {
                                   console.error('Failed to add client:', err);
                                   alert('Failed to add client');
@@ -655,7 +692,7 @@ const getClientInfo = (apt: Appointment) => {
                   )}
 
                   {/* Phone Number with Call Button */}
-                  {apt.customer_phone && (
+                  {customerPhone && (
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                       <svg
                         viewBox="0 0 24 24"
@@ -670,10 +707,10 @@ const getClientInfo = (apt: Appointment) => {
                         <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
                       </svg>
                       <span style={{ color: '#888', fontSize: '14px' }}>
-                        {formatPhone(apt.customer_phone)}
+                        {formatPhone(customerPhone)}
                       </span>
                       <button
-                        onClick={() => handleCall(apt.customer_phone!)}
+                        onClick={() => handleCall(customerPhone)}
                         style={{
                           marginLeft: '8px',
                           padding: '6px 12px',
