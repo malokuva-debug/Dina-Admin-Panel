@@ -1,4 +1,4 @@
- // AppointmentList.tsx
+// AppointmentList.tsx
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -530,128 +530,129 @@ const getClientInfo = (apt: Appointment) => {
                   </div>
 
                   {/* Customer Name */}
-{customerName && (
-  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
-    <svg
-      viewBox="0 0 24 24"
-      style={{
-        width: '16px',
-        height: '16px',
-        stroke: '#888',
-        fill: 'none',
-        strokeWidth: 2,
-      }}
-    >
-      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-      <circle cx="12" cy="7" r="4"></circle>
-    </svg>
+                  {customerName && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+                      <svg
+                        viewBox="0 0 24 24"
+                        style={{
+                          width: '16px',
+                          height: '16px',
+                          stroke: '#888',
+                          fill: 'none',
+                          strokeWidth: 2,
+                        }}
+                      >
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="12" cy="7" r="4"></circle>
+                      </svg>
 
-    {editingName === apt.id ? (
-      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flex: 1 }}>
-        <input
-          type="text"
-          value={tempName}
-          onChange={(e) => setTempName(e.target.value)}
-          style={{
-            padding: '4px 8px',
-            background: '#2c2c2e',
-            border: '1px solid #007aff',
-            borderRadius: '6px',
-            color: '#fff',
-            fontSize: '13px',
-            flex: 1,
-          }}
-          autoFocus
-          placeholder="Customer name"
-        />
-        <button
-          onClick={() => handleNameSave(apt.id)}
-          style={{
-            padding: '4px 8px',
-            background: '#34c759',
-            color: 'white',
-            border: 'none',
-            borderRadius: '4px',
-            fontSize: '12px',
-            cursor: 'pointer',
-          }}
-        >
-          ✓
-        </button>
-        <button
-          onClick={handleNameCancel}
-          style={{
-            padding: '4px 8px',
-            background: '#ff3b30',
-            color: 'white',
-            border: 'none',
-            borderRadius: '4px',
-            fontSize: '12px',
-            cursor: 'pointer',
-          }}
-        >
-          ✕
-        </button>
-      </div>
-    ) : (
-      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flex: 1 }}>
-        <span 
-          onClick={() => handleNameClick(apt.id, customerName || '')}
-          style={{ 
-            color: '#888', 
-            fontSize: '14px', 
-            fontWeight: '500',
-            cursor: 'pointer',
-            textDecoration: 'underline',
-            textDecorationStyle: 'dotted',
-          }}
-          title="Click to edit name"
-        >
-          {apt.customer_name}
-        </span>
-        
-        {/* + Icon only if customer does NOT exist */}
-          {!clients.some(c => c.name === apt.customer_name) && (
-            <span
-              style={{
-                color: '#34c759',
-                fontSize: '16px',
-                cursor: 'pointer',
-                fontWeight: '600',
-                userSelect: 'none',
-              }}
-              title="Add to clients"
-              onClick={async () => {
-                try {
-                  // Insert client into Supabase
-                  const { data, error } = await supabase.from('clients').insert({
-  name: apt.customer_name,
-  phone: apt.customer_phone || '',
-}).select();
+                      {editingName === apt.id ? (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flex: 1 }}>
+                          <input
+                            type="text"
+                            value={tempName}
+                            onChange={(e) => setTempName(e.target.value)}
+                            style={{
+                              padding: '4px 8px',
+                              background: '#2c2c2e',
+                              border: '1px solid #007aff',
+                              borderRadius: '6px',
+                              color: '#fff',
+                              fontSize: '13px',
+                              flex: 1,
+                            }}
+                            autoFocus
+                            placeholder="Customer name"
+                          />
+                          <button
+                            onClick={() => handleNameSave(apt.id)}
+                            style={{
+                              padding: '4px 8px',
+                              background: '#34c759',
+                              color: 'white',
+                              border: 'none',
+                              borderRadius: '4px',
+                              fontSize: '12px',
+                              cursor: 'pointer',
+                            }}
+                          >
+                            ✓
+                          </button>
+                          <button
+                            onClick={handleNameCancel}
+                            style={{
+                              padding: '4px 8px',
+                              background: '#ff3b30',
+                              color: 'white',
+                              border: 'none',
+                              borderRadius: '4px',
+                              fontSize: '12px',
+                              cursor: 'pointer',
+                            }}
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      ) : (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flex: 1 }}>
+                          <span 
+                            onClick={() => handleNameClick(apt.id, customerName || '')}
+                            style={{ 
+                              color: '#888', 
+                              fontSize: '14px', 
+                              fontWeight: '500',
+                              cursor: 'pointer',
+                              textDecoration: 'underline',
+                              textDecorationStyle: 'dotted',
+                            }}
+                            title="Click to edit name"
+                          >
+                            {apt.customer_name}
+                          </span>
+                          
+                          {/* + Icon only if customer does NOT exist */}
+                          {!clients.some(c => c.name === apt.customer_name) && (
+                            <span
+                              style={{
+                                color: '#34c759',
+                                fontSize: '16px',
+                                cursor: 'pointer',
+                                fontWeight: '600',
+                                userSelect: 'none',
+                              }}
+                              title="Add to clients"
+                              onClick={async () => {
+                                try {
+                                  // Insert client into Supabase
+                                  const { data, error } = await supabase.from('clients').insert({
+                                    name: apt.customer_name,
+                                    phone: apt.customer_phone || '',
+                                  }).select();
 
-if (error) throw error;
+                                  if (error) throw error;
 
-const newClient = data[0]; // the newly added client
+                                  const newClient = data[0]; // the newly added client
 
-// Update local state
-setClients(prev => [...prev, newClient]);
+                                  // Update local state
+                                  setClients(prev => [...prev, newClient]);
 
-// Update appointment with client_id
-await supabase.from('appointments')
-  .update({ client_id: newClient.id })
-  .eq('id', apt.id);
-                } catch (err) {
-                  console.error('Failed to add client:', err);
-                  alert('Failed to add client');
-                }
-              }}
-            >
-              +
-            </span>
-          )}
-        </div>
-    )}
-  </div>
+                                  // Update appointment with client_id
+                                  await supabase.from('appointments')
+                                    .update({ client_id: newClient.id })
+                                    .eq('id', apt.id);
+                                } catch (err) {
+                                  console.error('Failed to add client:', err);
+                                  alert('Failed to add client');
+                                }
+                              }}
+                            >
+                              +
+                            </span>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
 
                   {/* Phone Number with Call Button */}
                   {apt.customer_phone && (
