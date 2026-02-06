@@ -55,6 +55,12 @@ useEffect(() => {
   loadClients();
 }, []);
 
+const getClientInfo = (apt: Appointment) => {
+  if (!apt.client_id) return { name: apt.customer_name, phone: apt.customer_phone };
+  const client = clients.find(c => c.id === apt.client_id);
+  return client ? { name: client.name, phone: client.phone } : { name: apt.customer_name, phone: apt.customer_phone };
+};
+
   const calculateCompletionTime = (startTime: string, durationMinutes: number) => {
     const [hours, minutes] = startTime.split(':').map(Number);
     const startDate = new Date();
@@ -523,7 +529,8 @@ useEffect(() => {
                   </div>
 
                   {/* Customer Name */}
-{apt.customer_name && (
+const { name: customerName, phone: customerPhone } = getClientInfo(apt);
+{customerName && (
   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
     <svg
       viewBox="0 0 24 24"
@@ -589,7 +596,7 @@ useEffect(() => {
     ) : (
       <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flex: 1 }}>
         <span 
-          onClick={() => handleNameClick(apt.id, apt.customer_name || '')}
+          onClick={() => handleNameClick(apt.id, customerName || '')}
           style={{ 
             color: '#888', 
             fontSize: '14px', 
@@ -618,18 +625,21 @@ useEffect(() => {
                 try {
                   // Insert client into Supabase
                   const { data, error } = await supabase.from('clients').insert({
-                    name: apt.customer_name,
-                    phone: apt.customer_phone || '',
-                  }).select();
+  name: apt.customer_name,
+  phone: apt.customer_phone || '',
+}).select();
 
-                  if (error) throw error;
+if (error) throw error;
 
-                  alert(`Added ${apt.customer_name} as a new client`);
+const newClient = data[0]; // the newly added client
 
-                  // Update local state immediately
-                  if (data && data.length > 0) {
-                    setClients(prev => [...prev, data[0]]);
-                  }
+// Update local state
+setClients(prev => [...prev, newClient]);
+
+// Update appointment with client_id
+await supabase.from('appointments')
+  .update({ client_id: newClient.id })
+  .eq('id', apt.id);
                 } catch (err) {
                   console.error('Failed to add client:', err);
                   alert('Failed to add client');
