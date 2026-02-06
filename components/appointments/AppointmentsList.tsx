@@ -3,6 +3,7 @@
 
 import { useState } from 'react';
 import { Appointment } from '@/types';
+import { supabase } from '@/lib/supabase';
 
 interface AppointmentsListProps {
   appointments: Appointment[];
