@@ -295,12 +295,19 @@ const handleAddClientFromAppointment = async (name: string, phone?: string) => {
             background: isDone || status === 'done' ? '#1a1a1c' : '#1c1c1e',
             border: status === 'arrived' ? '2px solid #ff9500' : 
                     status === 'confirmed' ? '2px solid #007aff' : 'none',
+            marginBottom: '15px' // move margin here
           }}
         >
-          <p>{apt.customer_name}</p>
-          <p>Time: {apt.time}</p>
-          <p>Estimated Completion: {estimatedCompletion}</p>
-          <p>Status: <span style={{color: statusStyle}}>{status}</span></p>
+          {/* Header with service name and status */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
+            <div style={{ flex: 1 }}>
+              <p>{apt.customer_name}</p>
+              <p>Time: {apt.time}</p>
+              <p>Estimated Completion: {estimatedCompletion}</p>
+            </div>
+            <div style={{ color: statusStyle }}>{status}</div>
+          </div>
+          {/* Add more details here if needed */}
         </div>
       );
     })}
