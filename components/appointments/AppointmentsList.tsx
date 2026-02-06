@@ -661,10 +661,10 @@ const getClientInfo = (apt: Appointment) => {
                               title="Add to clients"
                               onClick={async () => {
                                 try {
-                                  // Insert client into Supabase
+                                  // Insert client into Supabase (phone is optional)
                                   const { data, error } = await supabase.from('clients').insert({
                                     name: customerName,
-                                    phone: customerPhone || '',
+                                    phone: customerPhone || null,
                                   }).select();
 
                                   if (error) throw error;
