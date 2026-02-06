@@ -19,7 +19,7 @@ interface AddAppointmentModalProps {
   services: Service[];
   clients: Client[];
   onClose: () => void;
-  onAdded: () => void; // callback to refresh
+  onAdded: () => void;
 }
 
 export default function AddAppointmentModal({
@@ -31,7 +31,7 @@ export default function AddAppointmentModal({
   onAdded,
 }: AddAppointmentModalProps) {
   const [selectedWorker, setSelectedWorker] = useState<Worker>('dina');
-  const [selectedCategory, setSelectedCategory] = useState<string>('');
+  const [selectedCategory, setSelectedCategory] = useState('');
   const [filteredServices, setFilteredServices] = useState<Service[]>([]);
   const [selectedService, setSelectedService] = useState('');
   const [customerName, setCustomerName] = useState('');
@@ -41,7 +41,7 @@ export default function AddAppointmentModal({
   const [matchedClients, setMatchedClients] = useState<Client[]>([]);
   const [showDropdown, setShowDropdown] = useState(false);
 
-  // Lock scroll while modal is open
+  // Lock scroll
   useEffect(() => {
     document.body.style.overflow = 'hidden';
     return () => {
@@ -61,7 +61,7 @@ export default function AddAppointmentModal({
     setSelectedService(filtered[0]?.id ?? '');
   }, [selectedCategory, services]);
 
-  // Filter clients by name input
+  // Filter clients
   useEffect(() => {
     if (!customerName) {
       setMatchedClients([]);
@@ -80,19 +80,19 @@ export default function AddAppointmentModal({
   };
 
   const handleAdd = async () => {
-    if (!selectedWorker || !selectedService || !date || !time || !customerName) {
-      alert('Please fill all required fields');
+    if (!selectedService || !date || !time || !customerName || !customerPhone) {
+      alert('Name and phone are required');
       return;
     }
 
     const service = services.find(s => s.id === selectedService);
     if (!service) {
-      alert('Selected service not found');
+      alert('Service not found');
       return;
     }
 
     const newAppointment: Appointment = {
-      id: `${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+      id: `${Date.now()}`,
       worker: selectedWorker,
       service: service.name,
       price: service.price,
@@ -116,29 +116,25 @@ export default function AddAppointmentModal({
           duration: newAppointment.duration,
           customer_name: newAppointment.customer_name,
           customer_phone: newAppointment.customer_phone,
-          is_done: newAppointment.is_done,
-          status: newAppointment.status,
+          is_done: false,
+          status: 'pending',
         }]);
         if (error) throw error;
       } else {
-        const allAppointments: Appointment[] = storage.get(STORAGE_KEYS.APPOINTMENTS) || [];
-        storage.set(STORAGE_KEYS.APPOINTMENTS, [...allAppointments, newAppointment]);
+        const all = storage.get(STORAGE_KEYS.APPOINTMENTS) || [];
+        storage.set(STORAGE_KEYS.APPOINTMENTS, [...all, newAppointment]);
       }
 
       onAdded();
       onClose();
     } catch (err) {
-      console.error('Failed to add appointment', err);
+      console.error(err);
       alert('Failed to add appointment');
     }
   };
 
-  const handleBackdropClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (e.target === e.currentTarget) onClose();
-  };
-
   return (
-    <div className="modal active" onClick={handleBackdropClick}>
+    <div className="modal active" onClick={e => e.target === e.currentTarget && onClose()}>
       <div className="modal-content">
         <h3>Add Appointment</h3>
 
@@ -146,7 +142,9 @@ export default function AddAppointmentModal({
         <div className="row">
           <span>Worker</span>
           <select value={selectedWorker} onChange={e => setSelectedWorker(e.target.value as Worker)}>
-            {workers.map(w => <option key={w} value={w}>{w}</option>)}
+            {workers.map(w => (
+              <option key={w} value={w}>{w}</option>
+            ))}
           </select>
         </div>
 
@@ -154,8 +152,10 @@ export default function AddAppointmentModal({
         <div className="row">
           <span>Category</span>
           <select value={selectedCategory} onChange={e => setSelectedCategory(e.target.value)}>
-            <option value="">Select Category</option>
-            {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+            <option value="">Select category</option>
+            {categories.map(c => (
+              <option key={c.id} value={c.id}>{c.name}</option>
+            ))}
           </select>
         </div>
 
@@ -163,7 +163,7 @@ export default function AddAppointmentModal({
         <div className="row">
           <span>Service</span>
           <select value={selectedService} onChange={e => setSelectedService(e.target.value)}>
-            <option value="">Select Service</option>
+            <option value="">Select service</option>
             {filteredServices.map(s => (
               <option key={s.id} value={s.id}>
                 {s.name} (${s.price})
@@ -174,9 +174,8 @@ export default function AddAppointmentModal({
 
         {/* Customer Name */}
         <div className="row relative">
-          <span>Customer Name</span>
+          <span>Customer</span>
           <input
-            type="text"
             value={customerName}
             onChange={e => {
               setCustomerName(e.target.value);
@@ -184,38 +183,66 @@ export default function AddAppointmentModal({
             }}
             onFocus={() => setShowDropdown(true)}
           />
+
           {showDropdown && matchedClients.length > 0 && (
-            <ul className="absolute top-full left-0 right-0 bg-white border max-h-48 overflow-y-auto z-50">
+            <ul
+              className="absolute top-full left-0 right-0 z-50"
+              style={{
+                background: '#3a3a3c',
+                border: '1px solid #555',
+                borderRadius: '8px',
+                marginTop: '4px',
+                maxHeight: '200px',
+                overflowY: 'auto',
+              }}
+            >
               {matchedClients.map(c => (
                 <li
                   key={c.id}
-                  className="p-2 cursor-pointer hover:bg-gray-200"
                   onClick={() => handleSelectClient(c)}
+                  style={{
+                    padding: '10px',
+                    cursor: 'pointer',
+                    color: '#fff',
+                  }}
+                  onMouseEnter={e => (e.currentTarget.style.background = '#4a4a4c')}
+                  onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
                 >
-                  {c.name} - {c.phone}
+                  {c.name} — {c.phone}
                 </li>
               ))}
+
               <li
-                className="p-2 cursor-pointer hover:bg-gray-200 font-semibold"
                 onClick={() => setShowDropdown(false)}
+                style={{
+                  padding: '10px',
+                  cursor: 'pointer',
+                  color: '#fff',
+                  fontWeight: 600,
+                  borderTop: '1px solid #555',
+                }}
+                onMouseEnter={e => (e.currentTarget.style.background = '#4a4a4c')}
+                onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
               >
-                Add as new client
+                ➕ Add as new client
               </li>
             </ul>
           )}
         </div>
 
-        {/* Customer Phone */}
+        {/* Phone */}
         <div className="row">
           <span>Phone</span>
-          <input type="text" value={customerPhone} onChange={e => setCustomerPhone(e.target.value)} />
+          <input value={customerPhone} onChange={e => setCustomerPhone(e.target.value)} />
         </div>
 
-        {/* Date & Time */}
+        {/* Date */}
         <div className="row">
           <span>Date</span>
           <input type="date" value={date} onChange={e => setDate(e.target.value)} />
         </div>
+
+        {/* Time */}
         <div className="row">
           <span>Time</span>
           <input type="time" value={time} onChange={e => setTime(e.target.value)} />
@@ -223,20 +250,22 @@ export default function AddAppointmentModal({
 
         {/* Buttons */}
         <div className="flex gap-3 mt-4">
-          <button className="btn-primary" onClick={handleAdd}>Add</button>
+          <button className="btn-primary" onClick={handleAdd}>
+            Add
+          </button>
+
           <button
+            onClick={onClose}
             style={{
               background: '#3a3a3c',
-              color: 'white',
+              color: '#fff',
               padding: '14px',
               borderRadius: '12px',
               flex: 1,
               border: 'none',
               cursor: 'pointer',
-              fontSize: '16px',
-              fontWeight: '600',
+              fontWeight: 600,
             }}
-            onClick={onClose}
           >
             Cancel
           </button>
