@@ -9,6 +9,33 @@ import { supabase } from '@/lib/supabase';
 import { storage, STORAGE_KEYS, storageMode } from '@/lib/storage';
 import AddAppointmentModal from '@/components/modals/AddAppointmentModal';
 
+const EyeIcon = ({ open }: { open: boolean }) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="22"
+    height="22"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    {open ? (
+      <>
+        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12z" />
+        <circle cx="12" cy="12" r="3" />
+      </>
+    ) : (
+      <>
+        <path d="M17.94 17.94A10.94 10.94 0 0 1 12 20c-7 0-11-8-11-8a21.77 21.77 0 0 1 5.06-6.94" />
+        <path d="M1 1l22 22" />
+        <path d="M9.9 4.24A10.94 10.94 0 0 1 12 4c7 0 11 8 11 8a21.77 21.77 0 0 1-4.87 6.7" />
+      </>
+    )}
+  </svg>
+);
+
 interface AppointmentsSectionProps {
   worker: Worker;
 }
@@ -230,33 +257,43 @@ if (cls) {
     <div id="appointments">
       <h2>Appointments</h2>
 
-      {/* Month Filter + Show Done Toggle */}
+{/* Month Filter + Show Done Toggle */}
 <div
   style={{
-    display: 'flex',
+    display: 'grid',
+    gridTemplateColumns: '1fr 1fr',
     gap: '12px',
     marginBottom: '15px',
-    alignItems: 'center'
+    maxWidth: '320px'
   }}
 >
   <input
     type="month"
     value={filterMonth}
     onChange={(e) => setFilterMonth(e.target.value)}
+    style={{
+      height: '42px',
+      padding: '0 10px',
+      borderRadius: '8px',
+      border: '1px solid #ccc'
+    }}
   />
 
   <button
     onClick={() => setShowDone(prev => !prev)}
     title={showDone ? 'Hide done appointments' : 'Show done appointments'}
     style={{
-      border: 'none',
-      background: 'transparent',
+      height: '42px',
+      borderRadius: '8px',
+      border: '1px solid #ccc',
+      background: showDone ? '#f2f2f2' : '#fff',
       cursor: 'pointer',
-      fontSize: '20px',
-      opacity: showDone ? 1 : 0.6
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center'
     }}
   >
-    {showDone ? '👁️' : '🙈'}
+    <EyeIcon open={showDone} />
   </button>
 </div>
 
