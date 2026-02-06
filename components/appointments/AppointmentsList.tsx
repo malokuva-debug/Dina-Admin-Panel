@@ -78,6 +78,34 @@ export default function AppointmentsList({
     return phone;
   };
 
+const handleAddClientFromAppointment = async (name: string, phone?: string) => {
+  if (!name || !phone) {
+    alert('Missing name or phone to add client.');
+    return;
+  }
+
+  const existing = clients.find(c => c.name === name && c.phone === phone);
+  if (existing) {
+    alert('Client already exists.');
+    return;
+  }
+
+  try {
+    if (storageMode === 'supabase') {
+      const { error } = await supabase.from('clients').insert([{ name, phone }]);
+      if (error) throw error;
+    } else {
+      const allClients = (storage.get(STORAGE_KEYS.CLIENTS) || []) as Client[];
+      storage.set(STORAGE_KEYS.CLIENTS, [...allClients, { id: `${Date.now()}`, name, phone }]);
+    }
+
+    alert('Client added successfully!');
+  } catch (err) {
+    console.error('Failed to add client:', err);
+    alert('Failed to add client.');
+  }
+};
+
   const handleCall = (phone: string) => {
     if (!phone) return;
     const cleaned = phone.replace(/\D/g, '');
@@ -583,6 +611,22 @@ export default function AppointmentsList({
                         >
                           {apt.customer_name}
                         </span>
+                        {/* ADD CLIENT ICON */}
+  <button
+    onClick={() => handleAddClientFromAppointment(apt.customer_name, apt.customer_phone)}
+    style={{
+      background: '#007aff',
+      border: 'none',
+      borderRadius: '50%',
+      width: '20px',
+      height: '20px',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      cursor: 'pointer',
+    }}
+    title="Add as client"
+  >
                       )}
                     </div>
                   )}
