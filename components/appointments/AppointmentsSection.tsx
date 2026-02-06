@@ -15,6 +15,7 @@ interface AppointmentsSectionProps {
 
 export default function AppointmentsSection({ worker }: AppointmentsSectionProps) {
   const [filterMonth, setFilterMonth] = useState<string>(new Date().toISOString().slice(0, 7));
+  const [showDone, setShowDone] = useState(false); // default: hide done
   const { appointments, loading, error, deleteAppointment, refresh } = useAppointments({ worker, month: filterMonth, autoLoad: true });
 
   const [modalOpen, setModalOpen] = useState(false);
@@ -221,23 +222,46 @@ if (cls) {
     }
   };
 
+  const visibleAppointments = showDone
+  ? appointments
+  : appointments.filter(a => !a.is_done && a.status !== 'done');
+
   return (
     <div id="appointments">
       <h2>Appointments</h2>
 
-      {/* Month Filter */}
-      <div style={{ display: 'flex', gap: '10px', marginBottom: '15px', alignItems: 'center' }}>
-        <input type="month" value={filterMonth} onChange={(e) => setFilterMonth(e.target.value)} />
-      </div>
+      {/* Month Filter + Show Done Toggle */}
+<div
+  style={{
+    display: 'flex',
+    gap: '12px',
+    marginBottom: '15px',
+    alignItems: 'center'
+  }}
+>
+  <input
+    type="month"
+    value={filterMonth}
+    onChange={(e) => setFilterMonth(e.target.value)}
+  />
 
-      {error && (
-        <div className="card" style={{ background: '#ff3b3020', borderColor: '#ff3b30' }}>
-          <p style={{ color: '#ff3b30', textAlign: 'center' }}>{error}</p>
-        </div>
-      )}
+  <button
+    onClick={() => setShowDone(prev => !prev)}
+    title={showDone ? 'Hide done appointments' : 'Show done appointments'}
+    style={{
+      border: 'none',
+      background: 'transparent',
+      cursor: 'pointer',
+      fontSize: '20px',
+      opacity: showDone ? 1 : 0.6
+    }}
+  >
+    {showDone ? '👁️' : '🙈'}
+  </button>
+</div>
 
 <AppointmentsList
-  appointments={appointments}
+  appointments={visibleAppointments}
   onDelete={handleDelete}
   onMarkDone={handleMarkDone}
   onUpdateStatus={handleUpdateStatus}
