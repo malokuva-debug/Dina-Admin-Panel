@@ -5,7 +5,6 @@ import { supabase } from '@/lib/supabase';
 import ClientsTable from '@/components/ClientsTable';
 import ClientModal from '@/components/ClientModal';
 import { Worker } from '@/types';
-import { storage, STORAGE_KEYS } from '@/lib/storage';
 
 export interface Client {
   id: string;
@@ -18,37 +17,31 @@ export interface Client {
 }
 
 export default function ClientsPage() {
-  const [worker, setWorker] = useState<Worker | null>(null);
   const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [editingClient, setEditingClient] = useState<Client | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
 
+  // Load all clients on mount
   useEffect(() => {
-    const storedWorker = storage.get<Worker>(STORAGE_KEYS.CURRENT_WORKER);
-    if (storedWorker) {
-      setWorker(storedWorker);
-    }
+    loadClients();
   }, []);
 
-  useEffect(() => {
-    if (worker) loadClients();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [worker]);
-
   const loadClients = async () => {
-    if (!worker) return;
-
     setLoading(true);
 
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('clients')
       .select('*')
-      .eq('worker', worker)
       .order('created_at', { ascending: false });
 
-    if (data) setClients(data);
+    if (error) {
+      console.error('Failed to load clients:', error);
+    } else if (data) {
+      setClients(data);
+    }
+
     setLoading(false);
   };
 
@@ -64,20 +57,47 @@ export default function ClientsPage() {
 
   const handleSave = async (client: Client) => {
     if (client.id) {
-      await supabase.from('clients').update(client).eq('id', client.id);
+      // Update existing client
+      const { error } = await supabase
+        .from('clients')
+        .update({
+          name: client.name,
+          phone: client.phone,
+          email: client.email ?? null,
+          notes: client.notes ?? null,
+        })
+        .eq('id', client.id);
+
+      if (error) {
+        console.error('Failed to update client:', error);
+        return;
+      }
     } else {
-      await supabase.from('clients').insert({
-        ...client,
-        worker,
-      });
+      // Insert new client
+      const { data, error } = await supabase
+        .from('clients')
+        .insert([
+          {
+            name: client.name,
+            phone: client.phone,
+            email: client.email ?? null,
+            notes: client.notes ?? null,
+          },
+        ])
+        .select(); // get inserted row
+
+      if (error) {
+        console.error('Failed to insert client:', error);
+        return;
+      }
+
+      client.id = data![0].id; // assign new id
     }
 
     setModalOpen(false);
     setEditingClient(null);
-    loadClients();
+    loadClients(); // refresh table
   };
-
-  if (!worker) return <div className="p-6">Loading…</div>;
 
   return (
     <div className="section">
@@ -87,11 +107,7 @@ export default function ClientsPage() {
         <button
           className="primary"
           onClick={() => {
-            setEditingClient({
-              id: '',
-              name: '',
-              phone: '',
-            });
+            setEditingClient({ id: '', name: '', phone: '' });
             setModalOpen(true);
           }}
         >
