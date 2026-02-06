@@ -661,25 +661,49 @@ const getClientInfo = (apt: Appointment) => {
                               title="Add to clients"
                               onClick={async () => {
                                 try {
-                                  // Insert client into Supabase (phone is optional)
-                                  const { data, error } = await supabase.from('clients').insert({
+                                  // Prepare client data
+                                  const clientData: any = {
                                     name: customerName,
-                                    phone: customerPhone || null,
-                                  }).select();
+                                  };
+                                  
+                                  // Only include phone if it exists
+                                  if (customerPhone) {
+                                    clientData.phone = customerPhone;
+                                  }
 
-                                  if (error) throw error;
+                                  // Insert client into Supabase
+                                  const { data, error } = await supabase
+                                    .from('clients')
+                                    .insert(clientData)
+                                    .select();
 
-                                  const newClient = data[0]; // the newly added client
+                                  if (error) {
+                                    console.error('Supabase error:', error);
+                                    throw error;
+                                  }
+
+                                  if (!data || data.length === 0) {
+                                    throw new Error('No data returned from insert');
+                                  }
+
+                                  const newClient = data[0];
 
                                   // Update appointment with client_id
-                                  await supabase.from('appointments')
+                                  await supabase
+                                    .from('appointments')
                                     .update({ client_id: newClient.id })
                                     .eq('id', apt.id);
                                     
                                   alert(`Added ${customerName} as a new client`);
-                                } catch (err) {
+                                } catch (err: any) {
                                   console.error('Failed to add client:', err);
-                                  alert('Failed to add client');
+                                  
+                                  // Show more helpful error message
+                                  if (err?.message?.includes('null value in column "phone"')) {
+                                    alert('Cannot add client: Phone number is required in the database. Please add a phone number first or update your database schema to allow null phone numbers.');
+                                  } else {
+                                    alert(`Failed to add client: ${err?.message || 'Unknown error'}`);
+                                  }
                                 }
                               }}
                             >
