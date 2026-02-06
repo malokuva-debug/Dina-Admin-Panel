@@ -126,11 +126,47 @@ export default function AppointmentsList({
                 </h3>
 
                 {/* Date & Time */}
-                <div style={{ display:'flex', alignItems:'center', gap:'8px', marginBottom:'6px'}}>
-                  <span onClick={()=>handleDateClick(apt.id, apt.date)} style={{ color:'#888', cursor:'pointer', textDecoration:'underline', textDecorationStyle:'dotted'}}>{formatDate(apt.date)}</span>
-                  <span style={{ color:'#888' }}>at</span>
-                  <span onClick={()=>handleTimeClick(apt.id, apt.time)} style={{ color:'#888', cursor:'pointer', textDecoration:'underline', textDecorationStyle:'dotted'}}>{formatTime(apt.time)}</span>
-                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+  {editingDate === apt.id ? (
+    <div style={{ display: 'flex', gap: '6px' }}>
+      <input
+        type="date"
+        value={tempDate}
+        onChange={(e) => setTempDate(e.target.value)}
+        autoFocus
+      />
+      <button onClick={() => handleDateSave(apt.id)}>✓</button>
+      <button onClick={handleDateCancel}>✕</button>
+    </div>
+  ) : (
+    <span
+      onClick={() => handleDateClick(apt.id, apt.date)}
+      style={{ color: '#888', cursor: 'pointer', textDecoration: 'underline' }}
+    >
+      {formatDate(apt.date)}
+    </span>
+  )}
+  <span>at</span>
+  {editingTime === apt.id ? (
+    <div style={{ display: 'flex', gap: '6px' }}>
+      <input
+        type="time"
+        value={tempTime}
+        onChange={(e) => setTempTime(e.target.value)}
+        autoFocus
+      />
+      <button onClick={() => handleTimeSave(apt.id)}>✓</button>
+      <button onClick={handleTimeCancel}>✕</button>
+    </div>
+  ) : (
+    <span
+      onClick={() => handleTimeClick(apt.id, apt.time)}
+      style={{ color: '#888', cursor: 'pointer', textDecoration: 'underline' }}
+    >
+      {formatTime(apt.time)}
+    </span>
+  )}
+</div>
 
                 {/* Duration */}
                 <div style={{ display:'flex', alignItems:'center', gap:'8px', marginBottom:'6px'}}>
