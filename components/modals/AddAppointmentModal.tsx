@@ -93,43 +93,44 @@ export default function AddAppointmentModal({
   }
 
   const handleAdd = async () => {
-    if (!selectedWorker || !selectedService || !date || !time || !customer_name) {
-      alert('Please fill all required fields');
-      return;
-    }
+  // Check all required fields
+  if (!selectedWorker || !selectedService || !date || !time || !customer_name || !customer_phone) {
+    alert('Please fill all required fields, including phone number');
+    return;
+  }
 
-    const service = services.find(s => s.id === selectedService);
-    if (!service) {
-      alert('Selected service not found');
-      return;
-    }
+  const service = services.find(s => s.id === selectedService);
+  if (!service) {
+    alert('Selected service not found');
+    return;
+  }
 
-    const newAppointment: Appointment = {
-      id: `${Date.now()}-${Math.floor(Math.random() * 1000)}`,
-      worker: selectedWorker,
-      service: service.name,
-      price: service.price,
-      duration: service.duration,
-      date,
-      time,
-      customer_name,
-      customer_phone,
-      is_done: false,
-    };
-
-    try {
-      const { error } = await supabase
-        .from('appointments')
-        .insert([mapAppointmentToDb(newAppointment)]);
-      if (error) throw error;
-
-      onAdded();
-      onClose();
-    } catch (err) {
-      console.error('Failed to add appointment', err);
-      alert('Failed to add appointment');
-    }
+  const newAppointment: Appointment = {
+    id: `${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+    worker: selectedWorker,
+    service: service.name,
+    price: service.price,
+    duration: service.duration,
+    date,
+    time,
+    customer_name,
+    customer_phone,
+    is_done: false,
   };
+
+  try {
+    const { error } = await supabase
+      .from('appointments')
+      .insert([mapAppointmentToDb(newAppointment)]);
+    if (error) throw error;
+
+    onAdded();
+    onClose();
+  } catch (err) {
+    console.error('Failed to add appointment', err);
+    alert('Failed to add appointment');
+  }
+};
 
   const handleBackdropClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (e.target === e.currentTarget) onClose();
