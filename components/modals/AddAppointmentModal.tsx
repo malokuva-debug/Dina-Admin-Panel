@@ -74,7 +74,7 @@ export default function AddAppointmentModal({
 
   const handleSelectClient = (client: Client) => {
     setCustomerName(client.name);
-    setCustomerPhone(client.phone);
+    setCustomerPhone(client.phone || '');
     setShowDropdown(false);
   };
 
@@ -87,66 +87,76 @@ export default function AddAppointmentModal({
       price: appointment.price,
       duration: appointment.duration,
       customer_name: appointment.customer_name, // use renamed
-      customer_phone: appointment.customer_phone, // use renamed
+      customer_phone: appointment.customer_phone || null, // make optional
       is_done: appointment.is_done ?? false,
     };
   }
 
   const handleAdd = async () => {
-  // Check all required fields
-  if (!selectedWorker || !selectedService || !date || !time || !customer_name || !customer_phone) {
-    alert('Please fill all required fields, including phone number');
-    return;
-  }
-
-  const service = services.find(s => s.id === selectedService);
-  if (!service) {
-    alert('Selected service not found');
-    return;
-  }
-
-  const newAppointment: Appointment = {
-    id: `${Date.now()}-${Math.floor(Math.random() * 1000)}`,
-    worker: selectedWorker,
-    service: service.name,
-    price: service.price,
-    duration: service.duration,
-    date,
-    time,
-    customer_name,
-    customer_phone,
-    is_done: false,
-  };
-
-  try {
-    // 1️⃣ Insert the appointment
-    const { error: appointmentError } = await supabase
-      .from('appointments')
-      .insert([mapAppointmentToDb(newAppointment)]);
-    if (appointmentError) throw appointmentError;
-
-    // 2️⃣ Check if client exists
-    const { data: existingClients } = await supabase
-      .from('clients')
-      .select('id')
-      .eq('name', customer_name)
-      .eq('phone', customer_phone);
-
-    if (!existingClients?.length) {
-      // 3️⃣ Insert new client if not exists
-      const { error: clientError } = await supabase
-        .from('clients')
-        .insert([{ name: customer_name, phone: customer_phone }]);
-      if (clientError) throw clientError;
+    // Check required fields (phone is now optional)
+    if (!selectedWorker || !selectedService || !date || !time || !customer_name) {
+      alert('Please fill all required fields');
+      return;
     }
 
-    onAdded();
-    onClose();
-  } catch (err) {
-    console.error('Failed to add appointment or client', err);
-    alert('Failed to add appointment or client');
-  }
-};
+    const service = services.find(s => s.id === selectedService);
+    if (!service) {
+      alert('Selected service not found');
+      return;
+    }
+
+    const newAppointment: Appointment = {
+      id: `${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+      worker: selectedWorker,
+      service: service.name,
+      price: service.price,
+      duration: service.duration,
+      date,
+      time,
+      customer_name,
+      customer_phone: customer_phone || undefined,
+      is_done: false,
+    };
+
+    try {
+      // 1️⃣ Insert the appointment
+      const { error: appointmentError } = await supabase
+        .from('appointments')
+        .insert([mapAppointmentToDb(newAppointment)]);
+      if (appointmentError) throw appointmentError;
+
+      // 2️⃣ Check if client exists (match by name and phone if phone exists)
+      let existingClients;
+      if (customer_phone) {
+        const { data } = await supabase
+          .from('clients')
+          .select('id')
+          .eq('name', customer_name)
+          .eq('phone', customer_phone);
+        existingClients = data;
+      } else {
+        const { data } = await supabase
+          .from('clients')
+          .select('id')
+          .eq('name', customer_name);
+        existingClients = data;
+      }
+
+      if (!existingClients?.length) {
+        // 3️⃣ Insert new client if not exists
+        const { error: clientError } = await supabase
+          .from('clients')
+          .insert([{ name: customer_name, phone: customer_phone || null }]);
+        if (clientError) throw clientError;
+      }
+
+      onAdded();
+      onClose();
+    } catch (err) {
+      console.error('Failed to add appointment or client', err);
+      alert('Failed to add appointment or client');
+    }
+  };
 
   const handleBackdropClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (e.target === e.currentTarget) onClose();
@@ -202,7 +212,7 @@ export default function AddAppointmentModal({
 
         {/* Customer Name */}
         <div className="row relative">
-          <span>Customer Name</span>
+          <span>Customer Name *</span>
           <input
             type="text"
             value={customer_name}
@@ -237,7 +247,7 @@ export default function AddAppointmentModal({
                     (e.currentTarget.style.background = 'transparent')
                   }
                 >
-                  {c.name} – {c.phone}
+                  {c.name} – {c.phone || 'No phone'}
                 </li>
               ))}
               {!exactMatchExists && (
@@ -260,21 +270,22 @@ export default function AddAppointmentModal({
 
         {/* Customer Phone */}
         <div className="row">
-          <span>Phone</span>
+          <span>Phone (optional)</span>
           <input
             type="text"
             value={customer_phone}
             onChange={e => setCustomerPhone(e.target.value)}
+            placeholder="Optional"
           />
         </div>
 
         {/* Date & Time */}
         <div className="row">
-          <span>Date</span>
+          <span>Date *</span>
           <input type="date" value={date} onChange={e => setDate(e.target.value)} />
         </div>
         <div className="row">
-          <span>Time</span>
+          <span>Time *</span>
           <input type="time" value={time} onChange={e => setTime(e.target.value)} />
         </div>
 
