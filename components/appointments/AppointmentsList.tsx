@@ -1,7 +1,7 @@
 // AppointmentList.tsx
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Appointment } from '@/types';
 import { supabase } from '@/lib/supabase';
 
