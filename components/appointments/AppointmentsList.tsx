@@ -652,7 +652,6 @@ await supabase.from('appointments')
         </div>
     )}
   </div>
-)}
 
                   {/* Phone Number with Call Button */}
                   {apt.customer_phone && (
