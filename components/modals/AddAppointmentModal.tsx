@@ -59,6 +59,7 @@ export default function AddAppointmentModal({
     const matches = clients.filter(c =>
       c.name.toLowerCase().includes(customerName.toLowerCase())
     );
+
     setMatchedClients(matches);
   }, [customerName, clients]);
 
@@ -94,7 +95,6 @@ export default function AddAppointmentModal({
     };
 
     try {
-      // Insert appointment directly into Supabase
       const { error } = await supabase.from('appointments').insert([newAppointment]);
       if (error) throw error;
 
