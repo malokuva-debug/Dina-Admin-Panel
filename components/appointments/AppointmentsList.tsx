@@ -278,25 +278,34 @@ const handleAddClientFromAppointment = async (name: string, phone?: string) => {
   });
 
   return (
-    <div id="appointmentsList">
-      {sortedAppointments.map(apt => {
-        const isDone = apt.is_done || false;
-        const status = apt.status || 'pending';
-        const duration = apt.duration || 60;
-        const estimatedCompletion = calculateCompletionTime(apt.time, duration);
-        const statusStyle = getStatusColor(status);
-        
-        return (
-          <div 
-            key={apt.id} 
-            className="card"
-            style={{
-              opacity: isDone || status === 'done' ? 0.6 : 1,
-              background: isDone || status === 'done' ? '#1a1a1c' : '#1c1c1e',
-              border: status === 'arrived' ? '2px solid #ff9500' : 
-                      status === 'confirmed' ? '2px solid #007aff' : 'none',
-            }}
-          >
+  <div id="appointmentsList">
+    {sortedAppointments.map((apt) => {
+      const isDone = apt.is_done || false;
+      const status = apt.status || 'pending';
+      const duration = apt.duration || 60;
+      const estimatedCompletion = calculateCompletionTime(apt.time, duration);
+      const statusStyle = getStatusColor(status);
+
+      return (
+        <div 
+          key={apt.id} 
+          className="card"
+          style={{
+            opacity: isDone || status === 'done' ? 0.6 : 1,
+            background: isDone || status === 'done' ? '#1a1a1c' : '#1c1c1e',
+            border: status === 'arrived' ? '2px solid #ff9500' : 
+                    status === 'confirmed' ? '2px solid #007aff' : 'none',
+          }}
+        >
+          <p>{apt.customer_name}</p>
+          <p>Time: {apt.time}</p>
+          <p>Estimated Completion: {estimatedCompletion}</p>
+          <p>Status: <span style={{color: statusStyle}}>{status}</span></p>
+        </div>
+      );
+    })}
+  </div>
+);
             <div style={{ marginBottom: '15px' }}>
               {/* Header with service name and status */}
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
