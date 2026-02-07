@@ -260,37 +260,33 @@ if (cls) {
 {/* Month Filter + Show Done Toggle */}
 <div
   style={{
-    display: 'grid',
-    gridTemplateColumns: '1fr 1fr',
-    gap: '12px',
+    display: 'flex',
+    gap: '10px',
     marginBottom: '15px',
-    maxWidth: '320px'
+    alignItems: 'center'
   }}
 >
   <input
     type="month"
     value={filterMonth}
     onChange={(e) => setFilterMonth(e.target.value)}
-    style={{
-      height: '42px',
-      padding: '0 10px',
-      borderRadius: '8px',
-      border: '1px solid #ccc'
-    }}
+    style={{ height: '42px' }}
   />
 
   <button
     onClick={() => setShowDone(prev => !prev)}
     title={showDone ? 'Hide done appointments' : 'Show done appointments'}
     style={{
-      height: '42px',
-      borderRadius: '8px',
+      height: '42px',               // 👈 SAME HEIGHT
+      padding: '0 12px',
       border: '1px solid #ccc',
-      background: showDone ? '#f2f2f2' : '#fff',
+      borderRadius: '8px',
+      background: 'transparent',
       cursor: 'pointer',
       display: 'flex',
       alignItems: 'center',
-      justifyContent: 'center'
+      justifyContent: 'center',
+      opacity: showDone ? 1 : 0.6
     }}
   >
     <EyeIcon open={showDone} />
