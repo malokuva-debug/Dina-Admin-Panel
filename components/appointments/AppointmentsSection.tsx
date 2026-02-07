@@ -270,15 +270,24 @@ if (cls) {
     type="month"
     value={filterMonth}
     onChange={(e) => setFilterMonth(e.target.value)}
-    style={{ height: '42px' }}
+    style={{
+      height: '42px',
+      padding: '0 10px',
+      border: '1px solid #ccc',
+      borderRadius: '8px',
+      fontSize: '14px',
+      lineHeight: '42px',        // 👈 IMPORTANT
+      boxSizing: 'border-box',   // 👈 IMPORTANT
+      background: '#fff'
+    }}
   />
 
   <button
     onClick={() => setShowDone(prev => !prev)}
     title={showDone ? 'Hide done appointments' : 'Show done appointments'}
     style={{
-      height: '42px',               // 👈 SAME HEIGHT
-      padding: '0 12px',
+      height: '42px',
+      width: '42px',             // optional, keeps it square & clean
       border: '1px solid #ccc',
       borderRadius: '8px',
       background: 'transparent',
