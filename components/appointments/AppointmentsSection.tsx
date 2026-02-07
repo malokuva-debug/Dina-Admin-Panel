@@ -275,10 +275,11 @@ if (cls) {
       minHeight: '42px',
       padding: '0 10px',
       borderRadius: '8px',
+      border: '1px solid #ccc',
       fontSize: '14px',
       boxSizing: 'border-box',
-      appearance: 'auto' // ✅ OK
-      // ❌ DO NOT add WebkitAppearance
+      appearance: 'auto',
+      outline: 'none' // 🚫 remove focus outline
     }}
   />
 
@@ -301,7 +302,7 @@ if (cls) {
   >
     <EyeIcon open={showDone} />
   </button>
-</div
+</div>
 
 <AppointmentsList
   appointments={visibleAppointments}
