@@ -263,7 +263,7 @@ if (cls) {
     display: 'flex',
     gap: '10px',
     marginBottom: '15px',
-    alignItems: 'flex-start' // 👈 allows fine adjustment
+    alignItems: 'center'
   }}
 >
   <input
@@ -271,7 +271,17 @@ if (cls) {
     value={filterMonth}
     onChange={(e) => setFilterMonth(e.target.value)}
     style={{
-      height: '42px'
+      height: '42px',
+      minHeight: '42px',
+      padding: '0 10px',
+      borderRadius: '8px',
+      border: '1px solid #ccc',
+      fontSize: '14px',
+      boxSizing: 'border-box',
+      appearance: 'auto',          // 👈 keep native
+      WebkitAppearance: 'auto',
+      backgroundColor: 'Canvas',   // 👈 browser native background
+      color: 'CanvasText',
     }}
   />
 
@@ -283,12 +293,11 @@ if (cls) {
       width: '42px',
       border: '1px solid #ccc',
       borderRadius: '8px',
-      background: 'transparent',
+      backgroundColor: 'Canvas',   // 👈 matches native input
       cursor: 'pointer',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      transform: 'translateY(-2px)', // 👈 small nudge up
       opacity: showDone ? 1 : 0.6
     }}
   >
