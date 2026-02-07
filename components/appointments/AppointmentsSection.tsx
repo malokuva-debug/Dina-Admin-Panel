@@ -278,10 +278,8 @@ if (cls) {
       border: '1px solid #ccc',
       fontSize: '14px',
       boxSizing: 'border-box',
-      appearance: 'auto',          // 👈 keep native
-      WebkitAppearance: 'auto',
-      backgroundColor: 'Canvas',   // 👈 browser native background
-      color: 'CanvasText',
+      appearance: 'auto' // ✅ OK
+      // ❌ DO NOT add WebkitAppearance
     }}
   />
 
@@ -293,7 +291,7 @@ if (cls) {
       width: '42px',
       border: '1px solid #ccc',
       borderRadius: '8px',
-      backgroundColor: 'Canvas',   // 👈 matches native input
+      background: 'transparent',
       cursor: 'pointer',
       display: 'flex',
       alignItems: 'center',
