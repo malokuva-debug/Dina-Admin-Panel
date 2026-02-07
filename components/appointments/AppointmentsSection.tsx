@@ -263,7 +263,7 @@ if (cls) {
     display: 'flex',
     gap: '10px',
     marginBottom: '15px',
-    alignItems: 'center'
+    alignItems: 'flex-start' // 👈 allows fine adjustment
   }}
 >
   <input
@@ -271,14 +271,7 @@ if (cls) {
     value={filterMonth}
     onChange={(e) => setFilterMonth(e.target.value)}
     style={{
-      height: '42px',
-      padding: '0 10px',
-      border: '1px solid #ccc',
-      borderRadius: '8px',
-      fontSize: '14px',
-      lineHeight: '42px',        // 👈 IMPORTANT
-      boxSizing: 'border-box',   // 👈 IMPORTANT
-      background: '#fff'
+      height: '42px'
     }}
   />
 
@@ -287,7 +280,7 @@ if (cls) {
     title={showDone ? 'Hide done appointments' : 'Show done appointments'}
     style={{
       height: '42px',
-      width: '42px',             // optional, keeps it square & clean
+      width: '42px',
       border: '1px solid #ccc',
       borderRadius: '8px',
       background: 'transparent',
@@ -295,6 +288,7 @@ if (cls) {
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
+      transform: 'translateY(-2px)', // 👈 small nudge up
       opacity: showDone ? 1 : 0.6
     }}
   >
