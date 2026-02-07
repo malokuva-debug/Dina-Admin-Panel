@@ -275,7 +275,6 @@ if (cls) {
       minHeight: '42px',
       padding: '0 10px',
       borderRadius: '8px',
-      border: '1px solid #ccc',
       fontSize: '14px',
       boxSizing: 'border-box',
       appearance: 'auto' // ✅ OK
@@ -296,12 +295,13 @@ if (cls) {
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      opacity: showDone ? 1 : 0.6
+      opacity: showDone ? 1 : 0.6,
+      transform: 'translateY(-4px)' // ⬆️ push a bit more up
     }}
   >
     <EyeIcon open={showDone} />
   </button>
-</div>
+</div
 
 <AppointmentsList
   appointments={visibleAppointments}
