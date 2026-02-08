@@ -15,6 +15,7 @@ interface AppointmentsListProps {
   onUpdateDate?: (id: string, date: string) => void;
   onUpdateTime?: (id: string, time: string) => void;
   onUpdateCustomerName?: (id: string, name: string) => void;
+  onUpdateWorker?: (id: string, newWorker: 'dina' | 'kida') => void;
   loading?: boolean;
 }
 
@@ -28,6 +29,7 @@ export default function AppointmentsList({
   onUpdateDate,
   onUpdateTime,
   onUpdateCustomerName,
+  onUpdateWorker,
   loading = false 
 }: AppointmentsListProps) {
   const [editingDuration, setEditingDuration] = useState<string | null>(null);
@@ -271,6 +273,17 @@ const getClientInfo = (apt: Appointment) => {
     setTempName('');
   };
 
+  const handleMoveToWorker = (id: string, currentWorker: 'dina' | 'kida', customerName: string) => {
+    const newWorker = currentWorker === 'dina' ? 'kida' : 'dina';
+    const newWorkerCaps = newWorker.charAt(0).toUpperCase() + newWorker.slice(1);
+    
+    if (confirm(`Move appointment for ${customerName} to ${newWorkerCaps}?`)) {
+      if (onUpdateWorker) {
+        onUpdateWorker(id, newWorker);
+      }
+    }
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'confirmed':
@@ -354,6 +367,7 @@ const getClientInfo = (apt: Appointment) => {
         const estimatedCompletion = calculateCompletionTime(apt.time, duration);
         const statusStyle = getStatusColor(status);
         const { name: customerName, phone: customerPhone } = getClientInfo(apt);
+        const otherWorker = apt.worker === 'dina' ? 'Kida' : 'Dina';
         
         return (
           <div 
@@ -936,8 +950,33 @@ const getClientInfo = (apt: Appointment) => {
               </div>
             )}
 
-            {/* Delete Button */}
+            {/* Move to Worker + Delete Buttons */}
             <div style={{ display: 'flex', gap: '10px' }}>
+              {onUpdateWorker && (
+                <button
+                  onClick={() => handleMoveToWorker(apt.id, apt.worker as 'dina' | 'kida', customerName || apt.service)}
+                  style={{
+                    flex: 1,
+                    padding: '12px',
+                    background: '#ff9500',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '8px',
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '6px',
+                  }}
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path>
+                  </svg>
+                  Move to {otherWorker}
+                </button>
+              )}
               <button
                 onClick={() => handleDelete(apt.id, apt.service)}
                 className="btn-remove"
