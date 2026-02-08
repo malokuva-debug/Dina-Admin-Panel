@@ -16,21 +16,12 @@ if (!vapidPublicKey || !vapidPrivateKey || !vapidEmail) {
 const BUSINESS_TIMEZONE = 'America/New_York';
 
 /**
- * Get current date in NY timezone (as Date object in UTC representing NY time)
+ * Get current time in NY timezone
  */
-function getNowNY() {
-  return new Date(new Date().toLocaleString('en-US', { 
-    timeZone: BUSINESS_TIMEZONE 
-  }));
-}
-
-/**
- * Convert appointment datetime (stored as UTC) to NY timezone equivalent
- */
-function getAppointmentDateTime(datetime: string) {
-  const utcDate = new Date(datetime);
-  // Convert UTC to NY local time string, then parse as Date
-  const nyTimeString = utcDate.toLocaleString('en-US', {
+function getNowNY(): Date {
+  const now = new Date();
+  // Get the time in NY as a properly formatted ISO-like string
+  const formatter = new Intl.DateTimeFormat('en-US', {
     timeZone: BUSINESS_TIMEZONE,
     year: 'numeric',
     month: '2-digit',
@@ -38,9 +29,24 @@ function getAppointmentDateTime(datetime: string) {
     hour: '2-digit',
     minute: '2-digit',
     second: '2-digit',
-    hour12: false
+    hour12: false,
   });
-  return new Date(nyTimeString);
+  
+  const parts = formatter.formatToParts(now);
+  const get = (type: string) => parts.find(p => p.type === type)?.value;
+  
+  // Create date string: YYYY-MM-DDTHH:mm:ss
+  const nyDateStr = `${get('year')}-${get('month')}-${get('day')}T${get('hour')}:${get('minute')}:${get('second')}`;
+  return new Date(nyDateStr);
+}
+
+/**
+ * Parse appointment datetime (stored as YYYY-MM-DD HH:mm:ss in NY timezone)
+ */
+function getAppointmentDateTime(datetime: string): Date {
+  // Datetime from DB is like "2026-02-08T15:30:00" - treat as NY time
+  // Just parse it directly as a naive timestamp
+  return new Date(datetime.replace(' ', 'T'));
 }
 
 export async function GET(request: Request) {
@@ -90,6 +96,9 @@ export async function GET(request: Request) {
 
         debugLogs.push({
           id: appointment.id,
+          datetime: appointment.datetime,
+          appointmentTime: appointmentTime.toISOString(),
+          nowTime: now.toISOString(),
           minutesUntil,
           in1HourWindow,
           in30MinWindow,
