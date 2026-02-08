@@ -16,25 +16,31 @@ if (!vapidPublicKey || !vapidPrivateKey || !vapidEmail) {
 const BUSINESS_TIMEZONE = 'America/New_York';
 
 /**
- * Get current date in NY timezone (as Date object)
+ * Get current date in NY timezone (as Date object in UTC representing NY time)
  */
 function getNowNY() {
-  const now = new Date();
-  const ny = new Date(
-    now.toLocaleString('en-US', { timeZone: BUSINESS_TIMEZONE })
-  );
-  return ny;
+  return new Date(new Date().toLocaleString('en-US', { 
+    timeZone: BUSINESS_TIMEZONE 
+  }));
 }
 
 /**
- * Create Date object from appointment datetime (NY time)
+ * Convert appointment datetime (stored as UTC) to NY timezone equivalent
  */
 function getAppointmentDateTime(datetime: string) {
-  return new Date(
-    new Date(datetime).toLocaleString('en-US', {
-      timeZone: BUSINESS_TIMEZONE,
-    })
-  );
+  const utcDate = new Date(datetime);
+  // Convert UTC to NY local time string, then parse as Date
+  const nyTimeString = utcDate.toLocaleString('en-US', {
+    timeZone: BUSINESS_TIMEZONE,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false
+  });
+  return new Date(nyTimeString);
 }
 
 export async function GET(request: Request) {
