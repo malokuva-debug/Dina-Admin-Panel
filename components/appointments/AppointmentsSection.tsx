@@ -49,7 +49,7 @@ export default function AppointmentsSection({ worker }: AppointmentsSectionProps
   const [services, setServices] = useState<Service[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [workers, setWorkers] = useState<Worker[]>(['dina', 'kida']);
-  const [clients, setClients] = useState<Client[]>([]); // <-- ADD THIS
+  const [clients, setClients] = useState<Client[]>([]);
 
   // Fetch categories, services, and clients
   useEffect(() => {
@@ -59,21 +59,21 @@ export default function AppointmentsSection({ worker }: AppointmentsSectionProps
         const { data: svcs } = await supabase.from('services').select('*');
         const { data: cls } = await supabase.from('clients').select('*');
 
-if (cls) {
-  const normalizedClients: Client[] = cls
-    .filter(
-      (c): c is { id: string; name: string; phone: string; email?: string } =>
-        typeof c.phone === 'string' && c.phone.trim() !== ''
-    )
-    .map(c => ({
-      id: c.id,
-      name: c.name,
-      phone: c.phone,
-      email: c.email ?? undefined,
-    }));
+        if (cls) {
+          const normalizedClients: Client[] = cls
+            .filter(
+              (c): c is { id: string; name: string; phone: string; email?: string } =>
+                typeof c.phone === 'string' && c.phone.trim() !== ''
+            )
+            .map(c => ({
+              id: c.id,
+              name: c.name,
+              phone: c.phone,
+              email: c.email ?? undefined,
+            }));
 
-  setClients(normalizedClients);
-}
+          setClients(normalizedClients);
+        }
 
         if (cats) setCategories(cats as Category[]);
         if (svcs) setServices(svcs as Service[]);
@@ -249,72 +249,95 @@ if (cls) {
     }
   };
 
+  const handleUpdateWorker = async (id: string, newWorker: 'dina' | 'kida') => {
+    try {
+      if (storageMode === 'supabase') {
+        const { error } = await supabase
+          .from('appointments')
+          .update({ worker: newWorker })
+          .eq('id', id);
+        if (error) throw error;
+      } else {
+        const allAppointments = (storage.get(STORAGE_KEYS.APPOINTMENTS) as Appointment[]) || [];
+        const updated = allAppointments.map((apt) =>
+          apt.id === id ? { ...apt, worker: newWorker } : apt
+        );
+        storage.set(STORAGE_KEYS.APPOINTMENTS, updated);
+      }
+      await refresh();
+    } catch (error) {
+      console.error('Error updating worker:', error);
+      alert('Failed to transfer appointment');
+    }
+  };
+
   const visibleAppointments = showDone
-  ? appointments
-  : appointments.filter(a => !a.is_done && a.status !== 'done');
+    ? appointments
+    : appointments.filter(a => !a.is_done && a.status !== 'done');
 
   return (
     <div id="appointments">
       <h2>Appointments</h2>
 
-{/* Month Filter + Show Done Toggle */}
-<div
-  style={{
-    display: 'flex',
-    gap: '10px',
-    marginBottom: '15px',
-    alignItems: 'center'
-  }}
->
-  <input
-    type="month"
-    value={filterMonth}
-    onChange={(e) => setFilterMonth(e.target.value)}
-    style={{
-      height: '42px',
-      minHeight: '42px',
-      padding: '0 10px',
-      borderRadius: '8px',
-      fontSize: '14px',
-      boxSizing: 'border-box',
-      appearance: 'auto',
-      outline: 'none' // 🚫 remove focus outline
-    }}
-  />
+      {/* Month Filter + Show Done Toggle */}
+      <div
+        style={{
+          display: 'flex',
+          gap: '10px',
+          marginBottom: '15px',
+          alignItems: 'center'
+        }}
+      >
+        <input
+          type="month"
+          value={filterMonth}
+          onChange={(e) => setFilterMonth(e.target.value)}
+          style={{
+            height: '42px',
+            minHeight: '42px',
+            padding: '0 10px',
+            borderRadius: '8px',
+            fontSize: '14px',
+            boxSizing: 'border-box',
+            appearance: 'auto',
+            outline: 'none'
+          }}
+        />
 
-  <button
-    onClick={() => setShowDone(prev => !prev)}
-    title={showDone ? 'Hide done appointments' : 'Show done appointments'}
-    style={{
-      height: '42px',
-      width: '42px',
-      border: '1px solid #ccc',
-      borderRadius: '8px',
-      background: 'transparent',
-      cursor: 'pointer',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      opacity: showDone ? 1 : 0.6,
-      transform: 'translateY(-5px)' // ⬆️ push a bit more up
-    }}
-  >
-    <EyeIcon open={showDone} />
-  </button>
-</div>
+        <button
+          onClick={() => setShowDone(prev => !prev)}
+          title={showDone ? 'Hide done appointments' : 'Show done appointments'}
+          style={{
+            height: '42px',
+            width: '42px',
+            border: '1px solid #ccc',
+            borderRadius: '8px',
+            background: 'transparent',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            opacity: showDone ? 1 : 0.6,
+            transform: 'translateY(-5px)'
+          }}
+        >
+          <EyeIcon open={showDone} />
+        </button>
+      </div>
 
-<AppointmentsList
-  appointments={visibleAppointments}
-  onDelete={handleDelete}
-  onMarkDone={handleMarkDone}
-  onUpdateStatus={handleUpdateStatus}
-  onUpdateCompletionTime={handleUpdateCompletionTime}
-  onUpdateDuration={handleUpdateDuration}
-  onUpdateDate={handleUpdateDate}
-  onUpdateTime={handleUpdateTime}
-  onUpdateCustomerName={handleUpdateCustomerName}
-  loading={loading}
-/>
+      <AppointmentsList
+        appointments={visibleAppointments}
+        onDelete={handleDelete}
+        onMarkDone={handleMarkDone}
+        onUpdateStatus={handleUpdateStatus}
+        onUpdateCompletionTime={handleUpdateCompletionTime}
+        onUpdateDuration={handleUpdateDuration}
+        onUpdateDate={handleUpdateDate}
+        onUpdateTime={handleUpdateTime}
+        onUpdateCustomerName={handleUpdateCustomerName}
+        onUpdateWorker={handleUpdateWorker}
+        loading={loading}
+      />
 
       <div style={{ marginTop: '20px', textAlign: 'center' }}>
         <button
@@ -339,7 +362,7 @@ if (cls) {
           workers={workers}
           categories={categories}
           services={services}
-          clients={clients}  // <-- NOW DEFINED
+          clients={clients}
           onClose={() => setModalOpen(false)}
           onAdded={refresh}
         />
