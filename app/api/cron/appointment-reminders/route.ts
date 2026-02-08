@@ -123,13 +123,13 @@ export async function GET(request: Request) {
         console.log(`📣 Sending ${reminderType} reminder → ${appointment.id}`);
 
         // 🔔 Fetch push subscription (get the most recent one)
-const { data: subData, error: subError } = await supabase
-  .from('push_subscriptions')
-  .select('subscription')
-  .eq('user_id', appointment.worker)
-  .order('created_at', { ascending: false })
-  .limit(1)
-  .maybeSingle();
+        const { data: subData, error: subError } = await supabase
+          .from('push_subscriptions')
+          .select('subscription')
+          .eq('user_id', appointment.worker)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
 
         if (subError || !subData?.subscription) {
           errors.push({
