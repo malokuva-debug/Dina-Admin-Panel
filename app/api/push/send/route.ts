@@ -1,4 +1,4 @@
-// app/api/appointments/route.ts (or wherever your send logic is)
+// app/api/appointments/route.ts
 import { NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
 import webpush from 'web-push';
@@ -19,7 +19,7 @@ export async function POST(request: Request) {
     const body = await request.json();
     console.log('Body parsed:', body);
     
-    const { date, service, clientName, worker, price = 0 } = body;
+    const { date, service, clientName, worker, price = 0, customerPhone } = body;
     
     if (!date || !service || !clientName || !worker) {
       return NextResponse.json(
@@ -31,11 +31,27 @@ export async function POST(request: Request) {
     // Extract date and time from the ISO string
     const dateObj = new Date(date);
     const dateString = dateObj.toISOString().split('T')[0];
-    const timeString = dateObj.toTimeString().slice(0, 5);
+    const timeString = dateObj.toTimeString().slice(0, 8); // HH:MM:SS format
     
-    console.log('Inserting appointment...');
+    // Calculate duration based on service
+    const serviceDurations: Record<string, number> = {
+      'Russian Hard Gel Manicure': 75,
+      'Russian Gel Manicure': 60,
+      'Pedicure': 45,
+      'Manicure': 45,
+      'Gel Polish': 30,
+    };
     
-    // Insert appointment
+    const duration = serviceDurations[service] || 60;
+    
+    // Calculate estimated completion time
+    const estimatedCompletion = new Date(dateObj);
+    estimatedCompletion.setMinutes(estimatedCompletion.getMinutes() + duration);
+    const estimatedCompletionTime = estimatedCompletion.toTimeString().slice(0, 8);
+    
+    console.log('Inserting appointment with datetime:', dateObj.toISOString());
+    
+    // Insert appointment with all required fields
     const { data: appointment, error: insertError } = await supabase
       .from('appointments')
       .insert({
@@ -45,73 +61,89 @@ export async function POST(request: Request) {
         service,
         price: price,
         customer_name: clientName,
+        customer_phone: customerPhone || null,
+        status: 'pending',
+        is_done: false,
+        duration: duration,
+        datetime: dateObj.toISOString(),
+        estimated_completion_time: estimatedCompletionTime,
+        reminder_sent: false,
+        reminder_1hour_sent_at: null,
+        reminder_30min_sent_at: null,
       })
       .select()
       .single();
 
     if (insertError) {
-      console.error('Insert error:', insertError);
+      console.error('❌ Insert error:', insertError);
       return NextResponse.json(
         { error: insertError.message },
         { status: 500 }
       );
     }
 
-    console.log('Appointment created:', appointment);
+    console.log('✅ Appointment created:', appointment.id);
 
-    // 🔥 UPDATED: Send push notification to ALL devices for this worker
+    // Send push notification to ALL devices for this worker
     try {
-      console.log(`Fetching ALL push subscriptions for ${worker}...`);
+      console.log(`📱 Fetching push subscriptions for ${worker}...`);
       
-      // Changed from .single() to get all subscriptions
       const { data: subscriptions, error: subError } = await supabase
         .from('push_subscriptions')
-        .select('subscription, endpoint')
-        .eq('user_id', worker); // Use the worker from the appointment
+        .select('subscription, endpoint, id')
+        .eq('user_id', worker);
 
-      console.log('Subscriptions found:', subscriptions?.length || 0);
+      if (subError) {
+        console.error('❌ Subscription fetch error:', subError);
+      }
 
-      if (!subError && subscriptions && subscriptions.length > 0) {
+      console.log(`Found ${subscriptions?.length || 0} subscriptions`);
+
+      if (subscriptions && subscriptions.length > 0) {
         const payload = JSON.stringify({
           title: '📅 New Appointment',
-          body: `${clientName} booked ${service} on ${dateObj.toLocaleDateString()} at ${timeString}`,
+          body: `${clientName} booked ${service} on ${dateObj.toLocaleDateString()} at ${timeString.slice(0, 5)}`,
           icon: '/icon.png',
           badge: '/icon.png',
-          data: { type: 'new_appointment', appointment },
+          tag: `appointment-${appointment.id}`,
+          data: { 
+            type: 'new_appointment', 
+            appointmentId: appointment.id,
+            url: '/' // URL to open when clicked
+          },
         });
 
-        // Send notification to ALL subscriptions
-        const sendPromises = subscriptions.map(async (sub) => {
+        let successCount = 0;
+        let failCount = 0;
+
+        for (const sub of subscriptions) {
           try {
-            console.log('Sending to endpoint:', sub.endpoint);
+            console.log(`Sending to: ${sub.endpoint.substring(0, 50)}...`);
             await webpush.sendNotification(sub.subscription, payload);
-            console.log('✅ Notification sent to:', sub.endpoint);
-            return { success: true, endpoint: sub.endpoint };
+            console.log('✅ Sent successfully');
+            successCount++;
           } catch (err: any) {
-            console.error('❌ Failed to send to:', sub.endpoint, err);
+            console.error('❌ Send failed:', err.message);
+            failCount++;
             
-            // If subscription is expired/invalid, delete it
+            // Remove invalid subscriptions
             if (err.statusCode === 410 || err.statusCode === 404) {
-              console.log('Removing invalid subscription:', sub.endpoint);
+              console.log('🗑️ Removing invalid subscription');
               await supabase
                 .from('push_subscriptions')
                 .delete()
-                .eq('endpoint', sub.endpoint);
+                .eq('id', sub.id);
             }
-            
-            return { success: false, endpoint: sub.endpoint, error: err.message };
           }
-        });
+        }
 
-        const results = await Promise.all(sendPromises);
-        const successCount = results.filter(r => r.success).length;
-        console.log(`✅ Notifications sent: ${successCount}/${subscriptions.length}`);
+        console.log(`📊 Results: ${successCount} sent, ${failCount} failed`);
       } else {
-        console.log(`⚠️ No push subscriptions found for ${worker}`);
+        console.log('⚠️ No subscriptions found for worker:', worker);
       }
     } catch (notifError: any) {
-      console.error('❌ Notification error:', notifError);
-      // Don't fail the whole request
+      console.error('❌ Notification error:', notifError.message);
+      // Don't fail the request
     }
 
     console.log('=== SUCCESS ===');
@@ -121,7 +153,7 @@ export async function POST(request: Request) {
       appointment,
     });
   } catch (err: any) {
-    console.error('=== CAUGHT ERROR ===');
+    console.error('=== FATAL ERROR ===');
     console.error('Message:', err?.message);
     console.error('Stack:', err?.stack);
     
