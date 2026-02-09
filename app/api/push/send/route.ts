@@ -63,11 +63,12 @@ export async function POST(request: Request) {
     try {
       console.log(`Fetching ALL push subscriptions for ${worker}...`);
       
-      // Changed from .single() to get all subscriptions
+      // Get all subscriptions for this worker, ordered by most recent first
       const { data: subscriptions, error: subError } = await supabase
         .from('push_subscriptions')
-        .select('subscription, endpoint')
-        .eq('user_id', worker); // Use the worker from the appointment
+        .select('subscription, endpoint, created_at')
+        .eq('user_id', worker)
+        .order('created_at', { ascending: false });
 
       console.log('Subscriptions found:', subscriptions?.length || 0);
 
@@ -84,7 +85,14 @@ export async function POST(request: Request) {
         const sendPromises = subscriptions.map(async (sub) => {
           try {
             console.log('Sending to endpoint:', sub.endpoint);
-            await webpush.sendNotification(sub.subscription, payload);
+            
+            // 🔥 CRITICAL FIX: Parse the subscription if it's a string
+            let subscriptionObj = sub.subscription;
+            if (typeof subscriptionObj === 'string') {
+              subscriptionObj = JSON.parse(subscriptionObj);
+            }
+            
+            await webpush.sendNotification(subscriptionObj, payload);
             console.log('✅ Notification sent to:', sub.endpoint);
             return { success: true, endpoint: sub.endpoint };
           } catch (err: any) {
@@ -106,20 +114,43 @@ export async function POST(request: Request) {
         const results = await Promise.all(sendPromises);
         const successCount = results.filter(r => r.success).length;
         console.log(`✅ Notifications sent: ${successCount}/${subscriptions.length}`);
+        
+        return NextResponse.json({
+          success: true,
+          appointment,
+          notifications: {
+            sent: successCount,
+            total: subscriptions.length,
+            results: results
+          }
+        });
       } else {
         console.log(`⚠️ No push subscriptions found for ${worker}`);
+        
+        return NextResponse.json({
+          success: true,
+          appointment,
+          notifications: {
+            sent: 0,
+            total: 0,
+            warning: 'No push subscriptions found'
+          }
+        });
       }
     } catch (notifError: any) {
       console.error('❌ Notification error:', notifError);
-      // Don't fail the whole request
+      
+      // Don't fail the whole request, but return the error info
+      return NextResponse.json({
+        success: true,
+        appointment,
+        notifications: {
+          error: notifError.message,
+          sent: 0,
+          total: 0
+        }
+      });
     }
-
-    console.log('=== SUCCESS ===');
-    
-    return NextResponse.json({
-      success: true,
-      appointment,
-    });
   } catch (err: any) {
     console.error('=== CAUGHT ERROR ===');
     console.error('Message:', err?.message);
