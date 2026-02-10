@@ -864,7 +864,7 @@ const getClientInfo = (apt: Appointment) => {
             </div>
 
             {/* Status Action Buttons */}
-            {onUpdateStatus && status !== 'done' && (
+            {onUpdateStatus && (
               <div style={{ display: 'flex', gap: '8px', marginBottom: '10px', flexWrap: 'wrap' }}>
                 {status === 'pending' && (
                   <button
@@ -894,15 +894,122 @@ const getClientInfo = (apt: Appointment) => {
                 )}
                 
                 {status === 'confirmed' && (
+                  <>
+                    <button
+                      onClick={() => handleStatusChange(apt.id, 'arrived')}
+                      style={{
+                        flex: 1,
+                        minWidth: '120px',
+                        padding: '10px',
+                        background: '#ff9500',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '8px',
+                        fontSize: '13px',
+                        fontWeight: '600',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '6px',
+                      }}
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M9 11l3 3l8 -8"></path>
+                        <path d="M20 12v6a2 2 0 0 1 -2 2h-12a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h9"></path>
+                      </svg>
+                      Mark Arrived
+                    </button>
+                    <button
+                      onClick={() => handleStatusChange(apt.id, 'pending')}
+                      style={{
+                        flex: 1,
+                        minWidth: '120px',
+                        padding: '10px',
+                        background: '#2c2c2e',
+                        color: 'white',
+                        border: '1px solid #3a3a3c',
+                        borderRadius: '8px',
+                        fontSize: '13px',
+                        fontWeight: '600',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '6px',
+                      }}
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M19 12H5M12 19l-7-7 7-7"></path>
+                      </svg>
+                      Revert to Pending
+                    </button>
+                  </>
+                )}
+                
+                {status === 'arrived' && (
+                  <>
+                    <button
+                      onClick={() => handleStatusChange(apt.id, 'done')}
+                      style={{
+                        flex: 1,
+                        minWidth: '120px',
+                        padding: '10px',
+                        background: '#34c759',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '8px',
+                        fontSize: '13px',
+                        fontWeight: '600',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '6px',
+                      }}
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M5 12l5 5l10 -10"></path>
+                      </svg>
+                      Complete
+                    </button>
+                    <button
+                      onClick={() => handleStatusChange(apt.id, 'confirmed')}
+                      style={{
+                        flex: 1,
+                        minWidth: '120px',
+                        padding: '10px',
+                        background: '#2c2c2e',
+                        color: 'white',
+                        border: '1px solid #3a3a3c',
+                        borderRadius: '8px',
+                        fontSize: '13px',
+                        fontWeight: '600',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '6px',
+                      }}
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M19 12H5M12 19l-7-7 7-7"></path>
+                      </svg>
+                      Revert to Confirm
+                    </button>
+                  </>
+                )}
+
+                {status === 'done' && (
                   <button
                     onClick={() => handleStatusChange(apt.id, 'arrived')}
                     style={{
                       flex: 1,
                       minWidth: '120px',
                       padding: '10px',
-                      background: '#ff9500',
+                      background: '#2c2c2e',
                       color: 'white',
-                      border: 'none',
+                      border: '1px solid #3a3a3c',
                       borderRadius: '8px',
                       fontSize: '13px',
                       fontWeight: '600',
@@ -914,37 +1021,9 @@ const getClientInfo = (apt: Appointment) => {
                     }}
                   >
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d="M9 11l3 3l8 -8"></path>
-                      <path d="M20 12v6a2 2 0 0 1 -2 2h-12a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h9"></path>
+                      <path d="M19 12H5M12 19l-7-7 7-7"></path>
                     </svg>
-                    Mark Arrived
-                  </button>
-                )}
-                
-                {status === 'arrived' && (
-                  <button
-                    onClick={() => handleStatusChange(apt.id, 'done')}
-                    style={{
-                      flex: 1,
-                      minWidth: '120px',
-                      padding: '10px',
-                      background: '#34c759',
-                      color: 'white',
-                      border: 'none',
-                      borderRadius: '8px',
-                      fontSize: '13px',
-                      fontWeight: '600',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '6px',
-                    }}
-                  >
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d="M5 12l5 5l10 -10"></path>
-                    </svg>
-                    Complete
+                    Revert to Arrived
                   </button>
                 )}
               </div>
