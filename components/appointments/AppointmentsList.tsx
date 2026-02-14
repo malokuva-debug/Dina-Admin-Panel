@@ -17,6 +17,8 @@ interface AppointmentsListProps {
   onUpdateCustomerName?: (id: string, name: string) => void;
   onUpdateWorker?: (id: string, newWorker: 'dina' | 'kida') => void;
   loading?: boolean;
+  onRemoveAdditionalService?: (id: string, index: number) => void;
+onRevertDiscount?: (id: string) => void;
 onAddAdditionalService?: (
   id: string,
   name: string,
@@ -37,6 +39,8 @@ export default function AppointmentsList({
   onUpdateTime,
   onUpdateCustomerName,
   onUpdateWorker,
+  onRemoveAdditionalService,
+  onRevertDiscount,
   onAddAdditionalService,          // ✅ ADD THIS
   onFifthVisitDiscount,            // ✅ ADD THIS
   loading = false 
@@ -1038,6 +1042,48 @@ const getClientInfo = (apt: Appointment) => {
               </div>
             )}
 
+{/* Additional Services List */}
+{apt.additional_services && apt.additional_services.length > 0 && (
+  <div style={{ marginBottom: '10px' }}>
+    {apt.additional_services.map((extra, index) => (
+      <div
+        key={index}
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          background: '#2c2c2e',
+          padding: '6px 10px',
+          borderRadius: '6px',
+          marginBottom: '6px',
+          fontSize: '13px',
+        }}
+      >
+        <span>
+          + {extra.name} (${extra.price.toFixed(2)})
+        </span>
+
+        {onRemoveAdditionalService && (
+          <button
+            onClick={() => onRemoveAdditionalService(apt.id, index)}
+            style={{
+              background: '#ff3b30',
+              border: 'none',
+              color: 'white',
+              borderRadius: '4px',
+              padding: '2px 6px',
+              cursor: 'pointer',
+              fontSize: '12px',
+            }}
+          >
+            ✕
+          </button>
+        )}
+      </div>
+    ))}
+  </div>
+)}
+
 {/* Additional Service + 5th Visit Discount */}
 <div style={{ display: 'flex', gap: '10px', marginBottom: '10px' }}>
   {onAddAdditionalService && (
@@ -1072,27 +1118,52 @@ const getClientInfo = (apt: Appointment) => {
     </button>
   )}
 
-  {onFifthVisitDiscount && (
-    <button
-      onClick={() => {
-        if (confirm('Apply 50% 5th visit discount?')) {
-          onFifthVisitDiscount(apt.id);
-        }
-      }}
-      style={{
-        flex: 1,
-        padding: '10px',
-        background: '#ff3b30',
-        color: 'white',
-        border: 'none',
-        borderRadius: '8px',
-        fontSize: '13px',
-        fontWeight: '600',
-        cursor: 'pointer',
-      }}
-    >
-      5th Visit -50%
-    </button>
+  {apt.discount_applied ? (
+    onRevertDiscount && (
+      <button
+        onClick={() => {
+          if (confirm('Revert 50% discount?')) {
+            onRevertDiscount(apt.id);
+          }
+        }}
+        style={{
+          flex: 1,
+          padding: '10px',
+          background: '#8e8e93',
+          color: 'white',
+          border: 'none',
+          borderRadius: '8px',
+          fontSize: '13px',
+          fontWeight: '600',
+          cursor: 'pointer',
+        }}
+      >
+        Revert Discount
+      </button>
+    )
+  ) : (
+    onFifthVisitDiscount && (
+      <button
+        onClick={() => {
+          if (confirm('Apply 50% 5th visit discount?')) {
+            onFifthVisitDiscount(apt.id);
+          }
+        }}
+        style={{
+          flex: 1,
+          padding: '10px',
+          background: '#ff3b30',
+          color: 'white',
+          border: 'none',
+          borderRadius: '8px',
+          fontSize: '13px',
+          fontWeight: '600',
+          cursor: 'pointer',
+        }}
+      >
+        5th Visit -50%
+      </button>
+    )
   )}
 </div>
 
