@@ -321,6 +321,99 @@ const handleAddAdditionalService = async (
   }
 };
 
+const handleRemoveAdditionalService = async (
+  id: string,
+  index: number
+) => {
+  try {
+    const appointment = appointments.find(a => a.id === id);
+    if (!appointment || !appointment.additional_services) return;
+
+    const serviceToRemove = appointment.additional_services[index];
+
+    const updatedServices = appointment.additional_services.filter(
+      (_, i) => i !== index
+    );
+
+    const newPrice = appointment.price - serviceToRemove.price;
+
+    if (storageMode === 'supabase') {
+      const { error } = await supabase
+        .from('appointments')
+        .update({
+          price: newPrice,
+          additional_services: updatedServices.length
+            ? updatedServices
+            : null
+        })
+        .eq('id', id);
+
+      if (error) throw error;
+    } else {
+      const allAppointments =
+        (storage.get(STORAGE_KEYS.APPOINTMENTS) as Appointment[]) || [];
+
+      const updated = allAppointments.map(apt =>
+        apt.id === id
+          ? {
+              ...apt,
+              price: newPrice,
+              additional_services: updatedServices
+            }
+          : apt
+      );
+
+      storage.set(STORAGE_KEYS.APPOINTMENTS, updated);
+    }
+
+    await refresh();
+  } catch (error) {
+    console.error('Error removing additional service:', error);
+    alert('Failed to remove additional service');
+  }
+};
+
+const handleRevertDiscount = async (id: string) => {
+  try {
+    const appointment = appointments.find(a => a.id === id);
+    if (!appointment || !appointment.discount_applied) return;
+
+    const restoredPrice = appointment.price * 2;
+
+    if (storageMode === 'supabase') {
+      const { error } = await supabase
+        .from('appointments')
+        .update({
+          price: restoredPrice,
+          discount_applied: false
+        })
+        .eq('id', id);
+
+      if (error) throw error;
+    } else {
+      const allAppointments =
+        (storage.get(STORAGE_KEYS.APPOINTMENTS) as Appointment[]) || [];
+
+      const updated = allAppointments.map(apt =>
+        apt.id === id
+          ? {
+              ...apt,
+              price: restoredPrice,
+              discount_applied: false
+            }
+          : apt
+      );
+
+      storage.set(STORAGE_KEYS.APPOINTMENTS, updated);
+    }
+
+    await refresh();
+  } catch (error) {
+    console.error('Error reverting discount:', error);
+    alert('Failed to revert discount');
+  }
+};
+
 const handleFifthVisitDiscount = async (id: string) => {
   try {
     const appointment = appointments.find(a => a.id === id);
@@ -429,6 +522,8 @@ const handleFifthVisitDiscount = async (id: string) => {
   onUpdateWorker={handleUpdateWorker}
   onAddAdditionalService={handleAddAdditionalService}
   onFifthVisitDiscount={handleFifthVisitDiscount}
+  onRemoveAdditionalService={handleRemoveAdditionalService}
+  onRevertDiscount={handleRevertDiscount}
   loading={loading}
 />
 
