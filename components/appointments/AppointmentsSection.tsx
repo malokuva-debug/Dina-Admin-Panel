@@ -271,6 +271,97 @@ export default function AppointmentsSection({ worker }: AppointmentsSectionProps
     }
   };
 
+const handleAddAdditionalService = async (
+  id: string,
+  additionalName: string,
+  additionalPrice: number
+) => {
+  try {
+    const appointment = appointments.find(a => a.id === id);
+    if (!appointment) return;
+
+    const newPrice = appointment.price + additionalPrice;
+
+    const updatedAdditionalServices = [
+      ...(appointment.additional_services || []),
+      { name: additionalName, price: additionalPrice }
+    ];
+
+    if (storageMode === 'supabase') {
+      const { error } = await supabase
+        .from('appointments')
+        .update({
+          price: newPrice,
+          additional_services: updatedAdditionalServices
+        })
+        .eq('id', id);
+
+      if (error) throw error;
+    } else {
+      const allAppointments =
+        (storage.get(STORAGE_KEYS.APPOINTMENTS) as Appointment[]) || [];
+
+      const updated = allAppointments.map(apt =>
+        apt.id === id
+          ? {
+              ...apt,
+              price: newPrice,
+              additional_services: updatedAdditionalServices
+            }
+          : apt
+      );
+
+      storage.set(STORAGE_KEYS.APPOINTMENTS, updated);
+    }
+
+    await refresh();
+  } catch (error) {
+    console.error('Error adding additional service:', error);
+    alert('Failed to add additional service');
+  }
+};
+
+const handleFifthVisitDiscount = async (id: string) => {
+  try {
+    const appointment = appointments.find(a => a.id === id);
+    if (!appointment) return;
+
+    const discountedPrice = appointment.price * 0.5;
+
+    if (storageMode === 'supabase') {
+      const { error } = await supabase
+        .from('appointments')
+        .update({
+          price: discountedPrice,
+          discount_applied: true
+        })
+        .eq('id', id);
+
+      if (error) throw error;
+    } else {
+      const allAppointments =
+        (storage.get(STORAGE_KEYS.APPOINTMENTS) as Appointment[]) || [];
+
+      const updated = allAppointments.map(apt =>
+        apt.id === id
+          ? {
+              ...apt,
+              price: discountedPrice,
+              discount_applied: true
+            }
+          : apt
+      );
+
+      storage.set(STORAGE_KEYS.APPOINTMENTS, updated);
+    }
+
+    await refresh();
+  } catch (error) {
+    console.error('Error applying discount:', error);
+    alert('Failed to apply 5th visit discount');
+  }
+};
+
   const visibleAppointments = showDone
     ? appointments
     : appointments.filter(a => !a.is_done && a.status !== 'done');
@@ -326,18 +417,20 @@ export default function AppointmentsSection({ worker }: AppointmentsSectionProps
       </div>
 
       <AppointmentsList
-        appointments={visibleAppointments}
-        onDelete={handleDelete}
-        onMarkDone={handleMarkDone}
-        onUpdateStatus={handleUpdateStatus}
-        onUpdateCompletionTime={handleUpdateCompletionTime}
-        onUpdateDuration={handleUpdateDuration}
-        onUpdateDate={handleUpdateDate}
-        onUpdateTime={handleUpdateTime}
-        onUpdateCustomerName={handleUpdateCustomerName}
-        onUpdateWorker={handleUpdateWorker}
-        loading={loading}
-      />
+  appointments={visibleAppointments}
+  onDelete={handleDelete}
+  onMarkDone={handleMarkDone}
+  onUpdateStatus={handleUpdateStatus}
+  onUpdateCompletionTime={handleUpdateCompletionTime}
+  onUpdateDuration={handleUpdateDuration}
+  onUpdateDate={handleUpdateDate}
+  onUpdateTime={handleUpdateTime}
+  onUpdateCustomerName={handleUpdateCustomerName}
+  onUpdateWorker={handleUpdateWorker}
+  onAddAdditionalService={handleAddAdditionalService}
+  onFifthVisitDiscount={handleFifthVisitDiscount}
+  loading={loading}
+/>
 
       <div style={{ marginTop: '20px', textAlign: 'center' }}>
         <button
