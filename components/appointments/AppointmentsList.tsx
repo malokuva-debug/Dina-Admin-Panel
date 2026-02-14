@@ -17,6 +17,13 @@ interface AppointmentsListProps {
   onUpdateCustomerName?: (id: string, name: string) => void;
   onUpdateWorker?: (id: string, newWorker: 'dina' | 'kida') => void;
   loading?: boolean;
+onAddAdditionalService?: (
+  id: string,
+  name: string,
+  price: number
+) => void;
+
+onFifthVisitDiscount?: (id: string) => void;
 }
 
 export default function AppointmentsList({ 
@@ -1028,6 +1035,64 @@ const getClientInfo = (apt: Appointment) => {
                 )}
               </div>
             )}
+
+{/* Additional Service + 5th Visit Discount */}
+<div style={{ display: 'flex', gap: '10px', marginBottom: '10px' }}>
+  {onAddAdditionalService && (
+    <button
+      onClick={() => {
+        const name = prompt('Additional service name:');
+        if (!name) return;
+
+        const priceStr = prompt('Additional service price:');
+        const price = parseFloat(priceStr || '0');
+
+        if (!price || price <= 0) {
+          alert('Invalid price');
+          return;
+        }
+
+        onAddAdditionalService(apt.id, name, price);
+      }}
+      style={{
+        flex: 1,
+        padding: '10px',
+        background: '#5856d6',
+        color: 'white',
+        border: 'none',
+        borderRadius: '8px',
+        fontSize: '13px',
+        fontWeight: '600',
+        cursor: 'pointer',
+      }}
+    >
+      + Add Extra Service
+    </button>
+  )}
+
+  {onFifthVisitDiscount && (
+    <button
+      onClick={() => {
+        if (confirm('Apply 50% 5th visit discount?')) {
+          onFifthVisitDiscount(apt.id);
+        }
+      }}
+      style={{
+        flex: 1,
+        padding: '10px',
+        background: '#ff3b30',
+        color: 'white',
+        border: 'none',
+        borderRadius: '8px',
+        fontSize: '13px',
+        fontWeight: '600',
+        cursor: 'pointer',
+      }}
+    >
+      5th Visit -50%
+    </button>
+  )}
+</div>
 
             {/* Move to Worker + Delete Buttons */}
             <div style={{ display: 'flex', gap: '10px' }}>
