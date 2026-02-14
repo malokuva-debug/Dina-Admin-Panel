@@ -37,6 +37,8 @@ export default function AppointmentsList({
   onUpdateTime,
   onUpdateCustomerName,
   onUpdateWorker,
+  onAddAdditionalService,          // ✅ ADD THIS
+  onFifthVisitDiscount,            // ✅ ADD THIS
   loading = false 
 }: AppointmentsListProps) {
   const [editingDuration, setEditingDuration] = useState<string | null>(null);
