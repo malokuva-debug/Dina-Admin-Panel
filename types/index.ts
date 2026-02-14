@@ -55,6 +55,14 @@ export interface Appointment {
   estimated_completion_time?: string;
   reminder_sent?: boolean;
   created_at?: string;
+
+  // ✅ ADD THESE
+  additional_services?: {
+    name: string;
+    price: number;
+  }[];
+
+  discount_applied?: boolean;
 }
 
 export interface Expense {
