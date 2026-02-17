@@ -1,4 +1,3 @@
-// AppointmentSection.tsx
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -42,7 +41,7 @@ interface AppointmentsSectionProps {
 
 export default function AppointmentsSection({ worker }: AppointmentsSectionProps) {
   const [filterMonth, setFilterMonth] = useState<string>(new Date().toISOString().slice(0, 7));
-  const [showDone, setShowDone] = useState(false); // default: hide done
+  const [showDone, setShowDone] = useState(false);
   const { appointments, loading, error, deleteAppointment, refresh } = useAppointments({ worker, month: filterMonth, autoLoad: true });
 
   const [modalOpen, setModalOpen] = useState(false);
@@ -271,189 +270,188 @@ export default function AppointmentsSection({ worker }: AppointmentsSectionProps
     }
   };
 
-const handleAddAdditionalService = async (
-  id: string,
-  additionalName: string,
-  additionalPrice: number
-) => {
-  try {
-    const appointment = appointments.find(a => a.id === id);
-    if (!appointment) return;
-
-    const newPrice = appointment.price + additionalPrice;
-
-    const updatedAdditionalServices = [
-      ...(appointment.additional_services || []),
-      { name: additionalName, price: additionalPrice }
-    ];
-
-    if (storageMode === 'supabase') {
-      const { error } = await supabase
-        .from('appointments')
-        .update({
-          price: newPrice,
-          additional_services: updatedAdditionalServices
-        })
-        .eq('id', id);
-
-      if (error) throw error;
-    } else {
-      const allAppointments =
-        (storage.get(STORAGE_KEYS.APPOINTMENTS) as Appointment[]) || [];
-
-      const updated = allAppointments.map(apt =>
-        apt.id === id
-          ? {
-              ...apt,
-              price: newPrice,
-              additional_services: updatedAdditionalServices
-            }
-          : apt
-      );
-
-      storage.set(STORAGE_KEYS.APPOINTMENTS, updated);
+  // ── NEW: Change Service handler ────────────────────────────────────────────
+  const handleUpdateService = async (
+    id: string,
+    service: string,
+    price: number,
+    duration: number
+  ) => {
+    try {
+      if (storageMode === 'supabase') {
+        const { error } = await supabase
+          .from('appointments')
+          .update({ service, price, duration })
+          .eq('id', id);
+        if (error) throw error;
+      } else {
+        const allAppointments =
+          (storage.get(STORAGE_KEYS.APPOINTMENTS) as Appointment[]) || [];
+        const updated = allAppointments.map(apt =>
+          apt.id === id ? { ...apt, service, price, duration } : apt
+        );
+        storage.set(STORAGE_KEYS.APPOINTMENTS, updated);
+      }
+      await refresh();
+    } catch (error) {
+      console.error('Error updating service:', error);
+      alert('Failed to update service');
     }
+  };
+  // ──────────────────────────────────────────────────────────────────────────
 
-    await refresh();
-  } catch (error) {
-    console.error('Error adding additional service:', error);
-    alert('Failed to add additional service');
-  }
-};
+  const handleAddAdditionalService = async (
+    id: string,
+    additionalName: string,
+    additionalPrice: number
+  ) => {
+    try {
+      const appointment = appointments.find(a => a.id === id);
+      if (!appointment) return;
 
-const handleRemoveAdditionalService = async (
-  id: string,
-  index: number
-) => {
-  try {
-    const appointment = appointments.find(a => a.id === id);
-    if (!appointment || !appointment.additional_services) return;
+      const newPrice = appointment.price + additionalPrice;
 
-    const serviceToRemove = appointment.additional_services[index];
+      const updatedAdditionalServices = [
+        ...(appointment.additional_services || []),
+        { name: additionalName, price: additionalPrice }
+      ];
 
-    const updatedServices = appointment.additional_services.filter(
-      (_, i) => i !== index
-    );
+      if (storageMode === 'supabase') {
+        const { error } = await supabase
+          .from('appointments')
+          .update({
+            price: newPrice,
+            additional_services: updatedAdditionalServices
+          })
+          .eq('id', id);
 
-    const newPrice = appointment.price - serviceToRemove.price;
+        if (error) throw error;
+      } else {
+        const allAppointments =
+          (storage.get(STORAGE_KEYS.APPOINTMENTS) as Appointment[]) || [];
 
-    if (storageMode === 'supabase') {
-      const { error } = await supabase
-        .from('appointments')
-        .update({
-          price: newPrice,
-          additional_services: updatedServices.length
-            ? updatedServices
-            : null
-        })
-        .eq('id', id);
+        const updated = allAppointments.map(apt =>
+          apt.id === id
+            ? { ...apt, price: newPrice, additional_services: updatedAdditionalServices }
+            : apt
+        );
 
-      if (error) throw error;
-    } else {
-      const allAppointments =
-        (storage.get(STORAGE_KEYS.APPOINTMENTS) as Appointment[]) || [];
+        storage.set(STORAGE_KEYS.APPOINTMENTS, updated);
+      }
 
-      const updated = allAppointments.map(apt =>
-        apt.id === id
-          ? {
-              ...apt,
-              price: newPrice,
-              additional_services: updatedServices
-            }
-          : apt
-      );
-
-      storage.set(STORAGE_KEYS.APPOINTMENTS, updated);
+      await refresh();
+    } catch (error) {
+      console.error('Error adding additional service:', error);
+      alert('Failed to add additional service');
     }
+  };
 
-    await refresh();
-  } catch (error) {
-    console.error('Error removing additional service:', error);
-    alert('Failed to remove additional service');
-  }
-};
+  const handleRemoveAdditionalService = async (id: string, index: number) => {
+    try {
+      const appointment = appointments.find(a => a.id === id);
+      if (!appointment || !appointment.additional_services) return;
 
-const handleRevertDiscount = async (id: string) => {
-  try {
-    const appointment = appointments.find(a => a.id === id);
-    if (!appointment || !appointment.discount_applied) return;
+      const serviceToRemove = appointment.additional_services[index];
+      const updatedServices = appointment.additional_services.filter((_, i) => i !== index);
+      const newPrice = appointment.price - serviceToRemove.price;
 
-    const restoredPrice = appointment.price * 2;
+      if (storageMode === 'supabase') {
+        const { error } = await supabase
+          .from('appointments')
+          .update({
+            price: newPrice,
+            additional_services: updatedServices.length ? updatedServices : null
+          })
+          .eq('id', id);
 
-    if (storageMode === 'supabase') {
-      const { error } = await supabase
-        .from('appointments')
-        .update({
-          price: restoredPrice,
-          discount_applied: false
-        })
-        .eq('id', id);
+        if (error) throw error;
+      } else {
+        const allAppointments =
+          (storage.get(STORAGE_KEYS.APPOINTMENTS) as Appointment[]) || [];
 
-      if (error) throw error;
-    } else {
-      const allAppointments =
-        (storage.get(STORAGE_KEYS.APPOINTMENTS) as Appointment[]) || [];
+        const updated = allAppointments.map(apt =>
+          apt.id === id
+            ? { ...apt, price: newPrice, additional_services: updatedServices }
+            : apt
+        );
 
-      const updated = allAppointments.map(apt =>
-        apt.id === id
-          ? {
-              ...apt,
-              price: restoredPrice,
-              discount_applied: false
-            }
-          : apt
-      );
+        storage.set(STORAGE_KEYS.APPOINTMENTS, updated);
+      }
 
-      storage.set(STORAGE_KEYS.APPOINTMENTS, updated);
+      await refresh();
+    } catch (error) {
+      console.error('Error removing additional service:', error);
+      alert('Failed to remove additional service');
     }
+  };
 
-    await refresh();
-  } catch (error) {
-    console.error('Error reverting discount:', error);
-    alert('Failed to revert discount');
-  }
-};
+  const handleRevertDiscount = async (id: string) => {
+    try {
+      const appointment = appointments.find(a => a.id === id);
+      if (!appointment || !appointment.discount_applied) return;
 
-const handleFifthVisitDiscount = async (id: string) => {
-  try {
-    const appointment = appointments.find(a => a.id === id);
-    if (!appointment) return;
+      const restoredPrice = appointment.price * 2;
 
-    const discountedPrice = appointment.price * 0.5;
+      if (storageMode === 'supabase') {
+        const { error } = await supabase
+          .from('appointments')
+          .update({ price: restoredPrice, discount_applied: false })
+          .eq('id', id);
 
-    if (storageMode === 'supabase') {
-      const { error } = await supabase
-        .from('appointments')
-        .update({
-          price: discountedPrice,
-          discount_applied: true
-        })
-        .eq('id', id);
+        if (error) throw error;
+      } else {
+        const allAppointments =
+          (storage.get(STORAGE_KEYS.APPOINTMENTS) as Appointment[]) || [];
 
-      if (error) throw error;
-    } else {
-      const allAppointments =
-        (storage.get(STORAGE_KEYS.APPOINTMENTS) as Appointment[]) || [];
+        const updated = allAppointments.map(apt =>
+          apt.id === id
+            ? { ...apt, price: restoredPrice, discount_applied: false }
+            : apt
+        );
 
-      const updated = allAppointments.map(apt =>
-        apt.id === id
-          ? {
-              ...apt,
-              price: discountedPrice,
-              discount_applied: true
-            }
-          : apt
-      );
+        storage.set(STORAGE_KEYS.APPOINTMENTS, updated);
+      }
 
-      storage.set(STORAGE_KEYS.APPOINTMENTS, updated);
+      await refresh();
+    } catch (error) {
+      console.error('Error reverting discount:', error);
+      alert('Failed to revert discount');
     }
+  };
 
-    await refresh();
-  } catch (error) {
-    console.error('Error applying discount:', error);
-    alert('Failed to apply 5th visit discount');
-  }
-};
+  const handleFifthVisitDiscount = async (id: string) => {
+    try {
+      const appointment = appointments.find(a => a.id === id);
+      if (!appointment) return;
+
+      const discountedPrice = appointment.price * 0.5;
+
+      if (storageMode === 'supabase') {
+        const { error } = await supabase
+          .from('appointments')
+          .update({ price: discountedPrice, discount_applied: true })
+          .eq('id', id);
+
+        if (error) throw error;
+      } else {
+        const allAppointments =
+          (storage.get(STORAGE_KEYS.APPOINTMENTS) as Appointment[]) || [];
+
+        const updated = allAppointments.map(apt =>
+          apt.id === id
+            ? { ...apt, price: discountedPrice, discount_applied: true }
+            : apt
+        );
+
+        storage.set(STORAGE_KEYS.APPOINTMENTS, updated);
+      }
+
+      await refresh();
+    } catch (error) {
+      console.error('Error applying discount:', error);
+      alert('Failed to apply 5th visit discount');
+    }
+  };
 
   const visibleAppointments = showDone
     ? appointments
@@ -510,22 +508,23 @@ const handleFifthVisitDiscount = async (id: string) => {
       </div>
 
       <AppointmentsList
-  appointments={visibleAppointments}
-  onDelete={handleDelete}
-  onMarkDone={handleMarkDone}
-  onUpdateStatus={handleUpdateStatus}
-  onUpdateCompletionTime={handleUpdateCompletionTime}
-  onUpdateDuration={handleUpdateDuration}
-  onUpdateDate={handleUpdateDate}
-  onUpdateTime={handleUpdateTime}
-  onUpdateCustomerName={handleUpdateCustomerName}
-  onUpdateWorker={handleUpdateWorker}
-  onAddAdditionalService={handleAddAdditionalService}
-  onFifthVisitDiscount={handleFifthVisitDiscount}
-  onRemoveAdditionalService={handleRemoveAdditionalService}
-  onRevertDiscount={handleRevertDiscount}
-  loading={loading}
-/>
+        appointments={visibleAppointments}
+        onDelete={handleDelete}
+        onMarkDone={handleMarkDone}
+        onUpdateStatus={handleUpdateStatus}
+        onUpdateCompletionTime={handleUpdateCompletionTime}
+        onUpdateDuration={handleUpdateDuration}
+        onUpdateDate={handleUpdateDate}
+        onUpdateTime={handleUpdateTime}
+        onUpdateCustomerName={handleUpdateCustomerName}
+        onUpdateWorker={handleUpdateWorker}
+        onUpdateService={handleUpdateService}
+        onAddAdditionalService={handleAddAdditionalService}
+        onFifthVisitDiscount={handleFifthVisitDiscount}
+        onRemoveAdditionalService={handleRemoveAdditionalService}
+        onRevertDiscount={handleRevertDiscount}
+        loading={loading}
+      />
 
       <div style={{ marginTop: '20px', textAlign: 'center' }}>
         <button
