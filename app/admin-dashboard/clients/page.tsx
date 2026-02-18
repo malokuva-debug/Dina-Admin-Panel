@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { supabase } from '@/lib/supabase';
-import ClientsTable from '@/components/ClientsTable';
+import ClientCardsList from '@/components/ClientCardsList';
 import ClientModal from '@/components/ClientModal';
 import { Worker } from '@/types';
 
@@ -12,6 +12,7 @@ export interface Client {
   phone: string;
   email?: string | null;
   notes?: string | null;
+  images?: string[];
   worker?: Worker;
   created_at?: string;
 }
@@ -30,7 +31,6 @@ export default function ClientsPage() {
 
   const loadClients = async () => {
     setLoading(true);
-
     const { data, error } = await supabase
       .from('clients')
       .select('*')
@@ -41,7 +41,6 @@ export default function ClientsPage() {
     } else if (data) {
       setClients(data);
     }
-
     setLoading(false);
   };
 
@@ -65,11 +64,13 @@ export default function ClientsPage() {
           phone: client.phone,
           email: client.email ?? null,
           notes: client.notes ?? null,
+          images: client.images ?? [],
         })
         .eq('id', client.id);
 
       if (error) {
         console.error('Failed to update client:', error);
+        alert('Failed to update client');
         return;
       }
     } else {
@@ -82,59 +83,137 @@ export default function ClientsPage() {
             phone: client.phone,
             email: client.email ?? null,
             notes: client.notes ?? null,
+            images: client.images ?? [],
           },
         ])
-        .select(); // get inserted row
+        .select();
 
       if (error) {
         console.error('Failed to insert client:', error);
+        alert('Failed to create client');
         return;
       }
-
-      client.id = data![0].id; // assign new id
+      if (data && data.length > 0) {
+        client.id = data[0].id;
+      }
     }
 
     setModalOpen(false);
     setEditingClient(null);
-    loadClients(); // refresh table
+    loadClients();
+  };
+
+  const handleDelete = async (clientId: string) => {
+    const { error } = await supabase.from('clients').delete().eq('id', clientId);
+
+    if (error) {
+      console.error('Failed to delete client:', error);
+      alert('Failed to delete client');
+      return;
+    }
+
+    // Update local state
+    setClients((prev) => prev.filter((c) => c.id !== clientId));
   };
 
   return (
-    <div className="section">
-      <div className="section-header">
-        <h2>Clients</h2>
-
-        <button
-          className="primary"
-          onClick={() => {
-            setEditingClient({ id: '', name: '', phone: '' });
-            setModalOpen(true);
+    <div
+      style={{
+        maxWidth: '1400px',
+        margin: '0 auto',
+        padding: '20px',
+      }}
+    >
+      {/* Header */}
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          marginBottom: '30px',
+          flexWrap: 'wrap',
+          gap: '16px',
+        }}
+      >
+        <h2
+          style={{
+            fontSize: '28px',
+            fontWeight: '700',
+            color: '#fff',
+            margin: 0,
           }}
         >
-          + New Client
+          Clients
+        </h2>
+        <button
+          onClick={() => {
+            setEditingClient({
+              id: '',
+              name: '',
+              phone: '',
+              email: null,
+              notes: null,
+              images: [],
+            });
+            setModalOpen(true);
+          }}
+          style={{
+            padding: '12px 24px',
+            background: '#34c759',
+            color: 'white',
+            border: 'none',
+            borderRadius: '12px',
+            fontSize: '15px',
+            fontWeight: '600',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+          }}
+        >
+          <span style={{ fontSize: '18px' }}>+</span>
+          New Client
         </button>
       </div>
 
+      {/* Search Bar */}
       <input
-        className="input"
-        placeholder="Search clients…"
+        type="text"
+        placeholder="Search clients by name, phone, or email…"
         value={search}
         onChange={(e) => setSearch(e.target.value)}
+        style={{
+          width: '100%',
+          padding: '14px 18px',
+          fontSize: '15px',
+          borderRadius: '12px',
+          border: '1px solid #3a3a3c',
+          backgroundColor: '#1c1c1e',
+          color: '#fff',
+          marginBottom: '20px',
+          outline: 'none',
+        }}
       />
 
-      <ClientsTable
+      {/* Client Cards */}
+      <ClientCardsList
         clients={filtered}
         loading={loading}
         onEdit={(client) => {
           setEditingClient(client);
           setModalOpen(true);
         }}
+        onDelete={handleDelete}
       />
 
+      {/* Modal */}
       <ClientModal
         open={modalOpen}
         client={editingClient}
-        onClose={() => setModalOpen(false)}
+        onClose={() => {
+          setModalOpen(false);
+          setEditingClient(null);
+        }}
         onSave={handleSave}
       />
     </div>
