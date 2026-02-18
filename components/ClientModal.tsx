@@ -20,7 +20,6 @@ export default function ClientModal({
     id: '',
     name: '',
     phone: '',
-    email: null,
     notes: null,
     images: [],
   });
@@ -46,7 +45,6 @@ export default function ClientModal({
         id: '',
         name: '',
         phone: '',
-        email: null,
         notes: null,
         images: [],
       });
@@ -195,36 +193,6 @@ export default function ClientModal({
               value={form.phone}
               onChange={(e) => setForm({ ...form, phone: e.target.value })}
               required
-              style={{
-                backgroundColor: '#2c2c2e',
-                color: 'white',
-                padding: '12px',
-                borderRadius: '10px',
-                border: '1px solid #3a3a3c',
-                width: '100%',
-                fontSize: '15px',
-                outline: 'none',
-              }}
-            />
-          </div>
-
-          {/* Email */}
-          <div style={{ marginBottom: '16px' }}>
-            <label
-              style={{
-                display: 'block',
-                marginBottom: '6px',
-                fontSize: '14px',
-                fontWeight: '600',
-                color: '#aaa',
-              }}
-            >
-              Email
-            </label>
-            <input
-              type="email"
-              value={form.email ?? ''}
-              onChange={(e) => setForm({ ...form, email: e.target.value })}
               style={{
                 backgroundColor: '#2c2c2e',
                 color: 'white',
