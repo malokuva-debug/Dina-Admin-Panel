@@ -77,7 +77,7 @@ export default function ClientCardsList({
           No clients yet
         </p>
         <p style={{ fontSize: '14px', color: '#666' }}>
-          Click "+ New Client" to add your first client
+          Click &ldquo;+ New Client&rdquo; to add your first client
         </p>
       </div>
     );
