@@ -108,6 +108,7 @@ export default function ClientCard({ client, onEdit, onDelete }: ClientCardProps
                 }}
               >
                 {client.images.map((img, idx) => (
+                  // eslint-disable-next-line @next/next/no-img-element
                   <img
                     key={idx}
                     src={img}
@@ -251,6 +252,7 @@ export default function ClientCard({ client, onEdit, onDelete }: ClientCardProps
             cursor: 'pointer',
           }}
         >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={lightboxImage}
             alt="Lightbox"
