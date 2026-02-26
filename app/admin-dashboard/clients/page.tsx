@@ -47,7 +47,7 @@ export default function ClientsPage() {
     return clients.filter(
       (c) =>
         c.name.toLowerCase().includes(q) ||
-        c.phone.includes(q)
+        (c.phone ?? '').includes(q)
     );
   }, [clients, search]);
 
@@ -57,7 +57,7 @@ export default function ClientsPage() {
         .from('clients')
         .update({
           name: client.name,
-          phone: client.phone,
+          phone: client.phone?.trim() || null,
           notes: client.notes ?? null,
           images: client.images ?? [],
         })
@@ -74,7 +74,7 @@ export default function ClientsPage() {
         .insert([
           {
             name: client.name,
-            phone: client.phone,
+            phone: client.phone?.trim() || null,
             notes: client.notes ?? null,
             images: client.images ?? [],
           },
