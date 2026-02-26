@@ -84,7 +84,7 @@ export interface FinanceData {
 export interface Client {
   id: string;
   name: string;
-  phone: string;
+  phone?: string | null;
   email?: string;
   image?: string | null;
 }
