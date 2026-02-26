@@ -3,7 +3,8 @@
 import { useEffect, useRef, useState } from 'react';
 
 interface ClientCardProps {
-  clientData: {
+  client: {
+    id: string;
     name: string;
     phone: string;
     visits: number;
@@ -12,6 +13,8 @@ interface ClientCardProps {
     images: string[];
     isFrequentCanceller?: boolean;
   };
+  onEdit?: (client: any) => void;
+  onDelete?: (clientId: string) => void;
 }
 
 export default function ClientCard({ clientData }: ClientCardProps) {
