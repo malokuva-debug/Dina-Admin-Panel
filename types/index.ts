@@ -86,6 +86,7 @@ export interface Client {
   name: string;
   phone: string; // ✅ REQUIRED
   email?: string;
+  service?: string;
 }
 
 // ----------------------
