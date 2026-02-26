@@ -1,7 +1,9 @@
+//ClientCard.tsx
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
-import { Client } from '@/app/clients/page';
+import { useState, useEffect } from 'react';
+import { Client } from '@/app/admin-dashboard/clients/page';
+import { supabase } from '@/lib/supabase';
 
 interface ClientCardProps {
   client: Client;
@@ -10,157 +12,258 @@ interface ClientCardProps {
 }
 
 export default function ClientCard({ client, onEdit, onDelete }: ClientCardProps) {
-  // Refs for DOM elements
-  const clientNameRef = useRef<HTMLDivElement>(null);
-  const clientPhoneRef = useRef<HTMLDivElement>(null);
-  const clientVisitsRef = useRef<HTMLDivElement>(null);
-  const clientAppointmentsRef = useRef<HTMLDivElement>(null);
-  const clientServiceRef = useRef<HTMLDivElement>(null);
-  const cancelStatusRef = useRef<HTMLDivElement>(null);
-  const discountBadgeRef = useRef<HTMLDivElement>(null);
-
-  const [isFrequentCanceller, setIsFrequentCanceller] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
+  const [appointmentCount, setAppointmentCount] = useState(0);
   const [lightboxOpen, setLightboxOpen] = useState(false);
-  const [lightboxIndex, setLightboxIndex] = useState(0);
-  const [images, setImages] = useState(client.images || []);
+  const [lightboxImage, setLightboxImage] = useState('');
 
-  // Toggle card open/close
-  const toggleCard = (e: React.MouseEvent<HTMLDivElement>) => {
-    e.currentTarget.parentElement?.classList.toggle('open');
-  };
+  useEffect(() => {
+    const fetchAppointmentCount = async () => {
+      const { count, error } = await supabase
+        .from('appointments')
+        .select('id', { count: 'exact', head: true })
+        .eq('customer_name', client.name);
+      
+      if (!error) {
+        setAppointmentCount(count ?? 0);
+      }
+    };
 
-  // Update cancellation status UI
-  const updateCancelUI = () => {
-    if (!cancelStatusRef.current) return;
-    if (isFrequentCanceller) {
-      cancelStatusRef.current.className = 'status-icon red';
-      cancelStatusRef.current.innerHTML =
-        '<svg viewBox="0 0 24 24"><path d="M6 6l12 12M6 18L18 6"/></svg>';
-    } else {
-      cancelStatusRef.current.className = 'status-icon green';
-      cancelStatusRef.current.innerHTML =
-        '<svg viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg>';
-    }
-  };
+    fetchAppointmentCount();
+  }, [client.name]);
 
-  // Update discount badge
-  const updateDiscount = () => {
-    const visits = client.notes ? 1 : 0;
-    if (discountBadgeRef.current) {
-      discountBadgeRef.current.style.display =
-        visits % 5 === 0 && visits !== 0 ? 'inline-block' : 'none';
-    }
-  };
-
-  // Edit client modal
-  const openEditModal = () => {
-    onEdit(client);
-  };
-
-  // Lightbox handlers
-  const openLightbox = (index: number) => {
-    setLightboxIndex(index);
+  const handleImageClick = (imageUrl: string) => {
+    setLightboxImage(imageUrl);
     setLightboxOpen(true);
   };
-  const closeLightbox = () => setLightboxOpen(false);
-  const nextLightbox = () => setLightboxIndex((prev) => (prev + 1) % images.length);
-  const prevLightbox = () => setLightboxIndex((prev) => (prev - 1 + images.length) % images.length);
 
-  // Initialize UI effects
-  useEffect(() => {
-    updateCancelUI();
-    updateDiscount();
-  }, [isFrequentCanceller]);
+  const handleDelete = () => {
+    if (confirm(`Delete client ${client.name}?`)) {
+      onDelete(client.id);
+    }
+  };
 
   return (
     <>
-      <style dangerouslySetInnerHTML={{ __html: `
-        .client-card { border:1px solid #e5e7eb; border-radius:18px; background:white; overflow:hidden; font-family:system-ui; max-width:500px; margin-bottom:20px; }
-        .client-header { padding:16px; font-weight:600; display:flex; justify-content:space-between; cursor:pointer; }
-        .client-body { max-height:0; overflow:hidden; transition:.3s ease; }
-        .open .client-body { max-height:2000px; }
-        .image-section { padding:16px; overflow:hidden; }
-        .image-grid { display:flex; gap:12px; overflow-x:auto; scroll-behavior:smooth; }
-        .image-item { position:relative; flex:0 0 auto; width:110px; height:110px; border-radius:16px; overflow:hidden; cursor:pointer; box-shadow:0 6px 14px rgba(0,0,0,0.06); transition:transform .25s ease; }
-        .image-item:hover { transform:translateY(-3px); }
-        .image-item img { width:100%; height:100%; object-fit:cover; transition:transform .3s ease; }
-        .image-item:hover img { transform:scale(1.08); }
-        .info-cards { display:grid; grid-template-columns:1fr 1fr; gap:12px; padding:14px; }
-        .info-box { background:white; border-radius:14px; padding:14px; box-shadow:0 4px 10px rgba(0,0,0,.05); text-align:center; display:flex; flex-direction:column; align-items:center; gap:6px; }
-        .label { font-size:12px; color:#6b7280; }
-        .value { font-weight:600; }
-        .big-number { font-size:22px; }
-        .phone-row { display:flex; gap:10px; align-items:center; justify-content:center; }
-        .call-btn { background:#22c55e; border:none; width:36px; height:36px; border-radius:50%; display:flex; align-items:center; justify-content:center; cursor:pointer; }
-        .call-btn svg { width:18px; height:18px; fill:white; }
-        .discount-badge { background:#fef3c7; color:#b45309; padding:4px 8px; border-radius:10px; font-size:11px; display:none; }
-        .status-icon { width:36px; height:36px; border-radius:50%; display:flex; align-items:center; justify-content:center; }
-        .status-icon svg { width:18px; height:18px; stroke:white; stroke-width:3; fill:none; }
-        .green { background:#22c55e; }
-        .red { background:#ef4444; }
-        .action-area { padding:14px; text-align:right; }
-        button { padding:8px 14px; border:none; border-radius:12px; background:#2563eb; color:white; cursor:pointer; }
-        .lightbox { position:fixed; inset:0; background:rgba(0,0,0,.95); display:flex; justify-content:center; align-items:center; touch-action: pan-y; z-index:999; }
-        .lightbox img { max-width: 80%; max-height: 80%; border-radius: 16px; transition: transform .3s ease; }
-      `}} />
-
-      <div className="client-card">
-        <div className="client-header" onClick={toggleCard}>
-          <span ref={clientNameRef}>{client.name}</span>
-          <span className="chevron">⌄</span>
+      <div
+        className={`client-card ${isOpen ? 'open' : ''}`}
+        style={{
+          width: '100%',
+          border: '1px solid #3a3a3c',
+          borderRadius: '18px',
+          overflow: 'hidden',
+          backgroundColor: '#1c1c1e',
+          marginBottom: '12px',
+        }}
+      >
+        {/* HEADER */}
+        <div
+          className="client-header"
+          onClick={() => setIsOpen(!isOpen)}
+          style={{
+            padding: '16px 20px',
+            fontWeight: '600',
+            display: 'flex',
+            justifyContent: 'space-between',
+            cursor: 'pointer',
+            color: '#fff',
+            fontSize: '16px',
+            alignItems: 'center',
+          }}
+        >
+          <span>{client.name}</span>
+          <span
+            className="chevron"
+            style={{
+              display: 'inline-block',
+              width: '8px',
+              height: '8px',
+              borderRight: '2px solid #fff',
+              borderBottom: '2px solid #fff',
+              transform: isOpen ? 'rotate(-135deg)' : 'rotate(45deg)',
+              transition: '0.3s',
+              marginTop: isOpen ? '4px' : '-4px',
+            }}
+          />
         </div>
 
-        <div className="client-body">
-          <div className="image-section">
-            <div className="image-grid">
-              {images.map((img, idx) => (
-                <div className="image-item" key={idx}>
-                  <img src={img} alt={`Client ${idx + 1}`} onClick={() => openLightbox(idx)} />
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="info-cards">
-            <div className="info-box">
-              <div className="label">Name</div>
-              <div className="value" ref={clientNameRef}>{client.name}</div>
-            </div>
-            <div className="info-box">
-              <div className="label">Phone</div>
-              <div className="value phone-row">
-                <span ref={clientPhoneRef}>{client.phone}</span>
-                <a href={`tel:${client.phone}`} className="call-btn">📞</a>
+        {/* BODY */}
+        <div
+          className="client-body"
+          style={{
+            maxHeight: isOpen ? '1000px' : '0',
+            overflow: 'hidden',
+            transition: 'max-height 0.35s ease',
+          }}
+        >
+          {/* IMAGES */}
+          {client.images && client.images.length > 0 && (
+            <div className="image-section" style={{ padding: '14px 20px' }}>
+              <div
+                className="image-grid"
+                style={{
+                  display: 'flex',
+                  gap: '10px',
+                  overflowX: 'auto',
+                  paddingBottom: '8px',
+                }}
+              >
+                {client.images.map((img, idx) => (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    key={idx}
+                    src={img}
+                    alt={`Client ${idx + 1}`}
+                    onClick={() => handleImageClick(img)}
+                    style={{
+                      width: '110px',
+                      height: '110px',
+                      objectFit: 'cover',
+                      borderRadius: '14px',
+                      cursor: 'pointer',
+                      transition: '0.2s',
+                      flexShrink: 0,
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.transform = 'scale(1.05)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.transform = 'scale(1)';
+                    }}
+                  />
+                ))}
               </div>
             </div>
-            <div className="info-box">
-              <div className="label">Visits</div>
-              <div className="value big-number" ref={clientVisitsRef}>{client.notes ? 1 : 0}</div>
+          )}
+
+          {/* INFO TABLE */}
+          <div className="info-table" style={{ margin: '0 20px' }}>
+            <div
+              className="info-header"
+              style={{
+                display: 'grid',
+                gridTemplateColumns: '1fr 1fr 1fr',
+                textAlign: 'center',
+                padding: '12px 0',
+                fontWeight: '600',
+                fontSize: '13px',
+                color: '#888',
+                borderTop: '1px solid #2c2c2e',
+                borderBottom: '1px solid #2c2c2e',
+              }}
+            >
+              <div>Phone</div>
+              <div>Email</div>
+              <div>Appointments</div>
             </div>
-            <div className="info-box">
-              <div className="label">Appointments</div>
-              <div className="value big-number" ref={clientAppointmentsRef}>0</div>
-            </div>
-            <div className="info-box">
-              <div className="label">Frequent Service</div>
-              <div className="value" ref={clientServiceRef}>{client.service || '—'}</div>
-            </div>
-            <div className="info-box">
-              <div className="label">Cancellation Risk</div>
-              <div className="status-icon green" ref={cancelStatusRef}>✔</div>
+            <div
+              className="info-row"
+              style={{
+                display: 'grid',
+                gridTemplateColumns: '1fr 1fr 1fr',
+                textAlign: 'center',
+                padding: '12px 0',
+                color: '#fff',
+                fontSize: '14px',
+              }}
+            >
+              <div>{client.phone}</div>
+              <div style={{ color: client.email ? '#fff' : '#555' }}>
+                {client.email || '—'}
+              </div>
+              <div>{appointmentCount}</div>
             </div>
           </div>
 
-          <div className="action-area">
-            <button onClick={openEditModal}>Edit</button>
-            <button onClick={() => onDelete(client.id)}>Delete</button>
+          {/* NOTES */}
+          {client.notes && (
+            <div
+              style={{
+                padding: '14px 20px',
+                color: '#aaa',
+                fontSize: '14px',
+                borderTop: '1px solid #2c2c2e',
+                marginTop: '8px',
+              }}
+            >
+              <div style={{ fontWeight: '600', marginBottom: '6px', color: '#888' }}>
+                Notes
+              </div>
+              <div>{client.notes}</div>
+            </div>
+          )}
+
+          {/* ACTION AREA */}
+          <div
+            className="action-area"
+            style={{
+              padding: '14px 20px',
+              display: 'flex',
+              gap: '10px',
+              justifyContent: 'flex-end',
+            }}
+          >
+            <button
+              onClick={handleDelete}
+              style={{
+                padding: '10px 18px',
+                borderRadius: '12px',
+                border: 'none',
+                background: '#ff3b30',
+                color: 'white',
+                cursor: 'pointer',
+                fontSize: '14px',
+                fontWeight: '600',
+              }}
+            >
+              Delete
+            </button>
+            <button
+              onClick={() => onEdit(client)}
+              style={{
+                padding: '10px 18px',
+                borderRadius: '12px',
+                border: 'none',
+                background: '#007aff',
+                color: 'white',
+                cursor: 'pointer',
+                fontSize: '14px',
+                fontWeight: '600',
+              }}
+            >
+              Edit
+            </button>
           </div>
         </div>
       </div>
 
+      {/* LIGHTBOX */}
       {lightboxOpen && (
-        <div className="lightbox" onClick={closeLightbox}>
-          <img src={images[lightboxIndex]} alt={`Lightbox ${lightboxIndex}`} />
+        <div
+          className="lightbox"
+          onClick={() => setLightboxOpen(false)}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0,0,0,0.9)',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            zIndex: 2000,
+            cursor: 'pointer',
+          }}
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={lightboxImage}
+            alt="Lightbox"
+            style={{
+              maxWidth: '90%',
+              maxHeight: '90%',
+              borderRadius: '18px',
+              objectFit: 'contain',
+            }}
+          />
         </div>
       )}
     </>
