@@ -9,7 +9,7 @@ import { Worker } from '@/types';
 export interface Client {
   id: string;
   name: string;
-  phone: string;
+  phone?: string | null;
   notes?: string | null;
   images?: string[];
   worker?: Worker;
