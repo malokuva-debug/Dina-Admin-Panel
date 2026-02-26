@@ -86,7 +86,7 @@ export interface Client {
   name: string;
   phone: string;
   email?: string;
-  images?: string[]; // ✅ add this
+  image?: string | null;
 }
 
 // ----------------------
