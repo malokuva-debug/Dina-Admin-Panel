@@ -225,7 +225,7 @@ export default function ClientCard({ client, onEdit, onDelete }: ClientCardProps
               >
                 <span>{formatPhone(client.phone)}</span>
                 <a
-                  href={`tel:${client.phone}`}
+                  href={client.phone ? `tel:${client.phone}` : undefined}
                   style={{
                     background: '#34c759',
                     border: 'none',
