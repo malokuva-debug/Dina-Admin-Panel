@@ -1,273 +1,236 @@
-// ClientCard.tsx
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Client } from '@/app/clients/page';
-import { supabase } from '@/lib/supabase';
+import { useEffect, useRef, useState } from 'react';
 
 interface ClientCardProps {
-  client: Client;
-  onEdit: (client: Client) => void;
-  onDelete: (clientId: string) => void;
+  clientData: {
+    name: string;
+    phone: string;
+    visits: number;
+    appointments: number;
+    service: string;
+    images: string[];
+    isFrequentCanceller?: boolean;
+  };
 }
 
-export default function ClientCard({ client, onEdit, onDelete }: ClientCardProps) {
+export default function ClientCard({ clientData }: ClientCardProps) {
+  const [client, setClient] = useState({ ...clientData });
   const [isOpen, setIsOpen] = useState(false);
-  const [appointmentCount, setAppointmentCount] = useState(0);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editImages, setEditImages] = useState<string[]>([...clientData.images]);
+  const [discountVisible, setDiscountVisible] = useState(false);
+  const [isFrequentCanceller, setIsFrequentCanceller] = useState(clientData.isFrequentCanceller || false);
   const [lightboxOpen, setLightboxOpen] = useState(false);
-  const [lightboxImage, setLightboxImage] = useState('');
+  const [lightboxIndex, setLightboxIndex] = useState(0);
 
+  const lightboxImages = useRef<HTMLImageElement[]>([]);
+
+  // Sync discount badge
   useEffect(() => {
-    const fetchAppointmentCount = async () => {
-      const { count, error } = await supabase
-        .from('appointments')
-        .select('id', { count: 'exact', head: true })
-        .eq('customer_name', client.name);
-      if (!error) setAppointmentCount(count ?? 0);
-    };
-    fetchAppointmentCount();
-  }, [client.name]);
+    setDiscountVisible(client.visits % 5 === 0 && client.visits !== 0);
+  }, [client.visits]);
 
-  const handleDelete = () => {
-    if (confirm(`Delete client ${client.name}?`)) onDelete(client.id);
+  // Handle toggle card
+  const toggleCard = () => setIsOpen(!isOpen);
+
+  // Edit modal handlers
+  const openEditModal = () => setIsEditing(true);
+  const closeEditModal = () => setIsEditing(false);
+
+  const handleSave = () => {
+    setClient(prev => ({ ...prev, images: [...editImages] }));
+    setIsEditing(false);
   };
 
-  const handleImageClick = (url: string) => {
-    setLightboxImage(url);
+  const handleAddImages = (files: FileList | null) => {
+    if (!files) return;
+    const newImages: string[] = [];
+    Array.from(files).forEach(file => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        if (e.target?.result) {
+          newImages.push(e.target.result as string);
+          setEditImages(prev => [...prev, e.target!.result as string]);
+        }
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const handleReplaceImage = (index: number, file: File) => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      if (e.target?.result) {
+        setEditImages(prev => prev.map((img, i) => (i === index ? e.target!.result as string : img)));
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleRemoveImage = (index: number) => {
+    setEditImages(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const openLightbox = (index: number) => {
+    setLightboxIndex(index);
     setLightboxOpen(true);
   };
+  const closeLightbox = () => setLightboxOpen(false);
+  const nextLightbox = () => setLightboxIndex((lightboxIndex + 1) % client.images.length);
+  const prevLightbox = () => setLightboxIndex((lightboxIndex - 1 + client.images.length) % client.images.length);
 
   return (
     <>
-      <div
-        className={`client-card ${isOpen ? 'open' : ''}`}
-        style={{
-          width: '100%',
-          border: '1px solid #3a3a3c',
-          borderRadius: '18px',
-          overflow: 'hidden',
-          backgroundColor: '#1c1c1e',
-          marginBottom: '12px',
-        }}
-      >
-        {/* Header */}
-        <div
-          className="client-header"
-          onClick={() => setIsOpen(!isOpen)}
-          style={{
-            padding: '16px 20px',
-            fontWeight: 600,
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            cursor: 'pointer',
-            color: '#fff',
-            fontSize: '16px',
-          }}
-        >
-          <span>{client.name}</span>
-          <span
-            style={{
-              display: 'inline-block',
-              width: '8px',
-              height: '8px',
-              borderRight: '2px solid #fff',
-              borderBottom: '2px solid #fff',
-              transform: isOpen ? 'rotate(-135deg)' : 'rotate(45deg)',
-              transition: '0.3s',
-              marginTop: isOpen ? '4px' : '-4px',
-            }}
-          />
+      <div className={`client-card ${isOpen ? 'open' : ''}`}>
+        <div className="client-header" onClick={toggleCard}>
+          <span id="headerName">{client.name}</span>
+          <span className="chevron"></span>
         </div>
-
-        {/* Body */}
-        <div
-          className="client-body"
-          style={{
-            maxHeight: isOpen ? '1000px' : '0',
-            overflow: 'hidden',
-            transition: 'max-height 0.35s ease',
-          }}
-        >
-          {/* Info Rows (like HTML/CSS grid) */}
-          <div
-            className="info-grid"
-            style={{
-              display: 'grid',
-              gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr',
-              textAlign: 'center',
-              padding: '12px 20px',
-              gap: '6px',
-              borderBottom: '1px solid #2c2c2e',
-              color: '#888',
-              fontWeight: 600,
-              fontSize: '13px',
-            }}
-          >
-            <div>Name</div>
-            <div>Appointments</div>
-            <div>Visits</div>
-            <div>Images</div>
-            <div>Cancel</div>
-            <div>Risk</div>
-            <div>Phone</div>
-            <div>Number</div>
+        <div className="client-body">
+          {/* IMAGE GRID */}
+          <div className="image-section">
+            <div className="image-grid">
+              {client.images.map((img, i) => (
+                <div className="image-item" key={i}>
+                  <img src={img} onClick={() => openLightbox(i)} />
+                </div>
+              ))}
+            </div>
           </div>
 
-          <div
-            className="info-grid-values"
-            style={{
-              display: 'grid',
-              gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr',
-              textAlign: 'center',
-              padding: '12px 20px',
-              gap: '6px',
-              color: '#fff',
-              fontSize: '14px',
-              alignItems: 'center',
-            }}
-          >
-            <div>{client.name}</div>
-            <div>{appointmentCount}</div>
-            <div>{client.notes ? 1 : 0}</div>
-            <div>{client.images?.length || 0}</div>
-            <div>—</div>
-            <div>—</div>
-            <div>{client.phone}</div>
-            <div>{client.email || '—'}</div>
-          </div>
-
-          {/* Images Section */}
-          {client.images && client.images.length > 0 && (
-            <div className="image-section" style={{ padding: '12px 20px', marginTop: '10px' }}>
-              <div
-                style={{
-                  display: 'flex',
-                  gap: '10px',
-                  overflowX: 'auto',
-                  paddingBottom: '8px',
-                }}
-              >
-                {client.images.map((img, idx) => (
-                  <div
-                    key={idx}
-                    style={{ position: 'relative', flexShrink: 0, minWidth: '90px' }}
-                  >
-                    <img
-                      src={img}
-                      alt={`Client ${idx + 1}`}
-                      onClick={() => handleImageClick(img)}
-                      style={{
-                        width: '90px',
-                        height: '90px',
-                        objectFit: 'cover',
-                        borderRadius: '12px',
-                        cursor: 'pointer',
-                        border: '2px solid #3a3a3c',
-                        transition: '0.2s',
-                      }}
-                      onMouseEnter={(e) => (e.currentTarget.style.transform = 'scale(1.05)')}
-                      onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}
-                    />
-                    {/* Remove Button fully visible */}
-                    <button
-                      onClick={() => {
-                        if (!confirm('Remove this image?')) return;
-                        client.images = client.images?.filter((_, i) => i !== idx);
-                      }}
-                      style={{
-                        position: 'absolute',
-                        top: '2px', // fix top cut
-                        right: '2px',
-                        width: '24px',
-                        height: '24px',
-                        borderRadius: '50%',
-                        background: '#ff3b30',
-                        color: '#fff',
-                        border: 'none',
-                        fontWeight: 'bold',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        justifyContent: 'center',
-                        alignItems: 'center',
-                        padding: 0,
-                      }}
-                    >
-                      ×
-                    </button>
-                  </div>
-                ))}
+          {/* INFO CARDS */}
+          <div className="info-cards">
+            <div className="info-box">
+              <div className="label">Name</div>
+              <div className="value" id="clientName">{client.name}</div>
+            </div>
+            <div className="info-box">
+              <div className="label">Phone</div>
+              <div className="value phone-row">
+                <span id="clientPhone">{client.phone}</span>
+                <a href={`tel:${client.phone}`} className="call-btn">
+                  <svg viewBox="0 0 24 24">
+                    <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
+                  </svg>
+                </a>
               </div>
             </div>
-          )}
+            <div className="info-box">
+              <div className="label">Visits</div>
+              <div className="value big-number">{client.visits}</div>
+              {discountVisible && <div className="discount-badge">50% OFF</div>}
+            </div>
+            <div className="info-box">
+              <div className="label">Appointments</div>
+              <div className="value big-number">{client.appointments}</div>
+            </div>
+            <div className="info-box">
+              <div className="label">Frequent Service</div>
+              <div className="value">{client.service}</div>
+            </div>
+            <div className="info-box">
+              <div className="label">Cancellation Risk</div>
+              <div className={`status-icon ${isFrequentCanceller ? 'red' : 'green'}`}>
+                {isFrequentCanceller ? (
+                  <svg viewBox="0 0 24 24"><path d="M6 6l12 12M6 18L18 6" strokeWidth={3} stroke="white" fill="none" /></svg>
+                ) : (
+                  <svg viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" strokeWidth={3} stroke="white" fill="none" /></svg>
+                )}
+              </div>
+            </div>
+          </div>
 
-          {/* Action Buttons */}
-          <div
-            style={{
-              padding: '14px 20px',
-              display: 'flex',
-              gap: '10px',
-              justifyContent: 'flex-end',
-              marginTop: '10px',
-            }}
-          >
-            <button
-              onClick={handleDelete}
-              style={{
-                padding: '10px 18px',
-                borderRadius: '12px',
-                border: 'none',
-                background: '#ff3b30',
-                color: '#fff',
-                cursor: 'pointer',
-                fontWeight: 600,
-              }}
-            >
-              Delete
-            </button>
-            <button
-              onClick={() => onEdit(client)}
-              style={{
-                padding: '10px 18px',
-                borderRadius: '12px',
-                border: 'none',
-                background: '#007aff',
-                color: '#fff',
-                cursor: 'pointer',
-                fontWeight: 600,
-              }}
-            >
-              Edit
-            </button>
+          {/* ACTION */}
+          <div className="action-area">
+            <button onClick={openEditModal}>Edit</button>
           </div>
         </div>
       </div>
 
-      {/* Lightbox */}
+      {/* EDIT MODAL */}
+      {isEditing && (
+        <div className="modal-overlay" style={{ display: 'flex' }}>
+          <div className="modal">
+            <h3>Edit Client</h3>
+
+            <div className="field">
+              <label>Name</label>
+              <input value={client.name} onChange={e => setClient(prev => ({ ...prev, name: e.target.value }))} />
+            </div>
+            <div className="field">
+              <label>Phone Number</label>
+              <input value={client.phone} onChange={e => setClient(prev => ({ ...prev, phone: e.target.value }))} />
+            </div>
+            <div className="field">
+              <label>Number of Visits</label>
+              <input type="number" value={client.visits} onChange={e => setClient(prev => ({ ...prev, visits: Number(e.target.value) }))} />
+            </div>
+            <div className="field">
+              <label>Number of Appointments</label>
+              <input type="number" value={client.appointments} onChange={e => setClient(prev => ({ ...prev, appointments: Number(e.target.value) }))} />
+            </div>
+            <div className="field">
+              <label>Frequent Service</label>
+              <input value={client.service} onChange={e => setClient(prev => ({ ...prev, service: e.target.value }))} />
+            </div>
+
+            <div className="field">
+              <label>Images</label>
+              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                <div className="edit-image-grid">
+                  {editImages.map((img, i) => (
+                    <div className="edit-image-item" key={i}>
+                      <img src={img} onClick={() => {
+                        const input = document.createElement('input');
+                        input.type = 'file';
+                        input.accept = 'image/*';
+                        input.onchange = (e: any) => {
+                          const file = e.target.files[0];
+                          if (file) handleReplaceImage(i, file);
+                        };
+                        input.click();
+                      }} />
+                      <div className="remove-btn" onClick={() => handleRemoveImage(i)}>×</div>
+                    </div>
+                  ))}
+                </div>
+                <div className="edit-image-item add-placeholder" style={{ fontSize: 28, color: '#9ca3af', border: '2px dashed #d1d5db' }}
+                  onClick={() => {
+                    const input = document.createElement('input');
+                    input.type = 'file';
+                    input.accept = 'image/*';
+                    input.multiple = true;
+                    input.onchange = (e: any) => handleAddImages(e.target.files);
+                    input.click();
+                  }}>+</div>
+              </div>
+            </div>
+
+            <div className="field">
+              <label>Cancellation Risk</label>
+              <div className="cancel-options">
+                <div className="option green" onClick={() => setIsFrequentCanceller(false)}>
+                  <svg viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" strokeWidth={3} stroke="white" fill="none" /></svg>
+                </div>
+                <div className="option red" onClick={() => setIsFrequentCanceller(true)}>
+                  <svg viewBox="0 0 24 24"><path d="M6 6l12 12M6 18L18 6" strokeWidth={3} stroke="white" fill="none" /></svg>
+                </div>
+              </div>
+            </div>
+
+            <div className="modal-actions">
+              <button onClick={closeEditModal}>Cancel</button>
+              <button onClick={handleSave}>Save</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* LIGHTBOX */}
       {lightboxOpen && (
-        <div
-          onClick={() => setLightboxOpen(false)}
-          style={{
-            position: 'fixed',
-            inset: 0,
-            background: 'rgba(0,0,0,0.9)',
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-            zIndex: 2000,
-            cursor: 'pointer',
-          }}
-        >
-          <img
-            src={lightboxImage}
-            alt="Lightbox"
-            style={{
-              maxWidth: '90%',
-              maxHeight: '90%',
-              borderRadius: '18px',
-              objectFit: 'contain',
-            }}
-          />
+        <div className="lightbox" style={{ display: 'flex' }} onClick={closeLightbox}>
+          <img src={client.images[lightboxIndex]} />
         </div>
       )}
     </>
