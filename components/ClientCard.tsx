@@ -1,7 +1,8 @@
+// ClientCard.tsx
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Client } from '@/app/admin-dashboard/clients/page';
+import { Client } from '@/app/clients/page';
 import { supabase } from '@/lib/supabase';
 
 interface ClientCardProps {
@@ -16,30 +17,33 @@ export default function ClientCard({ client, onEdit, onDelete }: ClientCardProps
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxImage, setLightboxImage] = useState('');
 
+  // Load appointment count
   useEffect(() => {
-    const fetchAppointmentCount = async () => {
+    const fetchAppointments = async () => {
       const { count, error } = await supabase
         .from('appointments')
         .select('id', { count: 'exact', head: true })
         .eq('customer_name', client.name);
-      
-      if (!error) {
-        setAppointmentCount(count ?? 0);
-      }
+      if (!error) setAppointmentCount(count ?? 0);
     };
-
-    fetchAppointmentCount();
+    fetchAppointments();
   }, [client.name]);
 
-  const handleImageClick = (imageUrl: string) => {
-    setLightboxImage(imageUrl);
+  const handleDelete = () => {
+    if (confirm(`Delete client ${client.name}?`)) onDelete(client.id);
+  };
+
+  const handleImageClick = (url: string) => {
+    setLightboxImage(url);
     setLightboxOpen(true);
   };
 
-  const handleDelete = () => {
-    if (confirm(`Delete client ${client.name}?`)) {
-      onDelete(client.id);
-    }
+  const boxStyle = {
+    backgroundColor: '#2c2c2e',
+    color: '#fff',
+    borderRadius: '12px',
+    padding: '12px',
+    textAlign: 'center' as const,
   };
 
   return (
@@ -47,21 +51,20 @@ export default function ClientCard({ client, onEdit, onDelete }: ClientCardProps
       <div
         className={`client-card ${isOpen ? 'open' : ''}`}
         style={{
-          width: '100%',
+          backgroundColor: '#1c1c1e',
           border: '1px solid #3a3a3c',
           borderRadius: '18px',
           overflow: 'hidden',
-          backgroundColor: '#1c1c1e',
           marginBottom: '12px',
+          width: '100%',
         }}
       >
         {/* HEADER */}
         <div
-          className="client-header"
           onClick={() => setIsOpen(!isOpen)}
           style={{
             padding: '16px 20px',
-            fontWeight: '600',
+            fontWeight: 600,
             display: 'flex',
             justifyContent: 'space-between',
             cursor: 'pointer',
@@ -72,7 +75,6 @@ export default function ClientCard({ client, onEdit, onDelete }: ClientCardProps
         >
           <span>{client.name}</span>
           <span
-            className="chevron"
             style={{
               display: 'inline-block',
               width: '8px',
@@ -97,9 +99,8 @@ export default function ClientCard({ client, onEdit, onDelete }: ClientCardProps
         >
           {/* IMAGES */}
           {client.images && client.images.length > 0 && (
-            <div className="image-section" style={{ padding: '14px 20px' }}>
+            <div style={{ padding: '14px 20px' }}>
               <div
-                className="image-grid"
                 style={{
                   display: 'flex',
                   gap: '10px',
@@ -108,69 +109,60 @@ export default function ClientCard({ client, onEdit, onDelete }: ClientCardProps
                 }}
               >
                 {client.images.map((img, idx) => (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    key={idx}
-                    src={img}
-                    alt={`Client ${idx + 1}`}
-                    onClick={() => handleImageClick(img)}
-                    style={{
-                      width: '110px',
-                      height: '110px',
-                      objectFit: 'cover',
-                      borderRadius: '14px',
-                      cursor: 'pointer',
-                      transition: '0.2s',
-                      flexShrink: 0,
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.transform = 'scale(1.05)';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.transform = 'scale(1)';
-                    }}
-                  />
+                  <div key={idx} style={{ position: 'relative', flexShrink: 0 }}>
+                    <img
+                      src={img}
+                      alt={`Client ${idx + 1}`}
+                      onClick={() => handleImageClick(img)}
+                      style={{
+                        width: '110px',
+                        height: '110px',
+                        borderRadius: '14px',
+                        objectFit: 'cover',
+                        cursor: 'pointer',
+                        transition: '0.2s',
+                      }}
+                      onMouseEnter={(e) => (e.currentTarget.style.transform = 'scale(1.05)')}
+                      onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}
+                    />
+                  </div>
                 ))}
               </div>
             </div>
           )}
 
-          {/* INFO TABLE */}
-          <div className="info-table" style={{ margin: '0 20px' }}>
-            <div
-              className="info-header"
-              style={{
-                display: 'grid',
-                gridTemplateColumns: '1fr 1fr 1fr',
-                textAlign: 'center',
-                padding: '12px 0',
-                fontWeight: '600',
-                fontSize: '13px',
-                color: '#888',
-                borderTop: '1px solid #2c2c2e',
-                borderBottom: '1px solid #2c2c2e',
-              }}
-            >
-              <div>Phone</div>
-              <div>Email</div>
-              <div>Appointments</div>
-            </div>
-            <div
-              className="info-row"
-              style={{
-                display: 'grid',
-                gridTemplateColumns: '1fr 1fr 1fr',
-                textAlign: 'center',
-                padding: '12px 0',
-                color: '#fff',
-                fontSize: '14px',
-              }}
-            >
+          {/* INFO CARDS */}
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: '1fr 1fr 1fr 1fr',
+              gap: '12px',
+              padding: '14px 20px',
+            }}
+          >
+            <div style={boxStyle}>
+              <div style={{ fontSize: '12px', color: '#888' }}>Phone</div>
               <div>{client.phone}</div>
-              <div style={{ color: client.email ? '#fff' : '#555' }}>
-                {client.email || '—'}
-              </div>
+            </div>
+            <div style={boxStyle}>
+              <div style={{ fontSize: '12px', color: '#888' }}>Email</div>
+              <div>{client.email || '—'}</div>
+            </div>
+            <div style={boxStyle}>
+              <div style={{ fontSize: '12px', color: '#888' }}>Appointments</div>
               <div>{appointmentCount}</div>
+            </div>
+            <div style={boxStyle}>
+              <div style={{ fontSize: '12px', color: '#888' }}>Risk</div>
+              <div
+                style={{
+                  width: '16px',
+                  height: '16px',
+                  borderRadius: '50%',
+                  backgroundColor: appointmentCount > 3 ? '#ff3b30' : '#34c759',
+                  margin: '0 auto',
+                }}
+              />
             </div>
           </div>
 
@@ -182,19 +174,15 @@ export default function ClientCard({ client, onEdit, onDelete }: ClientCardProps
                 color: '#aaa',
                 fontSize: '14px',
                 borderTop: '1px solid #2c2c2e',
-                marginTop: '8px',
               }}
             >
-              <div style={{ fontWeight: '600', marginBottom: '6px', color: '#888' }}>
-                Notes
-              </div>
+              <div style={{ fontWeight: 600, marginBottom: '6px', color: '#888' }}>Notes</div>
               <div>{client.notes}</div>
             </div>
           )}
 
           {/* ACTION AREA */}
           <div
-            className="action-area"
             style={{
               padding: '14px 20px',
               display: 'flex',
@@ -209,10 +197,9 @@ export default function ClientCard({ client, onEdit, onDelete }: ClientCardProps
                 borderRadius: '12px',
                 border: 'none',
                 background: '#ff3b30',
-                color: 'white',
+                color: '#fff',
                 cursor: 'pointer',
-                fontSize: '14px',
-                fontWeight: '600',
+                fontWeight: 600,
               }}
             >
               Delete
@@ -224,10 +211,9 @@ export default function ClientCard({ client, onEdit, onDelete }: ClientCardProps
                 borderRadius: '12px',
                 border: 'none',
                 background: '#007aff',
-                color: 'white',
+                color: '#fff',
                 cursor: 'pointer',
-                fontSize: '14px',
-                fontWeight: '600',
+                fontWeight: 600,
               }}
             >
               Edit
@@ -239,7 +225,6 @@ export default function ClientCard({ client, onEdit, onDelete }: ClientCardProps
       {/* LIGHTBOX */}
       {lightboxOpen && (
         <div
-          className="lightbox"
           onClick={() => setLightboxOpen(false)}
           style={{
             position: 'fixed',
@@ -252,7 +237,6 @@ export default function ClientCard({ client, onEdit, onDelete }: ClientCardProps
             cursor: 'pointer',
           }}
         >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={lightboxImage}
             alt="Lightbox"
