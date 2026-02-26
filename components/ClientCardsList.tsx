@@ -29,7 +29,7 @@ export default function ClientCardsList({
           style={{
             width: '40px',
             height: '40px',
-            border: '3px solid #3a3a3c',
+            border: '3px solid #2c2c2e',
             borderTop: '3px solid #007aff',
             borderRadius: '50%',
             animation: 'spin 1s linear infinite',
@@ -73,7 +73,7 @@ export default function ClientCardsList({
           <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
           <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
         </svg>
-        <p style={{ fontSize: '18px', fontWeight: '600', marginBottom: '8px', color: '#fff' }}>
+        <p style={{ fontSize: '18px', fontWeight: '600', marginBottom: '8px' }}>
           No clients yet
         </p>
         <p style={{ fontSize: '14px', color: '#666' }}>
