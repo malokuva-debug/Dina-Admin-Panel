@@ -17,17 +17,13 @@ export default function ClientCard({ client, onEdit, onDelete }: ClientCardProps
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxImage, setLightboxImage] = useState('');
 
-  // Fetch appointment count for this client
   useEffect(() => {
     const fetchAppointmentCount = async () => {
       const { count, error } = await supabase
         .from('appointments')
         .select('id', { count: 'exact', head: true })
         .eq('customer_name', client.name);
-
-      if (!error) {
-        setAppointmentCount(count ?? 0);
-      }
+      if (!error) setAppointmentCount(count ?? 0);
     };
     fetchAppointmentCount();
   }, [client.name]);
@@ -43,7 +39,6 @@ export default function ClientCard({ client, onEdit, onDelete }: ClientCardProps
 
   return (
     <>
-      {/* Client Card */}
       <div
         className={`client-card ${isOpen ? 'open' : ''}`}
         style={{
@@ -72,7 +67,6 @@ export default function ClientCard({ client, onEdit, onDelete }: ClientCardProps
         >
           <span>{client.name}</span>
           <span
-            className="chevron"
             style={{
               display: 'inline-block',
               width: '8px',
@@ -95,11 +89,58 @@ export default function ClientCard({ client, onEdit, onDelete }: ClientCardProps
             transition: 'max-height 0.35s ease',
           }}
         >
-          {/* Images */}
+          {/* Info Rows (like HTML/CSS grid) */}
+          <div
+            className="info-grid"
+            style={{
+              display: 'grid',
+              gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr',
+              textAlign: 'center',
+              padding: '12px 20px',
+              gap: '6px',
+              borderBottom: '1px solid #2c2c2e',
+              color: '#888',
+              fontWeight: 600,
+              fontSize: '13px',
+            }}
+          >
+            <div>Name</div>
+            <div>Appointments</div>
+            <div>Visits</div>
+            <div>Images</div>
+            <div>Cancel</div>
+            <div>Risk</div>
+            <div>Phone</div>
+            <div>Number</div>
+          </div>
+
+          <div
+            className="info-grid-values"
+            style={{
+              display: 'grid',
+              gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr',
+              textAlign: 'center',
+              padding: '12px 20px',
+              gap: '6px',
+              color: '#fff',
+              fontSize: '14px',
+              alignItems: 'center',
+            }}
+          >
+            <div>{client.name}</div>
+            <div>{appointmentCount}</div>
+            <div>{client.notes ? 1 : 0}</div>
+            <div>{client.images?.length || 0}</div>
+            <div>—</div>
+            <div>—</div>
+            <div>{client.phone}</div>
+            <div>{client.email || '—'}</div>
+          </div>
+
+          {/* Images Section */}
           {client.images && client.images.length > 0 && (
-            <div className="image-section" style={{ padding: '14px 20px' }}>
+            <div className="image-section" style={{ padding: '12px 20px', marginTop: '10px' }}>
               <div
-                className="image-grid"
                 style={{
                   display: 'flex',
                   gap: '10px',
@@ -108,33 +149,36 @@ export default function ClientCard({ client, onEdit, onDelete }: ClientCardProps
                 }}
               >
                 {client.images.map((img, idx) => (
-                  <div key={idx} style={{ position: 'relative', flexShrink: 0 }}>
+                  <div
+                    key={idx}
+                    style={{ position: 'relative', flexShrink: 0, minWidth: '90px' }}
+                  >
                     <img
                       src={img}
                       alt={`Client ${idx + 1}`}
                       onClick={() => handleImageClick(img)}
                       style={{
-                        width: '110px',
-                        height: '110px',
+                        width: '90px',
+                        height: '90px',
                         objectFit: 'cover',
-                        borderRadius: '14px',
+                        borderRadius: '12px',
                         cursor: 'pointer',
+                        border: '2px solid #3a3a3c',
                         transition: '0.2s',
                       }}
                       onMouseEnter={(e) => (e.currentTarget.style.transform = 'scale(1.05)')}
                       onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}
                     />
-                    {/* Remove button on hover */}
+                    {/* Remove Button fully visible */}
                     <button
                       onClick={() => {
-                        const confirmed = confirm('Remove this image?');
-                        if (!confirmed) return;
+                        if (!confirm('Remove this image?')) return;
                         client.images = client.images?.filter((_, i) => i !== idx);
                       }}
                       style={{
                         position: 'absolute',
-                        top: '-6px',
-                        right: '-6px',
+                        top: '2px', // fix top cut
+                        right: '2px',
                         width: '24px',
                         height: '24px',
                         borderRadius: '50%',
@@ -157,67 +201,14 @@ export default function ClientCard({ client, onEdit, onDelete }: ClientCardProps
             </div>
           )}
 
-          {/* Info Table */}
-          <div className="info-table" style={{ margin: '0 20px' }}>
-            <div
-              className="info-header"
-              style={{
-                display: 'grid',
-                gridTemplateColumns: '1fr 1fr 1fr',
-                textAlign: 'center',
-                padding: '12px 0',
-                fontWeight: 600,
-                fontSize: '13px',
-                color: '#888',
-                borderTop: '1px solid #2c2c2e',
-                borderBottom: '1px solid #2c2c2e',
-              }}
-            >
-              <div>Phone</div>
-              <div>Email</div>
-              <div>Appointments</div>
-            </div>
-            <div
-              className="info-row"
-              style={{
-                display: 'grid',
-                gridTemplateColumns: '1fr 1fr 1fr',
-                textAlign: 'center',
-                padding: '12px 0',
-                color: '#fff',
-                fontSize: '14px',
-              }}
-            >
-              <div>{client.phone}</div>
-              <div style={{ color: client.email ? '#fff' : '#555' }}>{client.email || '—'}</div>
-              <div>{appointmentCount}</div>
-            </div>
-          </div>
-
-          {/* Notes */}
-          {client.notes && (
-            <div
-              style={{
-                padding: '14px 20px',
-                color: '#aaa',
-                fontSize: '14px',
-                borderTop: '1px solid #2c2c2e',
-                marginTop: '8px',
-              }}
-            >
-              <div style={{ fontWeight: 600, marginBottom: '6px', color: '#888' }}>Notes</div>
-              <div>{client.notes}</div>
-            </div>
-          )}
-
           {/* Action Buttons */}
           <div
-            className="action-area"
             style={{
               padding: '14px 20px',
               display: 'flex',
               gap: '10px',
               justifyContent: 'flex-end',
+              marginTop: '10px',
             }}
           >
             <button
