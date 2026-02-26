@@ -132,23 +132,27 @@ export default function ClientCard({ client, onEdit, onDelete }: ClientCardProps
     }
 
     function addEditImage() {
-      const input = document.createElement('input');
-      input.type = 'file';
-      input.accept = 'image/*';
-      input.multiple = true;
-      input.click();
-      input.onchange = (e: any) => {
-        Array.from(e.target.files).forEach((file: File) => {
-          const reader = new FileReader();
-          reader.onload = (ev: any) => {
-            const grid = document.getElementById('editImageGrid');
-            if (grid) grid.appendChild(makeEditItem(ev.target.result));
-            syncMainImages();
-          };
-          reader.readAsDataURL(file);
-        });
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = 'image/*';
+  input.multiple = true;
+  input.click();
+
+  input.onchange = (e: Event) => {
+    const target = e.target as HTMLInputElement;
+    if (!target.files) return;
+
+    Array.from(target.files).forEach((file) => { // no need to type as File, TS infers it
+      const reader = new FileReader();
+      reader.onload = (ev: ProgressEvent<FileReader>) => {
+        const grid = document.getElementById('editImageGrid');
+        if (grid && ev.target?.result) grid.appendChild(makeEditItem(ev.target.result as string));
+        syncMainImages();
       };
-    }
+      reader.readAsDataURL(file);
+    });
+  };
+}
 
     function syncMainImages() {
       const mainGrid = document.getElementById('imageGrid');
