@@ -67,7 +67,7 @@ export default function AppointmentsSection({ worker }: AppointmentsSectionProps
             .map(c => ({
               id: c.id,
               name: c.name,
-              phone: c.phone,
+              phone: c.phone ?? null,
               email: c.email ?? undefined,
             }));
 
