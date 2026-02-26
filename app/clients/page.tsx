@@ -15,6 +15,7 @@ export interface Client {
   images?: string[];
   worker?: Worker;
   created_at?: string;
+  service?: string;  // ✅ Add this
 }
 
 export default function ClientsPage() {
