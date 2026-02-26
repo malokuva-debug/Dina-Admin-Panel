@@ -57,7 +57,7 @@ export default function ClientsPage() {
         .from('clients')
         .update({
           name: client.name,
-          phone: client.phone,
+          phone: client.phone?.trim() || null,
           notes: client.notes ?? null,
           images: client.images ?? [],
         })
