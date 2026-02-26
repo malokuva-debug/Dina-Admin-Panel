@@ -24,7 +24,6 @@ export default function ClientModal({
     images: [],
   });
 
-  // Lock body scroll when modal is open
   useEffect(() => {
     if (open) document.body.style.overflow = 'hidden';
     else document.body.style.overflow = 'unset';
@@ -33,7 +32,6 @@ export default function ClientModal({
     };
   }, [open]);
 
-  // Update form when editing an existing client
   useEffect(() => {
     if (client) {
       setForm({
@@ -110,12 +108,11 @@ export default function ClientModal({
 
   return (
     <div
-      className="modal active"
       onClick={handleBackdropClick}
       style={{
         position: 'fixed',
         inset: 0,
-        backgroundColor: 'rgba(0,0,0,0.6)',
+        background: 'rgba(0,0,0,0.6)',
         display: 'flex',
         justifyContent: 'center',
         alignItems: 'center',
@@ -125,37 +122,42 @@ export default function ClientModal({
       }}
     >
       <div
-        className="modal-content"
         style={{
-          backgroundColor: '#1c1c1e',
-          padding: '24px',
-          borderRadius: '18px',
-          minWidth: '400px',
-          maxWidth: '500px',
-          width: '100%',
-          color: 'white',
-          boxShadow: '0 4px 20px rgba(0,0,0,0.6)',
+          width: '90%',
+          maxWidth: '400px',
+          background: '#1c1c1e',
+          borderRadius: '20px',
+          padding: '20px',
           maxHeight: '90vh',
           overflowY: 'auto',
+          border: '1px solid #3a3a3c',
         }}
       >
-        <h3 style={{ marginBottom: '20px', fontSize: '20px', fontWeight: '600' }}>
+        <h3
+          style={{
+            textAlign: 'center',
+            marginBottom: '20px',
+            fontSize: '20px',
+            fontWeight: '600',
+            color: '#fff',
+          }}
+        >
           {client?.id ? 'Edit Client' : 'New Client'}
         </h3>
 
         <form onSubmit={handleSave}>
           {/* Name */}
-          <div style={{ marginBottom: '16px' }}>
+          <div style={{ marginBottom: '14px' }}>
             <label
               style={{
                 display: 'block',
-                marginBottom: '6px',
-                fontSize: '14px',
+                fontSize: '13px',
                 fontWeight: '600',
-                color: '#aaa',
+                marginBottom: '6px',
+                color: '#888',
               }}
             >
-              Name *
+              Name
             </label>
             <input
               type="text"
@@ -163,30 +165,32 @@ export default function ClientModal({
               onChange={(e) => setForm({ ...form, name: e.target.value })}
               required
               style={{
-                backgroundColor: '#2c2c2e',
-                color: 'white',
-                padding: '12px',
-                borderRadius: '10px',
-                border: '1px solid #3a3a3c',
                 width: '100%',
+                padding: '10px',
+                borderRadius: '12px',
+                border: '1px solid #3a3a3c',
+                textAlign: 'center',
+                boxSizing: 'border-box',
                 fontSize: '15px',
                 outline: 'none',
+                background: '#2c2c2e',
+                color: '#fff',
               }}
             />
           </div>
 
           {/* Phone */}
-          <div style={{ marginBottom: '16px' }}>
+          <div style={{ marginBottom: '14px' }}>
             <label
               style={{
                 display: 'block',
-                marginBottom: '6px',
-                fontSize: '14px',
+                fontSize: '13px',
                 fontWeight: '600',
-                color: '#aaa',
+                marginBottom: '6px',
+                color: '#888',
               }}
             >
-              Phone *
+              Phone Number
             </label>
             <input
               type="text"
@@ -194,27 +198,29 @@ export default function ClientModal({
               onChange={(e) => setForm({ ...form, phone: e.target.value })}
               required
               style={{
-                backgroundColor: '#2c2c2e',
-                color: 'white',
-                padding: '12px',
-                borderRadius: '10px',
-                border: '1px solid #3a3a3c',
                 width: '100%',
+                padding: '10px',
+                borderRadius: '12px',
+                border: '1px solid #3a3a3c',
+                textAlign: 'center',
+                boxSizing: 'border-box',
                 fontSize: '15px',
                 outline: 'none',
+                background: '#2c2c2e',
+                color: '#fff',
               }}
             />
           </div>
 
           {/* Notes */}
-          <div style={{ marginBottom: '16px' }}>
+          <div style={{ marginBottom: '14px' }}>
             <label
               style={{
                 display: 'block',
-                marginBottom: '6px',
-                fontSize: '14px',
+                fontSize: '13px',
                 fontWeight: '600',
-                color: '#aaa',
+                marginBottom: '6px',
+                color: '#888',
               }}
             >
               Notes
@@ -224,160 +230,220 @@ export default function ClientModal({
               onChange={(e) => setForm({ ...form, notes: e.target.value })}
               rows={3}
               style={{
-                backgroundColor: '#2c2c2e',
-                color: 'white',
-                padding: '12px',
-                borderRadius: '10px',
-                border: '1px solid #3a3a3c',
                 width: '100%',
+                padding: '10px',
+                borderRadius: '12px',
+                border: '1px solid #3a3a3c',
+                boxSizing: 'border-box',
                 fontSize: '15px',
                 outline: 'none',
                 resize: 'vertical',
+                background: '#2c2c2e',
+                color: '#fff',
               }}
             />
           </div>
 
           {/* Images */}
-          <div style={{ marginBottom: '20px' }}>
+          <div style={{ marginBottom: '14px' }}>
             <label
               style={{
                 display: 'block',
-                marginBottom: '10px',
-                fontSize: '14px',
+                fontSize: '13px',
                 fontWeight: '600',
-                color: '#aaa',
+                marginBottom: '6px',
+                color: '#888',
               }}
             >
               Images
             </label>
 
-            {form.images && form.images.length > 0 && (
+            <div
+              style={{
+                display: 'flex',
+                gap: '10px',
+                alignItems: 'center',
+                flexWrap: 'wrap',
+                padding: '4px 0',
+              }}
+            >
+              {/* Existing Images */}
               <div
                 style={{
                   display: 'flex',
                   gap: '10px',
                   overflowX: 'auto',
-                  marginBottom: '12px',
-                  paddingBottom: '8px',
+                  padding: '8px 0',
+                  flex: 1,
                 }}
               >
-                {form.images.map((img, idx) => (
-                  <div
-                    key={idx}
-                    style={{
-                      position: 'relative',
-                      flexShrink: 0,
-                    }}
-                  >
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={img}
-                      alt={`Preview ${idx + 1}`}
-                      onClick={() => handleReplaceImage(idx)}
-                      style={{
-                        width: '90px',
-                        height: '90px',
-                        objectFit: 'cover',
-                        borderRadius: '12px',
-                        cursor: 'pointer',
-                        border: '2px solid #3a3a3c',
-                      }}
-                      title="Click to replace"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveImage(idx)}
-                      style={{
-                        position: 'absolute',
-                        top: '-6px',
-                        right: '-6px',
-                        width: '24px',
-                        height: '24px',
-                        borderRadius: '50%',
-                        background: '#ff3b30',
-                        color: 'white',
-                        border: 'none',
-                        cursor: 'pointer',
-                        fontSize: '16px',
-                        fontWeight: 'bold',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        padding: 0,
-                      }}
-                    >
-                      ×
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
+                {form.images && form.images.length > 0 && (
+                  <>
+                    {form.images.map((img, idx) => (
+                      <div
+                        key={idx}
+                        style={{
+                          position: 'relative',
+                          flex: '0 0 auto',
+                          width: '80px',
+                          height: '80px',
+                          borderRadius: '12px',
+                          overflow: 'visible',
+                          cursor: 'pointer',
+                          background: '#2c2c2e',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                        }}
+                      >
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={img}
+                          alt={`Preview ${idx + 1}`}
+                          onClick={() => handleReplaceImage(idx)}
+                          style={{
+                            width: '100%',
+                            height: '100%',
+                            objectFit: 'cover',
+                            display: 'block',
+                            borderRadius: '12px',
+                          }}
+                        />
 
-            <label
+                        {/* Remove Button - SVG Badge */}
+                        <div
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleRemoveImage(idx);
+                          }}
+                          style={{
+                            position: 'absolute',
+                            top: '-2px',
+                            right: '-2px',
+                            width: '28px',
+                            height: '28px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            cursor: 'pointer',
+                            zIndex: 10,
+                          }}
+                        >
+                          <svg
+                            viewBox="0 0 28 28"
+                            width="28"
+                            height="28"
+                            xmlns="http://www.w3.org/2000/svg"
+                          >
+                            <circle cx="14" cy="14" r="14" fill="#1c1c1e" />
+                            <circle
+                              cx="14"
+                              cy="14"
+                              r="12"
+                              fill="#ff3b30"
+                              opacity="0.9"
+                            />
+                            <line
+                              x1="10"
+                              y1="10"
+                              x2="18"
+                              y2="18"
+                              stroke="white"
+                              strokeWidth="2.2"
+                              strokeLinecap="round"
+                            />
+                            <line
+                              x1="18"
+                              y1="10"
+                              x2="10"
+                              y2="18"
+                              stroke="white"
+                              strokeWidth="2.2"
+                              strokeLinecap="round"
+                            />
+                          </svg>
+                        </div>
+                      </div>
+                    ))}
+                  </>
+                )}
+
+                {/* Add New Image Button */}
+                <label
+                  style={{
+                    flex: '0 0 auto',
+                    width: '80px',
+                    height: '80px',
+                    fontSize: '28px',
+                    color: '#666',
+                    border: '2px dashed #3a3a3c',
+                    borderRadius: '12px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                    background: '#2c2c2e',
+                  }}
+                >
+                  +
+                  <input
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    onChange={handleImageUpload}
+                    style={{ display: 'none' }}
+                  />
+                </label>
+              </div>
+            </div>
+            <p
               style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '8px',
-                padding: '10px 16px',
-                background: '#007aff',
-                color: 'white',
-                borderRadius: '10px',
-                cursor: 'pointer',
-                fontSize: '14px',
-                fontWeight: '600',
+                fontSize: '11px',
+                color: '#666',
+                marginTop: '6px',
+                textAlign: 'center',
               }}
             >
-              <span>+ Add Images</span>
-              <input
-                type="file"
-                accept="image/*"
-                multiple
-                onChange={handleImageUpload}
-                style={{ display: 'none' }}
-              />
-            </label>
-            <p style={{ fontSize: '12px', color: '#666', marginTop: '8px' }}>
-              Click images to replace. Maximum recommended: 5 images.
+              Click images to replace • Click + to add more
             </p>
           </div>
 
           {/* Actions */}
           <div
             style={{
+              marginTop: '15px',
               display: 'flex',
-              gap: '12px',
-              marginTop: '24px',
+              justifyContent: 'center',
+              gap: '10px',
             }}
           >
             <button
               type="button"
-              style={{
-                background: '#3a3a3c',
-                color: 'white',
-                padding: '14px',
-                borderRadius: '12px',
-                flex: 1,
-                border: 'none',
-                cursor: 'pointer',
-                fontSize: '16px',
-                fontWeight: '600',
-              }}
               onClick={onClose}
+              style={{
+                padding: '10px 20px',
+                border: 'none',
+                borderRadius: '12px',
+                background: '#3a3a3c',
+                color: '#fff',
+                cursor: 'pointer',
+                fontWeight: '600',
+                fontSize: '14px',
+              }}
             >
               Cancel
             </button>
             <button
               type="submit"
               style={{
-                background: '#34c759',
-                color: 'white',
-                padding: '14px',
-                borderRadius: '12px',
-                flex: 1,
+                padding: '10px 20px',
                 border: 'none',
+                borderRadius: '12px',
+                background: '#007aff',
+                color: 'white',
                 cursor: 'pointer',
-                fontSize: '16px',
                 fontWeight: '600',
+                fontSize: '14px',
               }}
             >
               Save
