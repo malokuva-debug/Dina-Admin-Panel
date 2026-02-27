@@ -9,13 +9,15 @@ import { Worker } from '@/types';
 export interface Client {
   id: string;
   name: string;
-  phone: string;
-  email?: string | null;
+  phone?: string | null;
   notes?: string | null;
   images?: string[];
   worker?: Worker;
   created_at?: string;
-  service?: string;  // ✅ Add this
+  visits?: number;
+  appointments?: number;
+  frequent_service?: string | null;
+  frequent_canceller?: boolean;
 }
 
 export default function ClientsPage() {
@@ -46,14 +48,13 @@ export default function ClientsPage() {
   };
 
   const filtered = useMemo(() => {
-    const q = search.toLowerCase();
-    return clients.filter(
-      (c) =>
-        c.name.toLowerCase().includes(q) ||
-        c.phone.includes(q) ||
-        c.email?.toLowerCase().includes(q)
-    );
-  }, [clients, search]);
+  const q = search.toLowerCase();
+  return clients.filter(
+    (c) =>
+      c.name.toLowerCase().includes(q) ||
+      (c.phone ?? '').includes(q)
+  );
+}, [clients, search]);
 
   const handleSave = async (client: Client) => {
     if (client.id) {
@@ -63,7 +64,6 @@ export default function ClientsPage() {
         .update({
           name: client.name,
           phone: client.phone,
-          email: client.email ?? null,
           notes: client.notes ?? null,
           images: client.images ?? [],
         })
@@ -82,7 +82,6 @@ export default function ClientsPage() {
           {
             name: client.name,
             phone: client.phone,
-            email: client.email ?? null,
             notes: client.notes ?? null,
             images: client.images ?? [],
           },
@@ -152,7 +151,6 @@ export default function ClientsPage() {
               id: '',
               name: '',
               phone: '',
-              email: null,
               notes: null,
               images: [],
             });
@@ -180,7 +178,7 @@ export default function ClientsPage() {
       {/* Search Bar */}
       <input
         type="text"
-        placeholder="Search clients by name, phone, or email…"
+        placeholder="Search clients by name, or phone…"
         value={search}
         onChange={(e) => setSearch(e.target.value)}
         style={{
