@@ -48,14 +48,13 @@ export default function ClientsPage() {
   };
 
   const filtered = useMemo(() => {
-    const q = search.toLowerCase();
-    return clients.filter(
-      (c) =>
-        c.name.toLowerCase().includes(q) ||
-        c.phone.includes(q) ||
-        c.email?.toLowerCase().includes(q)
-    );
-  }, [clients, search]);
+  const q = search.toLowerCase();
+  return clients.filter(
+    (c) =>
+      c.name.toLowerCase().includes(q) ||
+      (c.phone ?? '').includes(q)
+  );
+}, [clients, search]);
 
   const handleSave = async (client: Client) => {
     if (client.id) {
