@@ -9,12 +9,15 @@ import { Worker } from '@/types';
 export interface Client {
   id: string;
   name: string;
-  phone: string;
-  email?: string | null;
+  phone?: string | null;
   notes?: string | null;
   images?: string[];
   worker?: Worker;
   created_at?: string;
+  visits?: number;
+  appointments?: number;
+  frequent_service?: string | null;
+  frequent_canceller?: boolean;
 }
 
 export default function ClientsPage() {
