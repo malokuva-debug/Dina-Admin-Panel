@@ -17,12 +17,16 @@ export default function ClientModal({
   onSave,
 }: ClientModalProps) {
   const [form, setForm] = useState<Client>({
-    id: '',
-    name: '',
-    phone: '',
-    notes: null,
-    images: [],
-  });
+  id: '',
+  name: '',
+  phone: null,
+  notes: null,
+  images: [],
+  visits: 0,
+  appointments: 0,
+  frequent_service: null,
+  frequent_canceller: false,
+});
 
   // Lock body scroll when modal is open
   useEffect(() => {
@@ -192,7 +196,6 @@ export default function ClientModal({
               type="text"
               value={form.phone}
               onChange={(e) => setForm({ ...form, phone: e.target.value })}
-              required
               style={{
                 backgroundColor: '#2c2c2e',
                 color: 'white',
