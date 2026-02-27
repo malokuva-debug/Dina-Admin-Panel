@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { Client } from '@/app/admin-dashboard/clients/page';
+import { supabase } from '@/lib/supabase';
 
 interface ClientModalProps {
   open: boolean;
@@ -10,13 +11,7 @@ interface ClientModalProps {
   onSave: (client: Client) => void;
 }
 
-export default function ClientModal({
-  open,
-  client,
-  onClose,
-  onSave,
-}: ClientModalProps) {
-  const [form, setForm] = useState<Client>({
+const emptyForm: Client = {
   id: '',
   name: '',
   phone: null,
@@ -26,33 +21,20 @@ export default function ClientModal({
   appointments: 0,
   frequent_service: null,
   frequent_canceller: false,
-});
+};
 
-  // Lock body scroll when modal is open
+export default function ClientModal({ open, client, onClose, onSave }: ClientModalProps) {
+  const [form, setForm] = useState<Client>(emptyForm);
+  const [uploading, setUploading] = useState(false);
+
   useEffect(() => {
     if (open) document.body.style.overflow = 'hidden';
     else document.body.style.overflow = 'unset';
-    return () => {
-      document.body.style.overflow = 'unset';
-    };
+    return () => { document.body.style.overflow = 'unset'; };
   }, [open]);
 
-  // Update form when editing an existing client
   useEffect(() => {
-    if (client) {
-      setForm({
-        ...client,
-        images: client.images || [],
-      });
-    } else {
-      setForm({
-        id: '',
-        name: '',
-        phone: '',
-        notes: null,
-        images: [],
-      });
-    }
+    setForm(client ? { ...emptyForm, ...client, images: client.images || [] } : emptyForm);
   }, [client]);
 
   const handleSave = (e: React.FormEvent) => {
@@ -64,41 +46,80 @@ export default function ClientModal({
     if (e.target === e.currentTarget) onClose();
   };
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files) return;
+  /* ── Fast parallel upload ── */
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
 
-    Array.from(files).forEach((file) => {
-      const reader = new FileReader();
-      reader.onload = (ev) => {
-        const result = ev.target?.result as string;
-        setForm((prev) => ({
-          ...prev,
-          images: [...(prev.images || []), result],
-        }));
-      };
-      reader.readAsDataURL(file);
+    // 1. Show instant local previews
+    const objectUrls = files.map((f) => URL.createObjectURL(f));
+    setForm((prev) => ({ ...prev, images: [...(prev.images || []), ...objectUrls] }));
+    setUploading(true);
+
+    // 2. Upload all files to Supabase in parallel
+    const uploadedUrls = await Promise.all(
+      files.map(async (file, i) => {
+        const ext = file.name.split('.').pop() || 'jpg';
+        const path = `clients/${Date.now()}_${i}.${ext}`;
+        const { error } = await supabase.storage
+          .from('client-images')
+          .upload(path, file, { upsert: true });
+
+        if (error) return objectUrls[i]; // keep blob preview on failure
+
+        const { data } = supabase.storage.from('client-images').getPublicUrl(path);
+        return data.publicUrl;
+      })
+    );
+
+    // 3. Swap blob URLs for real URLs and free memory
+    setForm((prev) => {
+      const images = [...(prev.images || [])];
+      const startIdx = images.length - files.length;
+      uploadedUrls.forEach((url, i) => { images[startIdx + i] = url; });
+      objectUrls.forEach((url) => URL.revokeObjectURL(url));
+      return { ...prev, images };
     });
+
+    setUploading(false);
+    // Reset input so same files can be re-selected
+    e.target.value = '';
   };
 
+  /* ── Replace single image ── */
   const handleReplaceImage = (index: number) => {
     const input = document.createElement('input');
     input.type = 'file';
     input.accept = 'image/*';
-    input.onchange = (e: any) => {
+    input.onchange = async (e: any) => {
       const file = e.target.files?.[0];
       if (!file) return;
 
-      const reader = new FileReader();
-      reader.onload = (ev) => {
-        const result = ev.target?.result as string;
+      // Instant preview
+      const objectUrl = URL.createObjectURL(file);
+      setForm((prev) => {
+        const imgs = [...(prev.images || [])];
+        imgs[index] = objectUrl;
+        return { ...prev, images: imgs };
+      });
+
+      // Upload
+      const ext = file.name.split('.').pop() || 'jpg';
+      const path = `clients/${Date.now()}_replace.${ext}`;
+      const { error } = await supabase.storage
+        .from('client-images')
+        .upload(path, file, { upsert: true });
+
+      URL.revokeObjectURL(objectUrl);
+
+      if (!error) {
+        const { data } = supabase.storage.from('client-images').getPublicUrl(path);
         setForm((prev) => {
-          const newImages = [...(prev.images || [])];
-          newImages[index] = result;
-          return { ...prev, images: newImages };
+          const imgs = [...(prev.images || [])];
+          imgs[index] = data.publicUrl;
+          return { ...prev, images: imgs };
         });
-      };
-      reader.readAsDataURL(file);
+      }
     };
     input.click();
   };
@@ -114,7 +135,6 @@ export default function ClientModal({
 
   return (
     <div
-      className="modal active"
       onClick={handleBackdropClick}
       style={{
         position: 'fixed',
@@ -129,7 +149,6 @@ export default function ClientModal({
       }}
     >
       <div
-        className="modal-content"
         style={{
           backgroundColor: '#1c1c1e',
           padding: '24px',
@@ -148,111 +167,41 @@ export default function ClientModal({
         </h3>
 
         <form onSubmit={handleSave}>
+
           {/* Name */}
-          <div style={{ marginBottom: '16px' }}>
-            <label
-              style={{
-                display: 'block',
-                marginBottom: '6px',
-                fontSize: '14px',
-                fontWeight: '600',
-                color: '#aaa',
-              }}
-            >
-              Name *
-            </label>
+          <Field label="Name *">
             <input
               type="text"
               value={form.name}
               onChange={(e) => setForm({ ...form, name: e.target.value })}
               required
-              style={{
-                backgroundColor: '#2c2c2e',
-                color: 'white',
-                padding: '12px',
-                borderRadius: '10px',
-                border: '1px solid #3a3a3c',
-                width: '100%',
-                fontSize: '15px',
-                outline: 'none',
-              }}
+              style={inputStyle}
             />
-          </div>
+          </Field>
 
           {/* Phone */}
-          <div style={{ marginBottom: '16px' }}>
-            <label
-              style={{
-                display: 'block',
-                marginBottom: '6px',
-                fontSize: '14px',
-                fontWeight: '600',
-                color: '#aaa',
-              }}
-            >
-              Phone *
-            </label>
+          <Field label="Phone">
             <input
               type="text"
               value={form.phone ?? ''}
-              onChange={(e) => setForm({ ...form, phone: e.target.value })}
-              style={{
-                backgroundColor: '#2c2c2e',
-                color: 'white',
-                padding: '12px',
-                borderRadius: '10px',
-                border: '1px solid #3a3a3c',
-                width: '100%',
-                fontSize: '15px',
-                outline: 'none',
-              }}
+              onChange={(e) => setForm({ ...form, phone: e.target.value || null })}
+              style={inputStyle}
             />
-          </div>
+          </Field>
 
           {/* Notes */}
-          <div style={{ marginBottom: '16px' }}>
-            <label
-              style={{
-                display: 'block',
-                marginBottom: '6px',
-                fontSize: '14px',
-                fontWeight: '600',
-                color: '#aaa',
-              }}
-            >
-              Notes
-            </label>
+          <Field label="Notes">
             <textarea
               value={form.notes ?? ''}
-              onChange={(e) => setForm({ ...form, notes: e.target.value })}
+              onChange={(e) => setForm({ ...form, notes: e.target.value || null })}
               rows={3}
-              style={{
-                backgroundColor: '#2c2c2e',
-                color: 'white',
-                padding: '12px',
-                borderRadius: '10px',
-                border: '1px solid #3a3a3c',
-                width: '100%',
-                fontSize: '15px',
-                outline: 'none',
-                resize: 'vertical',
-              }}
+              style={{ ...inputStyle, resize: 'vertical' }}
             />
-          </div>
+          </Field>
 
           {/* Images */}
           <div style={{ marginBottom: '20px' }}>
-            <label
-              style={{
-                display: 'block',
-                marginBottom: '10px',
-                fontSize: '14px',
-                fontWeight: '600',
-                color: '#aaa',
-              }}
-            >
-              Images
-            </label>
+            <label style={labelStyle}>Images</label>
 
             {form.images && form.images.length > 0 && (
               <div
@@ -265,18 +214,13 @@ export default function ClientModal({
                 }}
               >
                 {form.images.map((img, idx) => (
-                  <div
-                    key={idx}
-                    style={{
-                      position: 'relative',
-                      flexShrink: 0,
-                    }}
-                  >
+                  <div key={idx} style={{ position: 'relative', flexShrink: 0 }}>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       src={img}
                       alt={`Preview ${idx + 1}`}
                       onClick={() => handleReplaceImage(idx)}
+                      title="Click to replace"
                       style={{
                         width: '90px',
                         height: '90px',
@@ -284,8 +228,8 @@ export default function ClientModal({
                         borderRadius: '12px',
                         cursor: 'pointer',
                         border: '2px solid #3a3a3c',
+                        display: 'block',
                       }}
-                      title="Click to replace"
                     />
                     <button
                       type="button"
@@ -297,7 +241,7 @@ export default function ClientModal({
                         width: '24px',
                         height: '24px',
                         borderRadius: '50%',
-                        background: '#ff3b30',
+                        background: 'rgb(255, 59, 48)',
                         color: 'white',
                         border: 'none',
                         cursor: 'pointer',
@@ -322,38 +266,35 @@ export default function ClientModal({
                 alignItems: 'center',
                 gap: '8px',
                 padding: '10px 16px',
-                background: '#007aff',
+                background: uploading ? '#555' : 'rgb(0, 122, 255)',
                 color: 'white',
                 borderRadius: '10px',
-                cursor: 'pointer',
+                cursor: uploading ? 'not-allowed' : 'pointer',
                 fontSize: '14px',
                 fontWeight: '600',
+                transition: 'background 0.2s',
               }}
             >
-              <span>+ Add Images</span>
+              <span>{uploading ? 'Uploading…' : '+ Add Images'}</span>
               <input
                 type="file"
                 accept="image/*"
                 multiple
+                disabled={uploading}
                 onChange={handleImageUpload}
                 style={{ display: 'none' }}
               />
             </label>
             <p style={{ fontSize: '12px', color: '#666', marginTop: '8px' }}>
-              Click images to replace. Maximum recommended: 5 images.
+              Click an image to replace it.
             </p>
           </div>
 
           {/* Actions */}
-          <div
-            style={{
-              display: 'flex',
-              gap: '12px',
-              marginTop: '24px',
-            }}
-          >
+          <div style={{ display: 'flex', gap: '12px', marginTop: '24px' }}>
             <button
               type="button"
+              onClick={onClose}
               style={{
                 background: '#3a3a3c',
                 color: 'white',
@@ -365,29 +306,61 @@ export default function ClientModal({
                 fontSize: '16px',
                 fontWeight: '600',
               }}
-              onClick={onClose}
             >
               Cancel
             </button>
             <button
               type="submit"
+              disabled={uploading}
               style={{
-                background: '#34c759',
+                background: uploading ? '#555' : 'rgb(0, 122, 255)',
                 color: 'white',
                 padding: '14px',
                 borderRadius: '12px',
                 flex: 1,
                 border: 'none',
-                cursor: 'pointer',
+                cursor: uploading ? 'not-allowed' : 'pointer',
                 fontSize: '16px',
                 fontWeight: '600',
+                transition: 'background 0.2s',
               }}
             >
-              Save
+              {uploading ? 'Uploading…' : 'Save'}
             </button>
           </div>
+
         </form>
       </div>
+    </div>
+  );
+}
+
+/* ── Shared styles ── */
+const inputStyle: React.CSSProperties = {
+  backgroundColor: '#2c2c2e',
+  color: 'white',
+  padding: '12px',
+  borderRadius: '10px',
+  border: '1px solid #3a3a3c',
+  width: '100%',
+  fontSize: '15px',
+  outline: 'none',
+  fontFamily: 'inherit',
+};
+
+const labelStyle: React.CSSProperties = {
+  display: 'block',
+  marginBottom: '6px',
+  fontSize: '14px',
+  fontWeight: '600',
+  color: '#aaa',
+};
+
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div style={{ marginBottom: '16px' }}>
+      <label style={labelStyle}>{label}</label>
+      {children}
     </div>
   );
 }
