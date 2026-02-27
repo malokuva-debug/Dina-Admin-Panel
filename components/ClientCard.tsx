@@ -274,33 +274,56 @@ export default function ClientCard({ client, onEdit, onDelete }: ClientCardProps
       </div>
 
       {/* LIGHTBOX */}
-      {lightboxOpen && (
-        <div
-          onClick={() => setLightboxOpen(false)}
-          style={{
-            position: 'fixed',
-            inset: 0,
-            background: 'rgba(0,0,0,0.9)',
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-            zIndex: 2000,
-            cursor: 'pointer',
-          }}
-        >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={lightboxImage}
-            alt="Lightbox"
-            style={{
-              maxWidth: '90%',
-              maxHeight: '90%',
-              borderRadius: '18px',
-              objectFit: 'contain',
-            }}
-          />
-        </div>
-      )}
+{lightboxOpen && (
+  <div
+    onClick={() => setLightboxOpen(false)}
+    onTouchStart={(e) => {
+      const touch = e.touches[0];
+      (e.currentTarget as any)._touchStartX = touch.clientX;
+    }}
+    onTouchEnd={(e) => {
+      const startX = (e.currentTarget as any)._touchStartX ?? 0;
+      const diff = startX - e.changedTouches[0].clientX;
+      const images = client.images!;
+      const currentIdx = images.indexOf(lightboxImage);
+      if (diff > 40) {
+        // swipe left → next
+        const next = (currentIdx + 1) % images.length;
+        setLightboxImage(images[next]);
+      } else if (diff < -40) {
+        // swipe right → prev
+        const prev = (currentIdx - 1 + images.length) % images.length;
+        setLightboxImage(images[prev]);
+      } else {
+        setLightboxOpen(false);
+      }
+    }}
+    style={{
+      position: 'fixed',
+      inset: 0,
+      background: 'rgba(0,0,0,0.9)',
+      display: 'flex',
+      justifyContent: 'center',
+      alignItems: 'center',
+      zIndex: 2000,
+      cursor: 'pointer',
+      touchAction: 'pan-y',
+    }}
+  >
+    {/* eslint-disable-next-line @next/next/no-img-element */}
+    <img
+      src={lightboxImage}
+      alt="Lightbox"
+      onClick={(e) => e.stopPropagation()}
+      style={{
+        maxWidth: '90%',
+        maxHeight: '90%',
+        borderRadius: '18px',
+        objectFit: 'contain',
+      }}
+    />
+  </div>
+)}
     </>
   );
 }
