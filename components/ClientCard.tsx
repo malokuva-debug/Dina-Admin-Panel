@@ -188,30 +188,31 @@ export default function ClientCard({ client, onEdit, onDelete }: ClientCardProps
             </InfoBox>
 
             {/* Cancellation Risk */}
-            <InfoBox label="Cancellation Risk">
-              <div
-                style={{
-                  width: '36px',
-                  height: '36px',
-                  borderRadius: '50%',
-                  background: client.frequent_canceller ? 'rgb(255, 59, 48)' : 'rgb(0, 122, 255)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
-                {client.frequent_canceller ? (
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3">
-                    <path d="M6 6l12 12M6 18L18 6" />
-                  </svg>
-                ) : (
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3">
-                    <path d="M5 13l4 4L19 7" />
-                  </svg>
-                )}
-              </div>
-            </InfoBox>
-          </div>
+<div style={{ gridColumn: '1 / -1', display: 'flex', justifyContent: 'center' }}>
+  <InfoBox label="Cancellation Risk">
+    <div
+      style={{
+        width: '36px',
+        height: '36px',
+        borderRadius: '50%',
+        background: client.frequent_canceller ? 'rgb(255, 59, 48)' : 'rgb(0, 122, 255)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}
+    >
+      {client.frequent_canceller ? (
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3">
+          <path d="M6 6l12 12M6 18L18 6" />
+        </svg>
+      ) : (
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3">
+          <path d="M5 13l4 4L19 7" />
+        </svg>
+      )}
+    </div>
+  </InfoBox>
+</div>
 
           {/* NOTES */}
           {client.notes && (
