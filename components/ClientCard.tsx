@@ -187,32 +187,34 @@ export default function ClientCard({ client, onEdit, onDelete }: ClientCardProps
               </span>
             </InfoBox>
 
-            {/* Cancellation Risk */}
-<div style={{ gridColumn: '1 / -1', display: 'flex', justifyContent: 'center' }}>
-  <InfoBox label="Cancellation Risk">
-    <div
-      style={{
-        width: '36px',
-        height: '36px',
-        borderRadius: '50%',
-        background: client.frequent_canceller ? 'rgb(255, 59, 48)' : 'rgb(0, 122, 255)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-      }}
-    >
-      {client.frequent_canceller ? (
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3">
-          <path d="M6 6l12 12M6 18L18 6" />
-        </svg>
-      ) : (
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3">
-          <path d="M5 13l4 4L19 7" />
-        </svg>
-      )}
-    </div>
-  </InfoBox>
-</div>
+            {/* Cancellation Risk — centred full row */}
+            <div style={{ gridColumn: '1 / -1', display: 'flex', justifyContent: 'center' }}>
+              <InfoBox label="Cancellation Risk">
+                <div
+                  style={{
+                    width: '36px',
+                    height: '36px',
+                    borderRadius: '50%',
+                    background: client.frequent_canceller ? 'rgb(255, 59, 48)' : 'rgb(0, 122, 255)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  {client.frequent_canceller ? (
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3">
+                      <path d="M6 6l12 12M6 18L18 6" />
+                    </svg>
+                  ) : (
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3">
+                      <path d="M5 13l4 4L19 7" />
+                    </svg>
+                  )}
+                </div>
+              </InfoBox>
+            </div>
+          </div>
+          {/* END INFO CARDS */}
 
           {/* NOTES */}
           {client.notes && (
@@ -272,59 +274,59 @@ export default function ClientCard({ client, onEdit, onDelete }: ClientCardProps
             </button>
           </div>
         </div>
+        {/* END BODY */}
       </div>
+      {/* END CARD */}
 
       {/* LIGHTBOX */}
-{lightboxOpen && (
-  <div
-    onClick={() => setLightboxOpen(false)}
-    onTouchStart={(e) => {
-      const touch = e.touches[0];
-      (e.currentTarget as any)._touchStartX = touch.clientX;
-    }}
-    onTouchEnd={(e) => {
-      const startX = (e.currentTarget as any)._touchStartX ?? 0;
-      const diff = startX - e.changedTouches[0].clientX;
-      const images = client.images!;
-      const currentIdx = images.indexOf(lightboxImage);
-      if (diff > 40) {
-        // swipe left → next
-        const next = (currentIdx + 1) % images.length;
-        setLightboxImage(images[next]);
-      } else if (diff < -40) {
-        // swipe right → prev
-        const prev = (currentIdx - 1 + images.length) % images.length;
-        setLightboxImage(images[prev]);
-      } else {
-        setLightboxOpen(false);
-      }
-    }}
-    style={{
-      position: 'fixed',
-      inset: 0,
-      background: 'rgba(0,0,0,0.9)',
-      display: 'flex',
-      justifyContent: 'center',
-      alignItems: 'center',
-      zIndex: 2000,
-      cursor: 'pointer',
-      touchAction: 'pan-y',
-    }}
-  >
-    {/* eslint-disable-next-line @next/next/no-img-element */}
-    <img
-      src={lightboxImage}
-      alt="Lightbox"
-      onClick={(e) => e.stopPropagation()}
-      style={{
-        maxWidth: '90%',
-        maxHeight: '90%',
-        borderRadius: '18px',
-        objectFit: 'contain',
-      }}
-    />
-  </div>
-)}
+      {lightboxOpen && (
+        <div
+          onClick={() => setLightboxOpen(false)}
+          onTouchStart={(e) => {
+            const touch = e.touches[0];
+            (e.currentTarget as any)._touchStartX = touch.clientX;
+          }}
+          onTouchEnd={(e) => {
+            const startX = (e.currentTarget as any)._touchStartX ?? 0;
+            const diff = startX - e.changedTouches[0].clientX;
+            const images = client.images!;
+            const currentIdx = images.indexOf(lightboxImage);
+            if (diff > 40) {
+              const next = (currentIdx + 1) % images.length;
+              setLightboxImage(images[next]);
+            } else if (diff < -40) {
+              const prev = (currentIdx - 1 + images.length) % images.length;
+              setLightboxImage(images[prev]);
+            } else {
+              setLightboxOpen(false);
+            }
+          }}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0,0,0,0.9)',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            zIndex: 2000,
+            cursor: 'pointer',
+            touchAction: 'pan-y',
+          }}
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={lightboxImage}
+            alt="Lightbox"
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              maxWidth: '90%',
+              maxHeight: '90%',
+              borderRadius: '18px',
+              objectFit: 'contain',
+            }}
+          />
+        </div>
+      )}
     </>
   );
 }
