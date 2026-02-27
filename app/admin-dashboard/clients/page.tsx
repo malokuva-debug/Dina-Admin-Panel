@@ -64,7 +64,6 @@ export default function ClientsPage() {
         .update({
           name: client.name,
           phone: client.phone,
-          email: client.email ?? null,
           notes: client.notes ?? null,
           images: client.images ?? [],
         })
@@ -83,7 +82,6 @@ export default function ClientsPage() {
           {
             name: client.name,
             phone: client.phone,
-            email: client.email ?? null,
             notes: client.notes ?? null,
             images: client.images ?? [],
           },
@@ -153,7 +151,6 @@ export default function ClientsPage() {
               id: '',
               name: '',
               phone: '',
-              email: null,
               notes: null,
               images: [],
             });
@@ -181,7 +178,7 @@ export default function ClientsPage() {
       {/* Search Bar */}
       <input
         type="text"
-        placeholder="Search clients by name, phone, or email…"
+        placeholder="Search clients by name, or phone…"
         value={search}
         onChange={(e) => setSearch(e.target.value)}
         style={{
