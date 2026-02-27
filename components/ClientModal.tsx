@@ -194,7 +194,7 @@ export default function ClientModal({
             </label>
             <input
               type="text"
-              value={form.phone}
+              value={form.phone ?? ''}
               onChange={(e) => setForm({ ...form, phone: e.target.value })}
               style={{
                 backgroundColor: '#2c2c2e',
