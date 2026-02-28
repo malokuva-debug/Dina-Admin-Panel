@@ -454,8 +454,8 @@ export default function AppointmentsSection({ worker }: AppointmentsSectionProps
   };
 
   const visibleAppointments = showDone
-    ? appointments
-    : appointments.filter(a => !a.is_done && a.status !== 'done');
+  ? appointments
+  : appointments.filter(a => !a.is_done && a.status !== 'done' && a.status !== 'cancelled');
 
   return (
     <div id="appointments">
