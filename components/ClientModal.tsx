@@ -24,8 +24,7 @@ const emptyForm: Client = {
 };
 
 /* ── ImageKit helpers ── */
-const IK_URL      = process.env.NEXT_PUBLIC_IMAGEKIT_URL_ENDPOINT!;
-const IK_PUB_KEY  = process.env.NEXT_PUBLIC_IMAGEKIT_PUBLIC_KEY!;
+const IK_PUB_KEY = process.env.NEXT_PUBLIC_IMAGEKIT_PUBLIC_KEY!;
 
 const compressImage = (file: File) =>
   imageCompression(file, {
@@ -34,19 +33,19 @@ const compressImage = (file: File) =>
     useWebWorker: true,
   });
 
-const uploadToImageKit = async (file: File): Promise<string> => {
-  // Get signed auth params from our API route
-  const authRes = await fetch('/api/imagekit-auth');
-  const { token, expire, signature } = await authRes.json();
-
+// Auth token is fetched once per batch and shared across all uploads
+const uploadToImageKit = async (
+  file: File,
+  auth: { token: string; expire: number; signature: string }
+): Promise<string> => {
   const formData = new FormData();
   formData.append('file', file);
   formData.append('fileName', `${Date.now()}_${file.name}`);
   formData.append('folder', '/clients');
   formData.append('publicKey', IK_PUB_KEY);
-  formData.append('signature', signature);
-  formData.append('expire', String(expire));
-  formData.append('token', token);
+  formData.append('signature', auth.signature);
+  formData.append('expire', String(auth.expire));
+  formData.append('token', auth.token);
 
   const res = await fetch('https://upload.imagekit.io/api/v1/files/upload', {
     method: 'POST',
@@ -81,7 +80,7 @@ export default function ClientModal({ open, client, onClose, onSave }: ClientMod
     if (e.target === e.currentTarget) onClose();
   };
 
-  /* ── Upload: compress → ImageKit (parallel) ── */
+  /* ── Upload: compress → ImageKit (parallel, single auth token) ── */
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     if (!files.length) return;
@@ -91,12 +90,16 @@ export default function ClientModal({ open, client, onClose, onSave }: ClientMod
     setForm((prev) => ({ ...prev, images: [...(prev.images || []), ...objectUrls] }));
     setUploading(true);
 
-    // 2. Compress + upload all in parallel
+    // 2. Fetch auth token ONCE for the entire batch
+    const authRes = await fetch('/api/imagekit-auth');
+    const auth = await authRes.json();
+
+    // 3. Compress + upload all in parallel using the same auth token
     const uploadedUrls = await Promise.all(
       files.map(async (file, i) => {
         try {
           const compressed = await compressImage(file);
-          return await uploadToImageKit(compressed);
+          return await uploadToImageKit(compressed, auth);
         } catch (err) {
           console.error('Upload error:', err);
           return objectUrls[i]; // keep blob preview on failure
@@ -104,7 +107,7 @@ export default function ClientModal({ open, client, onClose, onSave }: ClientMod
       })
     );
 
-    // 3. Swap blob URLs for ImageKit URLs
+    // 4. Swap blob URLs for ImageKit URLs and free memory
     setForm((prev) => {
       const images = [...(prev.images || [])];
       const startIdx = images.length - files.length;
@@ -126,6 +129,7 @@ export default function ClientModal({ open, client, onClose, onSave }: ClientMod
       const file = e.target.files?.[0];
       if (!file) return;
 
+      // Instant preview
       const objectUrl = URL.createObjectURL(file);
       setForm((prev) => {
         const imgs = [...(prev.images || [])];
@@ -134,8 +138,10 @@ export default function ClientModal({ open, client, onClose, onSave }: ClientMod
       });
 
       try {
+        const authRes = await fetch('/api/imagekit-auth');
+        const auth = await authRes.json();
         const compressed = await compressImage(file);
-        const url = await uploadToImageKit(compressed);
+        const url = await uploadToImageKit(compressed, auth);
         URL.revokeObjectURL(objectUrl);
         setForm((prev) => {
           const imgs = [...(prev.images || [])];
