@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Appointment } from '@/types';
+import { Appointment, AppointmentStatus } from '@/types';
 import { supabase } from '@/lib/supabase';
 
 interface Category {
@@ -21,7 +21,7 @@ interface AppointmentsListProps {
   appointments: Appointment[];
   onDelete: (id: string) => void;
   onMarkDone?: (id: string, isDone: boolean) => void;
-  onUpdateStatus?: (id: string, status: 'pending' | 'confirmed' | 'arrived' | 'done') => void;
+  onUpdateStatus?: (id: string, status: AppointmentStatus) => void;
   onUpdateCompletionTime?: (id: string, time: string) => void;
   onUpdateDuration?: (id: string, duration: number) => void;
   onUpdateDate?: (id: string, date: string) => void;
