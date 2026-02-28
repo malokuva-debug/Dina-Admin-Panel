@@ -11,25 +11,54 @@ interface ClientCardProps {
 }
 
 export default function ClientCard({ client, onEdit, onDelete }: ClientCardProps) {
-  const [isOpen, setIsOpen] = useState(false);
+  const [isOpen, setIsOpen]                   = useState(false);
   const [appointmentCount, setAppointmentCount] = useState(0);
-  const [lightboxOpen, setLightboxOpen] = useState(false);
-  const [lightboxImage, setLightboxImage] = useState('');
+  const [isCanceller, setIsCanceller]           = useState(false);
+  const [frequentService, setFrequentService]   = useState<string | null>(null);
+  const [lightboxOpen, setLightboxOpen]         = useState(false);
+  const [lightboxImage, setLightboxImage]       = useState('');
 
   useEffect(() => {
-    const fetchAppointmentCount = async () => {
-      if (!client.name) return;
-      const { count, error } = await supabase
+    if (!client.name) return;
+
+    const fetchStats = async () => {
+      // Total appointment count
+      const { count: total } = await supabase
         .from('appointments')
         .select('id', { count: 'exact', head: true })
         .eq('customer_name', client.name);
 
-      if (!error) {
-        setAppointmentCount(count ?? 0);
+      setAppointmentCount(total ?? 0);
+
+      // Cancelled appointments count (>= 3 = frequent canceller)
+      const { count: cancelled } = await supabase
+        .from('appointments')
+        .select('id', { count: 'exact', head: true })
+        .eq('customer_name', client.name)
+        .eq('status', 'cancelled');
+
+      setIsCanceller((cancelled ?? 0) >= 3);
+
+      // Most booked service
+      const { data: appts } = await supabase
+        .from('appointments')
+        .select('service')
+        .eq('customer_name', client.name)
+        .not('service', 'is', null);
+
+      if (appts && appts.length > 0) {
+        // Count each service
+        const counts: Record<string, number> = {};
+        appts.forEach(({ service }) => {
+          if (service) counts[service] = (counts[service] ?? 0) + 1;
+        });
+        // Pick the most frequent
+        const top = Object.entries(counts).sort((a, b) => b[1] - a[1])[0];
+        setFrequentService(top?.[0] ?? null);
       }
     };
 
-    fetchAppointmentCount();
+    fetchStats();
   }, [client.name]);
 
   const handleImageClick = (imageUrl: string) => {
@@ -98,14 +127,7 @@ export default function ClientCard({ client, onEdit, onDelete }: ClientCardProps
           {/* IMAGES */}
           {hasImages && (
             <div style={{ padding: '14px 20px' }}>
-              <div
-                style={{
-                  display: 'flex',
-                  gap: '10px',
-                  overflowX: 'auto',
-                  paddingBottom: '8px',
-                }}
-              >
+              <div style={{ display: 'flex', gap: '10px', overflowX: 'auto', paddingBottom: '8px' }}>
                 {client.images!.map((img, idx) => (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
@@ -122,12 +144,8 @@ export default function ClientCard({ client, onEdit, onDelete }: ClientCardProps
                       transition: '0.2s',
                       flexShrink: 0,
                     }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.transform = 'scale(1.05)';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.transform = 'scale(1)';
-                    }}
+                    onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.05)'; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}
                   />
                 ))}
               </div>
@@ -151,10 +169,10 @@ export default function ClientCard({ client, onEdit, onDelete }: ClientCardProps
               </span>
             </InfoBox>
 
-            {/* Frequent Service */}
+            {/* Frequent Service — from appointments table */}
             <InfoBox label="Frequent Service">
-              <span style={{ color: client.frequent_service ? '#fff' : '#555558', fontSize: '14px', fontWeight: '600' }}>
-                {client.frequent_service || '—'}
+              <span style={{ color: frequentService ? '#fff' : '#555558', fontSize: '14px', fontWeight: '600', textAlign: 'center' }}>
+                {frequentService || '—'}
               </span>
             </InfoBox>
 
@@ -187,7 +205,7 @@ export default function ClientCard({ client, onEdit, onDelete }: ClientCardProps
               </span>
             </InfoBox>
 
-            {/* Cancellation Risk — centred full row */}
+            {/* Cancellation Risk — centred full row, computed from appointments */}
             <div style={{ gridColumn: '1 / -1', display: 'flex', justifyContent: 'center' }}>
               <InfoBox label="Cancellation Risk">
                 <div
@@ -195,13 +213,13 @@ export default function ClientCard({ client, onEdit, onDelete }: ClientCardProps
                     width: '36px',
                     height: '36px',
                     borderRadius: '50%',
-                    background: client.frequent_canceller ? 'rgb(255, 59, 48)' : 'rgb(0, 122, 255)',
+                    background: isCanceller ? 'rgb(255, 59, 48)' : 'rgb(0, 122, 255)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                   }}
                 >
-                  {client.frequent_canceller ? (
+                  {isCanceller ? (
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3">
                       <path d="M6 6l12 12M6 18L18 6" />
                     </svg>
@@ -226,22 +244,13 @@ export default function ClientCard({ client, onEdit, onDelete }: ClientCardProps
                 borderTop: '1px solid #2c2c2e',
               }}
             >
-              <div style={{ fontWeight: '600', marginBottom: '6px', color: '#8e8e93' }}>
-                Notes
-              </div>
+              <div style={{ fontWeight: '600', marginBottom: '6px', color: '#8e8e93' }}>Notes</div>
               <div>{client.notes}</div>
             </div>
           )}
 
           {/* ACTIONS */}
-          <div
-            style={{
-              padding: '14px 20px',
-              display: 'flex',
-              gap: '10px',
-              justifyContent: 'flex-end',
-            }}
-          >
+          <div style={{ padding: '14px 20px', display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
             <button
               onClick={handleDelete}
               style={{
@@ -292,11 +301,9 @@ export default function ClientCard({ client, onEdit, onDelete }: ClientCardProps
             const images = client.images!;
             const currentIdx = images.indexOf(lightboxImage);
             if (diff > 40) {
-              const next = (currentIdx + 1) % images.length;
-              setLightboxImage(images[next]);
+              setLightboxImage(images[(currentIdx + 1) % images.length]);
             } else if (diff < -40) {
-              const prev = (currentIdx - 1 + images.length) % images.length;
-              setLightboxImage(images[prev]);
+              setLightboxImage(images[(currentIdx - 1 + images.length) % images.length]);
             } else {
               setLightboxOpen(false);
             }
@@ -332,13 +339,7 @@ export default function ClientCard({ client, onEdit, onDelete }: ClientCardProps
 }
 
 /* ── Reusable info box ── */
-function InfoBox({
-  label,
-  children,
-}: {
-  label: string;
-  children: React.ReactNode;
-}) {
+function InfoBox({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div
       style={{
