@@ -5,7 +5,7 @@
 // ----------------------
 export type Worker = 'dina' | 'kida';
 export type Role = 'admin' | 'worker';
-export type AppointmentStatus = 'pending' | 'confirmed' | 'arrived' | 'done';
+export type AppointmentStatus = 'pending' | 'confirmed' | 'arrived' | 'done' | 'cancelled';
 
 // ----------------------
 // Auth / User
