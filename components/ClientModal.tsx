@@ -23,8 +23,8 @@ const emptyForm: Client = {
   frequent_canceller: false,
 };
 
-/* ── ImageKit helpers ── */
-const IK_PUB_KEY = process.env.NEXT_PUBLIC_IMAGEKIT_PUBLIC_KEY!;
+const IK_PUB_KEY      = process.env.NEXT_PUBLIC_IMAGEKIT_PUBLIC_KEY!;
+const IK_URL_ENDPOINT = process.env.NEXT_PUBLIC_IMAGEKIT_URL_ENDPOINT!;
 
 const compressImage = (file: File) =>
   imageCompression(file, {
@@ -33,11 +33,11 @@ const compressImage = (file: File) =>
     useWebWorker: true,
   });
 
-// Each upload gets its own fresh auth token — required by ImageKit
-const uploadToImageKit = async (file: File): Promise<string> => {
-  const authRes = await fetch('/api/imagekit-auth');
-  const auth = await authRes.json();
-
+// Upload one file using pre-fetched auth (same auth reused across all files in batch)
+const uploadOneFile = async (
+  file: File,
+  auth: { token: string; expire: number; signature: string }
+): Promise<string> => {
   const formData = new FormData();
   formData.append('file', file);
   formData.append('fileName', `${Date.now()}_${file.name}`);
@@ -57,11 +57,10 @@ const uploadToImageKit = async (file: File): Promise<string> => {
   return data.url;
 };
 
-/* ── Component ── */
 export default function ClientModal({ open, client, onClose, onSave }: ClientModalProps) {
-  const [form, setForm]           = useState<Client>(emptyForm);
-  const [uploading, setUploading] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState('');
+  const [form, setForm]             = useState<Client>(emptyForm);
+  const [uploading, setUploading]   = useState(false);
+  const [progress, setProgress]     = useState('');
 
   useEffect(() => {
     document.body.style.overflow = open ? 'hidden' : 'unset';
@@ -81,31 +80,34 @@ export default function ClientModal({ open, client, onClose, onSave }: ClientMod
     if (e.target === e.currentTarget) onClose();
   };
 
-  /* ── Upload sequentially — ImageKit requires unique token per upload ── */
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     if (!files.length) return;
 
-    // 1. Show instant blob previews for all files
+    // 1. Show instant blob previews for all files immediately
     const objectUrls = files.map((f) => URL.createObjectURL(f));
     setForm((prev) => ({ ...prev, images: [...(prev.images || []), ...objectUrls] }));
     setUploading(true);
 
-    // 2. Upload sequentially (each gets its own auth token)
+    // 2. Fetch auth token ONCE for the whole batch (per ImageKit docs)
+    const authRes = await fetch('/api/imagekit-auth');
+    const auth = await authRes.json();
+
+    // 3. Loop sequentially using the SAME auth token for each file
     const uploadedUrls: string[] = [];
     for (let i = 0; i < files.length; i++) {
-      setUploadProgress(`Uploading ${i + 1} of ${files.length}…`);
+      setProgress(`Uploading ${i + 1} of ${files.length}…`);
       try {
         const compressed = await compressImage(files[i]);
-        const url = await uploadToImageKit(compressed);
+        const url = await uploadOneFile(compressed, auth);
         uploadedUrls.push(url);
       } catch (err) {
-        console.error(`Upload error for file ${i + 1}:`, err);
+        console.error(`Failed on file ${i + 1}:`, err);
         uploadedUrls.push(objectUrls[i]); // keep blob preview on failure
       }
     }
 
-    // 3. Swap blob URLs for ImageKit URLs and free memory
+    // 4. Swap blob URLs → real ImageKit URLs
     setForm((prev) => {
       const images = [...(prev.images || [])];
       const startIdx = images.length - files.length;
@@ -115,11 +117,10 @@ export default function ClientModal({ open, client, onClose, onSave }: ClientMod
     });
 
     setUploading(false);
-    setUploadProgress('');
+    setProgress('');
     e.target.value = '';
   };
 
-  /* ── Replace single image ── */
   const handleReplaceImage = (index: number) => {
     const input = document.createElement('input');
     input.type = 'file';
@@ -128,7 +129,6 @@ export default function ClientModal({ open, client, onClose, onSave }: ClientMod
       const file = e.target.files?.[0];
       if (!file) return;
 
-      // Instant preview
       const objectUrl = URL.createObjectURL(file);
       setForm((prev) => {
         const imgs = [...(prev.images || [])];
@@ -137,8 +137,10 @@ export default function ClientModal({ open, client, onClose, onSave }: ClientMod
       });
 
       try {
+        const authRes = await fetch('/api/imagekit-auth');
+        const auth = await authRes.json();
         const compressed = await compressImage(file);
-        const url = await uploadToImageKit(compressed);
+        const url = await uploadOneFile(compressed, auth);
         URL.revokeObjectURL(objectUrl);
         setForm((prev) => {
           const imgs = [...(prev.images || [])];
@@ -195,7 +197,6 @@ export default function ClientModal({ open, client, onClose, onSave }: ClientMod
         </h3>
 
         <form onSubmit={handleSave}>
-
           <Field label="Name *">
             <input
               type="text"
@@ -229,15 +230,7 @@ export default function ClientModal({ open, client, onClose, onSave }: ClientMod
             <label style={labelStyle}>Images</label>
 
             {form.images && form.images.length > 0 && (
-              <div
-                style={{
-                  display: 'flex',
-                  gap: '10px',
-                  overflowX: 'auto',
-                  marginBottom: '12px',
-                  paddingBottom: '8px',
-                }}
-              >
+              <div style={{ display: 'flex', gap: '10px', overflowX: 'auto', marginBottom: '12px', paddingBottom: '8px' }}>
                 {form.images.map((img, idx) => (
                   <div key={idx} style={{ position: 'relative', flexShrink: 0 }}>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -300,7 +293,7 @@ export default function ClientModal({ open, client, onClose, onSave }: ClientMod
                 transition: 'background 0.2s',
               }}
             >
-              <span>{uploading ? uploadProgress : '+ Add Images'}</span>
+              <span>{uploading ? progress : '+ Add Images'}</span>
               <input
                 type="file"
                 accept="image/*"
@@ -315,7 +308,6 @@ export default function ClientModal({ open, client, onClose, onSave }: ClientMod
             </p>
           </div>
 
-          {/* Actions */}
           <div style={{ display: 'flex', gap: '12px', marginTop: '24px' }}>
             <button
               type="button"
@@ -350,17 +342,15 @@ export default function ClientModal({ open, client, onClose, onSave }: ClientMod
                 transition: 'background 0.2s',
               }}
             >
-              {uploading ? uploadProgress : 'Save'}
+              {uploading ? progress : 'Save'}
             </button>
           </div>
-
         </form>
       </div>
     </div>
   );
 }
 
-/* ── Shared styles ── */
 const inputStyle: React.CSSProperties = {
   backgroundColor: '#2c2c2e',
   color: 'white',
