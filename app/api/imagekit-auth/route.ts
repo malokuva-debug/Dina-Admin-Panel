@@ -1,5 +1,5 @@
 // app/api/imagekit-auth/route.ts
-import ImageKit from '@imagekit/nodejs';
+import ImageKit from 'imagekit';
 import { NextResponse } from 'next/server';
 import { randomUUID } from 'crypto';
 
@@ -11,7 +11,7 @@ const imagekit = new ImageKit({
 
 export async function GET() {
   try {
-    // Pass a fresh UUID every time so ImageKit never sees a reused token
+    // Fresh UUID every call — ImageKit rejects reused tokens
     const token = randomUUID();
     const auth = imagekit.getAuthenticationParameters(token);
     return NextResponse.json(auth);
