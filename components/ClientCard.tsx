@@ -11,8 +11,9 @@ interface ClientCardProps {
 }
 
 export default function ClientCard({ client, onEdit, onDelete }: ClientCardProps) {
-  const [isOpen, setIsOpen]                   = useState(false);
+  const [isOpen, setIsOpen]                     = useState(false);
   const [appointmentCount, setAppointmentCount] = useState(0);
+  const [visits, setVisits]                     = useState(0);
   const [isCanceller, setIsCanceller]           = useState(false);
   const [frequentService, setFrequentService]   = useState<string | null>(null);
   const [lightboxOpen, setLightboxOpen]         = useState(false);
@@ -29,6 +30,20 @@ export default function ClientCard({ client, onEdit, onDelete }: ClientCardProps
         .eq('customer_name', client.name);
 
       setAppointmentCount(total ?? 0);
+
+      // Visits = distinct dates this client had appointments
+      const { data: dateRows } = await supabase
+        .from('appointments')
+        .select('date')
+        .eq('customer_name', client.name)
+        .not('date', 'is', null);
+
+      if (dateRows) {
+        const uniqueDates = new Set(
+          dateRows.map((r) => new Date(r.date).toDateString())
+        );
+        setVisits(uniqueDates.size);
+      }
 
       // Cancelled appointments count (>= 3 = frequent canceller)
       const { count: cancelled } = await supabase
@@ -47,12 +62,10 @@ export default function ClientCard({ client, onEdit, onDelete }: ClientCardProps
         .not('service', 'is', null);
 
       if (appts && appts.length > 0) {
-        // Count each service
         const counts: Record<string, number> = {};
         appts.forEach(({ service }) => {
           if (service) counts[service] = (counts[service] ?? 0) + 1;
         });
-        // Pick the most frequent
         const top = Object.entries(counts).sort((a, b) => b[1] - a[1])[0];
         setFrequentService(top?.[0] ?? null);
       }
@@ -169,19 +182,19 @@ export default function ClientCard({ client, onEdit, onDelete }: ClientCardProps
               </span>
             </InfoBox>
 
-            {/* Frequent Service — from appointments table */}
+            {/* Frequent Service */}
             <InfoBox label="Frequent Service">
               <span style={{ color: frequentService ? '#fff' : '#555558', fontSize: '14px', fontWeight: '600', textAlign: 'center' }}>
                 {frequentService || '—'}
               </span>
             </InfoBox>
 
-            {/* Visits */}
+            {/* Visits — distinct dates from appointments table */}
             <InfoBox label="Visits">
               <span style={{ fontSize: '22px', fontWeight: '600', color: '#fff' }}>
-                {client.visits ?? 0}
+                {visits}
               </span>
-              {(client.visits ?? 0) > 0 && (client.visits ?? 0) % 5 === 0 && (
+              {visits > 0 && visits % 5 === 0 && (
                 <span
                   style={{
                     background: 'rgba(255, 204, 0, 0.15)',
@@ -205,7 +218,7 @@ export default function ClientCard({ client, onEdit, onDelete }: ClientCardProps
               </span>
             </InfoBox>
 
-            {/* Cancellation Risk — centred full row, computed from appointments */}
+            {/* Cancellation Risk — centred full row */}
             <div style={{ gridColumn: '1 / -1', display: 'flex', justifyContent: 'center' }}>
               <InfoBox label="Cancellation Risk">
                 <div
