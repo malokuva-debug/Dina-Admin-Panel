@@ -92,14 +92,16 @@ export default function ClientCardsList({
         padding: '10px 0',
       }}
     >
-      {clients.map((client) => (
-        <ClientCard
-          key={client.id}
-          client={client}
-          onEdit={onEdit}
-          onDelete={onDelete}
-        />
-      ))}
+      {[...clients]
+  .sort((a, b) => a.name.localeCompare(b.name))
+  .map((client) => (
+    <ClientCard
+      key={client.id}
+      client={client}
+      onEdit={onEdit}
+      onDelete={onDelete}
+    />
+  ))}
     </div>
   );
 }
