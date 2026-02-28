@@ -72,9 +72,13 @@ export default function ClientModal({ open, client, onClose, onSave }: ClientMod
   }, [client]);
 
   const handleSave = (e: React.FormEvent) => {
-    e.preventDefault();
-    onSave(form);
+  e.preventDefault();
+  const cleanForm = {
+    ...form,
+    images: (form.images || []).filter((url) => !url.startsWith('blob:')),
   };
+  onSave(cleanForm);
+};
 
   const handleBackdropClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (e.target === e.currentTarget) onClose();
