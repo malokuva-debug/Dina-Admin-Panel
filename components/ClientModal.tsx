@@ -33,11 +33,11 @@ const compressImage = (file: File) =>
     useWebWorker: true,
   });
 
-// Auth token is fetched once per batch and shared across all uploads
-const uploadToImageKit = async (
-  file: File,
-  auth: { token: string; expire: number; signature: string }
-): Promise<string> => {
+// Each upload gets its own fresh auth token — required by ImageKit
+const uploadToImageKit = async (file: File): Promise<string> => {
+  const authRes = await fetch('/api/imagekit-auth');
+  const auth = await authRes.json();
+
   const formData = new FormData();
   formData.append('file', file);
   formData.append('fileName', `${Date.now()}_${file.name}`);
@@ -61,6 +61,7 @@ const uploadToImageKit = async (
 export default function ClientModal({ open, client, onClose, onSave }: ClientModalProps) {
   const [form, setForm]           = useState<Client>(emptyForm);
   const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState('');
 
   useEffect(() => {
     document.body.style.overflow = open ? 'hidden' : 'unset';
@@ -80,34 +81,31 @@ export default function ClientModal({ open, client, onClose, onSave }: ClientMod
     if (e.target === e.currentTarget) onClose();
   };
 
-  /* ── Upload: compress → ImageKit (parallel, single auth token) ── */
+  /* ── Upload sequentially — ImageKit requires unique token per upload ── */
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     if (!files.length) return;
 
-    // 1. Instant blob previews
+    // 1. Show instant blob previews for all files
     const objectUrls = files.map((f) => URL.createObjectURL(f));
     setForm((prev) => ({ ...prev, images: [...(prev.images || []), ...objectUrls] }));
     setUploading(true);
 
-    // 2. Fetch auth token ONCE for the entire batch
-    const authRes = await fetch('/api/imagekit-auth');
-    const auth = await authRes.json();
+    // 2. Upload sequentially (each gets its own auth token)
+    const uploadedUrls: string[] = [];
+    for (let i = 0; i < files.length; i++) {
+      setUploadProgress(`Uploading ${i + 1} of ${files.length}…`);
+      try {
+        const compressed = await compressImage(files[i]);
+        const url = await uploadToImageKit(compressed);
+        uploadedUrls.push(url);
+      } catch (err) {
+        console.error(`Upload error for file ${i + 1}:`, err);
+        uploadedUrls.push(objectUrls[i]); // keep blob preview on failure
+      }
+    }
 
-    // 3. Compress + upload all in parallel using the same auth token
-    const uploadedUrls = await Promise.all(
-      files.map(async (file, i) => {
-        try {
-          const compressed = await compressImage(file);
-          return await uploadToImageKit(compressed, auth);
-        } catch (err) {
-          console.error('Upload error:', err);
-          return objectUrls[i]; // keep blob preview on failure
-        }
-      })
-    );
-
-    // 4. Swap blob URLs for ImageKit URLs and free memory
+    // 3. Swap blob URLs for ImageKit URLs and free memory
     setForm((prev) => {
       const images = [...(prev.images || [])];
       const startIdx = images.length - files.length;
@@ -117,6 +115,7 @@ export default function ClientModal({ open, client, onClose, onSave }: ClientMod
     });
 
     setUploading(false);
+    setUploadProgress('');
     e.target.value = '';
   };
 
@@ -138,10 +137,8 @@ export default function ClientModal({ open, client, onClose, onSave }: ClientMod
       });
 
       try {
-        const authRes = await fetch('/api/imagekit-auth');
-        const auth = await authRes.json();
         const compressed = await compressImage(file);
-        const url = await uploadToImageKit(compressed, auth);
+        const url = await uploadToImageKit(compressed);
         URL.revokeObjectURL(objectUrl);
         setForm((prev) => {
           const imgs = [...(prev.images || [])];
@@ -150,7 +147,6 @@ export default function ClientModal({ open, client, onClose, onSave }: ClientMod
         });
       } catch (err) {
         console.error('Replace error:', err);
-        // blob preview stays on failure
       }
     };
     input.click();
@@ -304,7 +300,7 @@ export default function ClientModal({ open, client, onClose, onSave }: ClientMod
                 transition: 'background 0.2s',
               }}
             >
-              <span>{uploading ? 'Uploading…' : '+ Add Images'}</span>
+              <span>{uploading ? uploadProgress : '+ Add Images'}</span>
               <input
                 type="file"
                 accept="image/*"
@@ -354,7 +350,7 @@ export default function ClientModal({ open, client, onClose, onSave }: ClientMod
                 transition: 'background 0.2s',
               }}
             >
-              {uploading ? 'Uploading…' : 'Save'}
+              {uploading ? uploadProgress : 'Save'}
             </button>
           </div>
 
