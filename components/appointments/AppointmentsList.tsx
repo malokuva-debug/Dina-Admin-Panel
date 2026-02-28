@@ -334,17 +334,19 @@ export default function AppointmentsList({
   };
 
   const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'confirmed':
-        return { bg: '#007aff20', color: '#007aff', text: 'Confirmed' };
-      case 'arrived':
-        return { bg: '#ff950020', color: '#ff9500', text: 'Arrived' };
-      case 'done':
-        return { bg: '#34c75920', color: '#34c759', text: 'Done' };
-      default:
-        return { bg: '#88888820', color: '#888', text: 'Pending' };
-    }
-  };
+  switch (status) {
+    case 'confirmed':
+      return { bg: '#007aff20', color: '#007aff', text: 'Confirmed' };
+    case 'arrived':
+      return { bg: '#ff950020', color: '#ff9500', text: 'Arrived' };
+    case 'done':
+      return { bg: '#34c75920', color: '#34c759', text: 'Done' };
+    case 'cancelled':
+      return { bg: '#ff3b3020', color: '#ff3b30', text: 'Cancelled' };
+    default:
+      return { bg: '#88888820', color: '#888', text: 'Pending' };
+  }
+};
 
   if (loading) {
     return (
@@ -769,70 +771,93 @@ export default function AppointmentsList({
             {/* ─────────────────────────────────────────────────────────────── */}
 
             {/* Status Action Buttons */}
-            {onUpdateStatus && (
-              <div style={{ display: 'flex', gap: '8px', marginBottom: '10px', flexWrap: 'wrap' }}>
-                {status === 'pending' && (
-                  <button
-                    onClick={() => handleStatusChange(apt.id, 'confirmed')}
-                    style={{ flex: 1, minWidth: '120px', padding: '10px', background: '#007aff', color: 'white', border: 'none', borderRadius: '8px', fontSize: '13px', fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
-                  >
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M5 12l5 5l10 -10"></path></svg>
-                    Confirm
-                  </button>
-                )}
-                
-                {status === 'confirmed' && (
-                  <>
-                    <button
-                      onClick={() => handleStatusChange(apt.id, 'arrived')}
-                      style={{ flex: 1, minWidth: '120px', padding: '10px', background: '#ff9500', color: 'white', border: 'none', borderRadius: '8px', fontSize: '13px', fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
-                    >
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path d="M9 11l3 3l8 -8"></path>
-                        <path d="M20 12v6a2 2 0 0 1 -2 2h-12a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h9"></path>
-                      </svg>
-                      Mark Arrived
-                    </button>
-                    <button
-                      onClick={() => handleStatusChange(apt.id, 'pending')}
-                      style={{ flex: 1, minWidth: '120px', padding: '10px', background: '#2c2c2e', color: 'white', border: '1px solid #3a3a3c', borderRadius: '8px', fontSize: '13px', fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
-                    >
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 12H5M12 19l-7-7 7-7"></path></svg>
-                      Revert to Pending
-                    </button>
-                  </>
-                )}
-                
-                {status === 'arrived' && (
-                  <>
-                    <button
-                      onClick={() => handleStatusChange(apt.id, 'done')}
-                      style={{ flex: 1, minWidth: '120px', padding: '10px', background: '#34c759', color: 'white', border: 'none', borderRadius: '8px', fontSize: '13px', fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
-                    >
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M5 12l5 5l10 -10"></path></svg>
-                      Complete
-                    </button>
-                    <button
-                      onClick={() => handleStatusChange(apt.id, 'confirmed')}
-                      style={{ flex: 1, minWidth: '120px', padding: '10px', background: '#2c2c2e', color: 'white', border: '1px solid #3a3a3c', borderRadius: '8px', fontSize: '13px', fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
-                    >
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 12H5M12 19l-7-7 7-7"></path></svg>
-                      Revert to Confirm
-                    </button>
-                  </>
-                )}
+{onUpdateStatus && (
+  <div style={{ display: 'flex', gap: '8px', marginBottom: '10px', flexWrap: 'wrap' }}>
+    {status === 'pending' && (
+      <>
+        <button
+          onClick={() => handleStatusChange(apt.id, 'confirmed')}
+          style={{ flex: 1, minWidth: '120px', padding: '10px', background: '#007aff', color: 'white', border: 'none', borderRadius: '8px', fontSize: '13px', fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M5 12l5 5l10 -10"></path></svg>
+          Confirm
+        </button>
+        <button
+          onClick={() => handleStatusChange(apt.id, 'cancelled')}
+          style={{ flex: 1, minWidth: '120px', padding: '10px', background: '#ff3b30', color: 'white', border: 'none', borderRadius: '8px', fontSize: '13px', fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+          Cancel
+        </button>
+      </>
+    )}
+    
+    {status === 'confirmed' && (
+      <>
+        <button
+          onClick={() => handleStatusChange(apt.id, 'arrived')}
+          style={{ flex: 1, minWidth: '120px', padding: '10px', background: '#ff9500', color: 'white', border: 'none', borderRadius: '8px', fontSize: '13px', fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M9 11l3 3l8 -8"></path>
+            <path d="M20 12v6a2 2 0 0 1 -2 2h-12a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h9"></path>
+          </svg>
+          Mark Arrived
+        </button>
+        <button
+          onClick={() => handleStatusChange(apt.id, 'pending')}
+          style={{ flex: 1, minWidth: '120px', padding: '10px', background: '#2c2c2e', color: 'white', border: '1px solid #3a3a3c', borderRadius: '8px', fontSize: '13px', fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 12H5M12 19l-7-7 7-7"></path></svg>
+          Revert to Pending
+        </button>
+        <button
+          onClick={() => handleStatusChange(apt.id, 'cancelled')}
+          style={{ flex: 1, minWidth: '120px', padding: '10px', background: '#ff3b30', color: 'white', border: 'none', borderRadius: '8px', fontSize: '13px', fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+          Cancel
+        </button>
+      </>
+    )}
+    
+    {status === 'arrived' && (
+      <>
+        <button
+          onClick={() => handleStatusChange(apt.id, 'done')}
+          style={{ flex: 1, minWidth: '120px', padding: '10px', background: '#34c759', color: 'white', border: 'none', borderRadius: '8px', fontSize: '13px', fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M5 12l5 5l10 -10"></path></svg>
+          Complete
+        </button>
+        <button
+          onClick={() => handleStatusChange(apt.id, 'confirmed')}
+          style={{ flex: 1, minWidth: '120px', padding: '10px', background: '#2c2c2e', color: 'white', border: '1px solid #3a3a3c', borderRadius: '8px', fontSize: '13px', fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 12H5M12 19l-7-7 7-7"></path></svg>
+          Revert to Confirm
+        </button>
+        <button
+          onClick={() => handleStatusChange(apt.id, 'cancelled')}
+          style={{ flex: 1, minWidth: '120px', padding: '10px', background: '#ff3b30', color: 'white', border: 'none', borderRadius: '8px', fontSize: '13px', fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+          Cancel
+        </button>
+      </>
+    )}
 
-                {status === 'done' && (
-                  <button
-                    onClick={() => handleStatusChange(apt.id, 'arrived')}
-                    style={{ flex: 1, minWidth: '120px', padding: '10px', background: '#2c2c2e', color: 'white', border: '1px solid #3a3a3c', borderRadius: '8px', fontSize: '13px', fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
-                  >
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 12H5M12 19l-7-7 7-7"></path></svg>
-                    Revert to Arrived
-                  </button>
-                )}
-              </div>
-            )}
+    {status === 'done' && (
+      <button
+        onClick={() => handleStatusChange(apt.id, 'arrived')}
+        style={{ flex: 1, minWidth: '120px', padding: '10px', background: '#2c2c2e', color: 'white', border: '1px solid #3a3a3c', borderRadius: '8px', fontSize: '13px', fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
+      >
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 12H5M12 19l-7-7 7-7"></path></svg>
+        Revert to Arrived
+      </button>
+    )}
+  </div>
+)}
 
             {/* Additional Services List */}
             {apt.additional_services && apt.additional_services.length > 0 && (
