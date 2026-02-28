@@ -245,11 +245,11 @@ export default function AppointmentsList({
     }
   };
 
-  const handleStatusChange = (id: string, newStatus: 'pending' | 'confirmed' | 'arrived' | 'done') => {
-    if (onUpdateStatus) {
-      onUpdateStatus(id, newStatus);
-    }
-  };
+  const handleStatusChange = (id: string, newStatus: AppointmentStatus) => {
+  if (onUpdateStatus) {
+    onUpdateStatus(id, newStatus);
+  }
+};
 
   const handleDurationClick = (id: string, currentDuration: number) => {
     setEditingDuration(id);
