@@ -1,50 +1,41 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useCallback } from 'react';
 
-interface TiltShakeOptions {
-  threshold?: number; // minimum tilt to trigger (in m/s²)
-  cooldown?: number;  // ms before it can trigger again
-}
-
-export function useShakeDetection(
-  onShake: () => void,
-  options: TiltShakeOptions = {}
-) {
-  const { threshold = 15, cooldown = 1500 } = options;
-
+export function useTiltDownUp(onTilt: () => void, threshold = 10, cooldown = 1000) {
   const lastY = useRef<number | null>(null);
-  const tiltState = useRef<'neutral' | 'down' | 'up'>('neutral');
+  const tiltState = useRef<'none' | 'down' | 'up'>('none');
   const lastTriggerTime = useRef(0);
 
-  useEffect(() => {
-    const handleMotion = (e: DeviceMotionEvent) => {
-      const acc = e.accelerationIncludingGravity;
-      if (!acc) return;
+  const handleMotion = useCallback((event: DeviceMotionEvent) => {
+    const acc = event.accelerationIncludingGravity;
+    if (!acc || acc.y == null) return;
 
-      const y = acc.y!;
-      const now = Date.now();
+    const y = acc.y;
+    const now = Date.now();
 
-      if (lastY.current !== null && now - lastTriggerTime.current > cooldown) {
-        const deltaY = y - lastY.current;
+    // Prevent retriggering
+    if (now - lastTriggerTime.current < cooldown) return;
 
-        if (tiltState.current === 'neutral' && deltaY > threshold) {
-          tiltState.current = 'down'; // moved down
-        } else if (tiltState.current === 'down' && deltaY < -threshold) {
-          tiltState.current = 'up'; // moved back up → trigger
-          lastTriggerTime.current = now;
+    if (lastY.current !== null) {
+      const deltaY = y - lastY.current;
 
-          // Blur input to avoid iOS default undo
-          if (document.activeElement instanceof HTMLElement) {
-            document.activeElement.blur();
-          }
+      if (tiltState.current === 'none' && deltaY > threshold) {
+        // Tilted down
+        tiltState.current = 'down';
+      } else if (tiltState.current === 'down' && deltaY < -threshold) {
+        // Then tilted up
+        tiltState.current = 'up';
+        lastTriggerTime.current = now;
+        tiltState.current = 'none';
 
-          onShake();
-          tiltState.current = 'neutral'; // reset
-        }
+        // Trigger the callback
+        onTilt();
       }
+    }
 
-      lastY.current = y;
-    };
+    lastY.current = y;
+  }, [onTilt, threshold, cooldown]);
 
+  useEffect(() => {
     const requestPermission = async () => {
       if (typeof (DeviceMotionEvent as any).requestPermission === 'function') {
         try {
@@ -53,7 +44,7 @@ export function useShakeDetection(
             window.addEventListener('devicemotion', handleMotion);
           }
         } catch (err) {
-          console.error(err);
+          console.error('Motion permission error:', err);
         }
       } else {
         window.addEventListener('devicemotion', handleMotion);
@@ -61,7 +52,6 @@ export function useShakeDetection(
     };
 
     requestPermission();
-
     return () => window.removeEventListener('devicemotion', handleMotion);
-  }, [onShake, threshold, cooldown]);
+  }, [handleMotion]);
 }
