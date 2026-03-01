@@ -1,72 +1,39 @@
 import { useEffect, useRef } from 'react';
 
-interface ShakeDetectionOptions {
-  threshold?: number;   // how much Y-axis movement counts as a tilt
-  cooldown?: number;    // minimum time between triggers
-  maxInterval?: number; // max time for down→up sequence
-}
-
-export function useShakeDetection(
-  onShake: () => void,
-  options: ShakeDetectionOptions = {}
-) {
-  const { threshold = 8, cooldown = 2000, maxInterval = 1000 } = options;
-
+export function useTiltUndoShake(onShake: () => void, threshold = 15, cooldown = 1500) {
   const lastY = useRef<number | null>(null);
-  const lastTime = useRef(0);
-
-  const state = useRef<'waitingDown' | 'waitingUp'>('waitingDown');
-  const tiltStartTime = useRef(0);
+  const tiltState = useRef<'neutral' | 'down' | 'up'>('neutral');
   const lastTriggerTime = useRef(0);
 
-  const handleMotion = (event: DeviceMotionEvent) => {
-    const acc = event.accelerationIncludingGravity;
-    if (!acc) return;
+  useEffect(() => {
+    const handleMotion = (e: DeviceMotionEvent) => {
+      const acc = e.accelerationIncludingGravity;
+      if (!acc) return;
+      const y = acc.y!;
+      const now = Date.now();
 
-    const y = acc.y!;
-    const now = Date.now();
+      if (lastY.current !== null && now - lastTriggerTime.current > cooldown) {
+        const deltaY = y - lastY.current;
 
-    // small debounce to avoid too frequent updates
-    if (now - lastTime.current < 50) return;
-    lastTime.current = now;
-
-    if (lastY.current === null) {
-      lastY.current = y;
-      return;
-    }
-
-    const deltaY = y - lastY.current;
-
-    if (state.current === 'waitingDown') {
-      // Detect intentional downward tilt
-      if (deltaY > threshold) {
-        state.current = 'waitingUp';
-        tiltStartTime.current = now;
-      }
-    } else if (state.current === 'waitingUp') {
-      // Detect upward tilt to complete the gesture
-      if (deltaY < -threshold && now - tiltStartTime.current <= maxInterval) {
-        if (now - lastTriggerTime.current > cooldown) {
+        if (tiltState.current === 'neutral' && deltaY > threshold) {
+          tiltState.current = 'down'; // moved down
+        } else if (tiltState.current === 'down' && deltaY < -threshold) {
+          tiltState.current = 'up'; // moved back up
           lastTriggerTime.current = now;
 
-          // Blur active input to prevent iOS undo typing
+          // Blur input to avoid iOS shake undo
           if (document.activeElement instanceof HTMLElement) {
             document.activeElement.blur();
           }
 
           onShake();
+          tiltState.current = 'neutral'; // reset
         }
-        state.current = 'waitingDown';
-      } else if (now - tiltStartTime.current > maxInterval) {
-        // Timeout: reset if user is too slow
-        state.current = 'waitingDown';
       }
-    }
 
-    lastY.current = y;
-  };
+      lastY.current = y;
+    };
 
-  useEffect(() => {
     const requestPermission = async () => {
       if (typeof (DeviceMotionEvent as any).requestPermission === 'function') {
         try {
@@ -74,8 +41,8 @@ export function useShakeDetection(
           if (permission === 'granted') {
             window.addEventListener('devicemotion', handleMotion);
           }
-        } catch (error) {
-          console.error('Motion permission error:', error);
+        } catch (err) {
+          console.error(err);
         }
       } else {
         window.addEventListener('devicemotion', handleMotion);
@@ -83,7 +50,6 @@ export function useShakeDetection(
     };
 
     requestPermission();
-
     return () => window.removeEventListener('devicemotion', handleMotion);
-  }, []);
+  }, [onShake, threshold, cooldown]);
 }
