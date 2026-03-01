@@ -1,43 +1,87 @@
 import { useEffect, useCallback, useRef } from 'react';
 
 interface ShakeDetectionOptions {
-  threshold?: number;
-  timeout?: number;
+  threshold?: number;      // strength required
+  shakeCount?: number;     // how many shakes required
+  interval?: number;       // time window for multiple shakes
+  cooldown?: number;       // prevent retriggering
 }
 
 export function useShakeDetection(
   onShake: () => void,
   options: ShakeDetectionOptions = {}
 ) {
-  const { threshold = 15, timeout = 500 } = options;
-  const lastShakeTime = useRef<number>(0);
+  const {
+    threshold = 28,      // MUCH stronger than 15
+    shakeCount = 3,      // require 3 shakes
+    interval = 800,      // must happen within 800ms
+    cooldown = 2000      // 2s cooldown after trigger
+  } = options;
+
+  const lastX = useRef<number | null>(null);
+  const lastY = useRef<number | null>(null);
+  const lastZ = useRef<number | null>(null);
+
+  const shakeCounter = useRef(0);
+  const lastShakeTime = useRef(0);
+  const lastTriggerTime = useRef(0);
 
   const handleMotion = useCallback(
     (event: DeviceMotionEvent) => {
-      const acceleration = event.accelerationIncludingGravity;
-      if (!acceleration) return;
+      const acc = event.accelerationIncludingGravity;
+      if (!acc) return;
 
-      const { x, y, z } = acceleration;
-      if (x === null || y === null || z === null) return;
+      const { x, y, z } = acc;
+      if (x == null || y == null || z == null) return;
 
-      // Calculate total acceleration magnitude
-      const acceleration_magnitude = Math.sqrt(x * x + y * y + z * z);
+      if (
+        lastX.current !== null &&
+        lastY.current !== null &&
+        lastZ.current !== null
+      ) {
+        const deltaX = Math.abs(lastX.current - x);
+        const deltaY = Math.abs(lastY.current - y);
+        const deltaZ = Math.abs(lastZ.current - z);
 
-      // Detect shake if acceleration exceeds threshold
-      if (acceleration_magnitude > threshold) {
-        const now = Date.now();
-        // Prevent multiple triggers within timeout period
-        if (now - lastShakeTime.current > timeout) {
+        const totalDelta = deltaX + deltaY + deltaZ;
+
+        if (totalDelta > threshold) {
+          const now = Date.now();
+
+          // Count shakes within interval
+          if (now - lastShakeTime.current < interval) {
+            shakeCounter.current++;
+          } else {
+            shakeCounter.current = 1;
+          }
+
           lastShakeTime.current = now;
-          onShake();
+
+          if (
+            shakeCounter.current >= shakeCount &&
+            now - lastTriggerTime.current > cooldown
+          ) {
+            lastTriggerTime.current = now;
+            shakeCounter.current = 0;
+
+            // Blur active input to avoid iOS default shake undo
+            if (document.activeElement instanceof HTMLElement) {
+              document.activeElement.blur();
+            }
+
+            onShake();
+          }
         }
       }
+
+      lastX.current = x;
+      lastY.current = y;
+      lastZ.current = z;
     },
-    [onShake, threshold, timeout]
+    [onShake, threshold, shakeCount, interval, cooldown]
   );
 
   useEffect(() => {
-    // Request permission for iOS 13+ devices
     const requestPermission = async () => {
       if (
         typeof (DeviceMotionEvent as any).requestPermission === 'function'
@@ -48,10 +92,9 @@ export function useShakeDetection(
             window.addEventListener('devicemotion', handleMotion);
           }
         } catch (error) {
-          console.error('Error requesting motion permission:', error);
+          console.error('Motion permission error:', error);
         }
       } else {
-        // Non-iOS 13+ devices
         window.addEventListener('devicemotion', handleMotion);
       }
     };
