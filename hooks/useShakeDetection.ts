@@ -1,6 +1,16 @@
 import { useEffect, useRef } from 'react';
 
-export function useTiltUndoShake(onShake: () => void, threshold = 15, cooldown = 1500) {
+interface TiltShakeOptions {
+  threshold?: number; // minimum tilt to trigger (in m/s²)
+  cooldown?: number;  // ms before it can trigger again
+}
+
+export function useShakeDetection(
+  onShake: () => void,
+  options: TiltShakeOptions = {}
+) {
+  const { threshold = 15, cooldown = 1500 } = options;
+
   const lastY = useRef<number | null>(null);
   const tiltState = useRef<'neutral' | 'down' | 'up'>('neutral');
   const lastTriggerTime = useRef(0);
@@ -9,6 +19,7 @@ export function useTiltUndoShake(onShake: () => void, threshold = 15, cooldown =
     const handleMotion = (e: DeviceMotionEvent) => {
       const acc = e.accelerationIncludingGravity;
       if (!acc) return;
+
       const y = acc.y!;
       const now = Date.now();
 
@@ -18,10 +29,10 @@ export function useTiltUndoShake(onShake: () => void, threshold = 15, cooldown =
         if (tiltState.current === 'neutral' && deltaY > threshold) {
           tiltState.current = 'down'; // moved down
         } else if (tiltState.current === 'down' && deltaY < -threshold) {
-          tiltState.current = 'up'; // moved back up
+          tiltState.current = 'up'; // moved back up → trigger
           lastTriggerTime.current = now;
 
-          // Blur input to avoid iOS shake undo
+          // Blur input to avoid iOS default undo
           if (document.activeElement instanceof HTMLElement) {
             document.activeElement.blur();
           }
@@ -50,6 +61,7 @@ export function useTiltUndoShake(onShake: () => void, threshold = 15, cooldown =
     };
 
     requestPermission();
+
     return () => window.removeEventListener('devicemotion', handleMotion);
   }, [onShake, threshold, cooldown]);
 }
