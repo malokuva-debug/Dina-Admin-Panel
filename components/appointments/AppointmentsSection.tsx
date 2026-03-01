@@ -83,6 +83,10 @@ useEffect(() => {
       !showUndoPopup &&
       Date.now() - undoState.timestamp < 20000
     ) {
+      if (document.activeElement instanceof HTMLElement) {
+        document.activeElement.blur();
+      }
+
       setShowUndoPopup(true);
     }
   },
