@@ -49,12 +49,12 @@ interface UndoState {
 export default function AppointmentsSection({ worker }: AppointmentsSectionProps) {
   const [filterMonth, setFilterMonth] = useState<string>(new Date().toISOString().slice(0, 7));
   const [showDone, setShowDone] = useState(false);
-  const { appointments, loading, error, deleteAppointment, refresh } = useAppointments({ worker, month: filterMonth, autoLoad: true });
+  const { appointments, loading, deleteAppointment, refresh } = useAppointments({ worker, month: filterMonth, autoLoad: true });
 
   const [modalOpen, setModalOpen] = useState(false);
   const [services, setServices] = useState<Service[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
-  const [workers, setWorkers] = useState<Worker[]>(['dina', 'kida']);
+  const workers: Worker[] = ['dina', 'kida'];
   const [clients, setClients] = useState<Client[]>([]);
 
   // Undo state management
@@ -572,7 +572,7 @@ export default function AppointmentsSection({ worker }: AppointmentsSectionProps
               color: '#888', 
               marginBottom: '20px' 
             }}>
-              Revert to "{getStatusText(undoState.previousStatus)}"
+              Revert to &ldquo;{getStatusText(undoState.previousStatus)}&rdquo;
             </p>
             <div style={{ display: 'flex', gap: '12px' }}>
               <button
