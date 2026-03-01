@@ -20,59 +20,62 @@ export default function ClientCard({ client, onEdit, onDelete }: ClientCardProps
   const [lightboxImage, setLightboxImage]       = useState('');
 
   useEffect(() => {
-    if (!client.name) return;
+  if (!client.name) return;
 
-    const fetchStats = async () => {
-      // Total appointment count
-      const { count: total } = await supabase
-        .from('appointments')
-        .select('id', { count: 'exact', head: true })
-        .eq('customer_name', client.name);
+  const fetchStats = async () => {
+    // Total appointment count (excluding cancelled)
+    const { count: total } = await supabase
+      .from('appointments')
+      .select('id', { count: 'exact', head: true })
+      .eq('customer_name', client.name)
+      .neq('status', 'cancelled');  // ← Add this line
 
-      setAppointmentCount(total ?? 0);
+    setAppointmentCount(total ?? 0);
 
-      // Visits = distinct dates this client had appointments
-      const { data: dateRows } = await supabase
-        .from('appointments')
-        .select('date')
-        .eq('customer_name', client.name)
-        .not('date', 'is', null);
+    // Visits = distinct dates this client had appointments (excluding cancelled)
+    const { data: dateRows } = await supabase
+      .from('appointments')
+      .select('date')
+      .eq('customer_name', client.name)
+      .neq('status', 'cancelled')  // ← Add this line
+      .not('date', 'is', null);
 
-      if (dateRows) {
-        const uniqueDates = new Set(
-          dateRows.map((r) => new Date(r.date).toDateString())
-        );
-        setVisits(uniqueDates.size);
-      }
+    if (dateRows) {
+      const uniqueDates = new Set(
+        dateRows.map((r) => new Date(r.date).toDateString())
+      );
+      setVisits(uniqueDates.size);
+    }
 
-      // Cancelled appointments count (>= 3 = frequent canceller)
-      const { count: cancelled } = await supabase
-        .from('appointments')
-        .select('id', { count: 'exact', head: true })
-        .eq('customer_name', client.name)
-        .eq('status', 'cancelled');
+    // Cancelled appointments count (>= 3 = frequent canceller)
+    const { count: cancelled } = await supabase
+      .from('appointments')
+      .select('id', { count: 'exact', head: true })
+      .eq('customer_name', client.name)
+      .eq('status', 'cancelled');
 
-      setIsCanceller((cancelled ?? 0) >= 3);
+    setIsCanceller((cancelled ?? 0) >= 3);
 
-      // Most booked service
-      const { data: appts } = await supabase
-        .from('appointments')
-        .select('service')
-        .eq('customer_name', client.name)
-        .not('service', 'is', null);
+    // Most booked service (excluding cancelled)
+    const { data: appts } = await supabase
+      .from('appointments')
+      .select('service')
+      .eq('customer_name', client.name)
+      .neq('status', 'cancelled')  // ← Add this line
+      .not('service', 'is', null);
 
-      if (appts && appts.length > 0) {
-        const counts: Record<string, number> = {};
-        appts.forEach(({ service }) => {
-          if (service) counts[service] = (counts[service] ?? 0) + 1;
-        });
-        const top = Object.entries(counts).sort((a, b) => b[1] - a[1])[0];
-        setFrequentService(top?.[0] ?? null);
-      }
-    };
+    if (appts && appts.length > 0) {
+      const counts: Record<string, number> = {};
+      appts.forEach(({ service }) => {
+        if (service) counts[service] = (counts[service] ?? 0) + 1;
+      });
+      const top = Object.entries(counts).sort((a, b) => b[1] - a[1])[0];
+      setFrequentService(top?.[0] ?? null);
+    }
+  };
 
-    fetchStats();
-  }, [client.name]);
+  fetchStats();
+}, [client.name]);
 
   const handleImageClick = (imageUrl: string) => {
     setLightboxImage(imageUrl);
