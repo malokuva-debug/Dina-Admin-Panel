@@ -88,7 +88,6 @@ useEffect(() => {
   },
   {
     threshold: 30,
-    shakeCount: 3,
     interval: 700,
     cooldown: 2500
   }
