@@ -7,7 +7,7 @@ import AppointmentsList from './AppointmentsList';
 import { supabase } from '@/lib/supabase';
 import { storage, STORAGE_KEYS, storageMode } from '@/lib/storage';
 import AddAppointmentModal from '@/components/modals/AddAppointmentModal';
-import { useShakeDetection } from '@/hooks/useShakeDetection';
+import { useTiltDownUp } from '@/hooks/useTiltDownUp';
 
 const EyeIcon = ({ open }: { open: boolean }) => (
   <svg
@@ -76,21 +76,11 @@ useEffect(() => {
 }, []);
 
 // Shake detection
-useShakeDetection(
-  () => {
-    if (
-      undoState &&
-      !showUndoPopup &&
-      Date.now() - undoState.timestamp < 60000
-    ) {
-      setShowUndoPopup(true);
-    }
-  },
-  {
-    threshold: 30,
-    cooldown: 2500 // ✅ only use properties the new hook supports
+useTiltDownUp(() => {
+  if (undoState && !showUndoPopup && Date.now() - undoState.timestamp < 60000) {
+    setShowUndoPopup(true);
   }
-);
+}, 10, 1000); // threshold = 10, cooldown = 1s
 
   // Auto-hide undo popup after 5 seconds
   useEffect(() => {
