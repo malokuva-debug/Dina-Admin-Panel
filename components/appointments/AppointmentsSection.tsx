@@ -75,8 +75,8 @@ useEffect(() => {
   };
 }, []);
 
-  // Shake detection
-  useShakeDetection(
+// Shake detection
+useShakeDetection(
   () => {
     if (
       undoState &&
@@ -88,8 +88,7 @@ useEffect(() => {
   },
   {
     threshold: 30,
-    interval: 700,
-    cooldown: 2500
+    cooldown: 2500 // ✅ only use properties the new hook supports
   }
 );
 
