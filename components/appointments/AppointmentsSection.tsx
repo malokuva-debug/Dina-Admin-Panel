@@ -81,7 +81,7 @@ useEffect(() => {
     if (
       undoState &&
       !showUndoPopup &&
-      Date.now() - undoState.timestamp < 20000
+      Date.now() - undoState.timestamp < 60000
     ) {
       setShowUndoPopup(true);
     }
@@ -110,7 +110,7 @@ useEffect(() => {
   const timer = setTimeout(() => {
     setUndoState(null);
     setShowUndoPopup(false);
-  }, 20000);
+  }, 60000);
 
   return () => clearTimeout(timer);
 }, [undoState]);
