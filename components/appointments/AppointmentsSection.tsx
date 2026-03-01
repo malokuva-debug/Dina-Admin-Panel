@@ -61,12 +61,38 @@ export default function AppointmentsSection({ worker }: AppointmentsSectionProps
   const [undoState, setUndoState] = useState<UndoState | null>(null);
   const [showUndoPopup, setShowUndoPopup] = useState(false);
 
+useEffect(() => {
+  const preventDefault = (e: Event) => {
+    e.preventDefault();
+  };
+
+  window.addEventListener('gesturestart', preventDefault);
+  window.addEventListener('gesturechange', preventDefault);
+
+  return () => {
+    window.removeEventListener('gesturestart', preventDefault);
+    window.removeEventListener('gesturechange', preventDefault);
+  };
+}, []);
+
   // Shake detection
-  useShakeDetection(() => {
-    if (undoState && Date.now() - undoState.timestamp < 10000) { // 10 second window
+  useShakeDetection(
+  () => {
+    if (
+      undoState &&
+      !showUndoPopup &&
+      Date.now() - undoState.timestamp < 20000
+    ) {
       setShowUndoPopup(true);
     }
-  });
+  },
+  {
+    threshold: 30,
+    shakeCount: 3,
+    interval: 700,
+    cooldown: 2500
+  }
+);
 
   // Auto-hide undo popup after 5 seconds
   useEffect(() => {
@@ -77,6 +103,17 @@ export default function AppointmentsSection({ worker }: AppointmentsSectionProps
       return () => clearTimeout(timer);
     }
   }, [showUndoPopup]);
+
+useEffect(() => {
+  if (!undoState) return;
+
+  const timer = setTimeout(() => {
+    setUndoState(null);
+    setShowUndoPopup(false);
+  }, 20000);
+
+  return () => clearTimeout(timer);
+}, [undoState]);
 
   // Fetch categories, services, and clients
   useEffect(() => {
@@ -145,13 +182,13 @@ export default function AppointmentsSection({ worker }: AppointmentsSectionProps
     try {
       // Store previous status for undo
       const appointment = appointments.find(a => a.id === id);
-      if (appointment) {
-        setUndoState({
-          appointmentId: id,
-          previousStatus: appointment.status || 'pending',
-          timestamp: Date.now()
-        });
-      }
+      if (appointment && newStatus === 'cancelled') {
+  setUndoState({
+    appointmentId: id,
+    previousStatus: appointment.status || 'pending',
+    timestamp: Date.now()
+  });
+}
 
       if (storageMode === 'supabase') {
         const { error } = await supabase
