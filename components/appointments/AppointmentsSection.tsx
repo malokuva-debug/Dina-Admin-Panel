@@ -7,6 +7,7 @@ import AppointmentsList from './AppointmentsList';
 import { supabase } from '@/lib/supabase';
 import { storage, STORAGE_KEYS, storageMode } from '@/lib/storage';
 import AddAppointmentModal from '@/components/modals/AddAppointmentModal';
+import { useShakeDetection } from '@/hooks/useShakeDetection';
 
 const EyeIcon = ({ open }: { open: boolean }) => (
   <svg
@@ -39,6 +40,12 @@ interface AppointmentsSectionProps {
   worker: Worker;
 }
 
+interface UndoState {
+  appointmentId: string;
+  previousStatus: AppointmentStatus;
+  timestamp: number;
+}
+
 export default function AppointmentsSection({ worker }: AppointmentsSectionProps) {
   const [filterMonth, setFilterMonth] = useState<string>(new Date().toISOString().slice(0, 7));
   const [showDone, setShowDone] = useState(false);
@@ -49,6 +56,27 @@ export default function AppointmentsSection({ worker }: AppointmentsSectionProps
   const [categories, setCategories] = useState<Category[]>([]);
   const [workers, setWorkers] = useState<Worker[]>(['dina', 'kida']);
   const [clients, setClients] = useState<Client[]>([]);
+
+  // Undo state management
+  const [undoState, setUndoState] = useState<UndoState | null>(null);
+  const [showUndoPopup, setShowUndoPopup] = useState(false);
+
+  // Shake detection
+  useShakeDetection(() => {
+    if (undoState && Date.now() - undoState.timestamp < 10000) { // 10 second window
+      setShowUndoPopup(true);
+    }
+  });
+
+  // Auto-hide undo popup after 5 seconds
+  useEffect(() => {
+    if (showUndoPopup) {
+      const timer = setTimeout(() => {
+        setShowUndoPopup(false);
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [showUndoPopup]);
 
   // Fetch categories, services, and clients
   useEffect(() => {
@@ -113,21 +141,31 @@ export default function AppointmentsSection({ worker }: AppointmentsSectionProps
     }
   };
 
-  const handleUpdateStatus = async (id: string, status: AppointmentStatus) => {
+  const handleUpdateStatus = async (id: string, newStatus: AppointmentStatus) => {
     try {
+      // Store previous status for undo
+      const appointment = appointments.find(a => a.id === id);
+      if (appointment) {
+        setUndoState({
+          appointmentId: id,
+          previousStatus: appointment.status || 'pending',
+          timestamp: Date.now()
+        });
+      }
+
       if (storageMode === 'supabase') {
         const { error } = await supabase
           .from('appointments')
           .update({ 
-            status,
-            is_done: status === 'done'
+            status: newStatus,
+            is_done: newStatus === 'done'
           })
           .eq('id', id);
         if (error) throw error;
       } else {
         const allAppointments = (storage.get(STORAGE_KEYS.APPOINTMENTS) as Appointment[]) || [];
         const updated = allAppointments.map((apt) =>
-          apt.id === id ? { ...apt, status, is_done: status === 'done' } : apt
+          apt.id === id ? { ...apt, status: newStatus, is_done: newStatus === 'done' } : apt
         );
         storage.set(STORAGE_KEYS.APPOINTMENTS, updated);
       }
@@ -135,6 +173,38 @@ export default function AppointmentsSection({ worker }: AppointmentsSectionProps
     } catch (error) {
       console.error('Error updating status:', error);
       alert('Failed to update appointment status');
+    }
+  };
+
+  const handleUndoStatusChange = async () => {
+    if (!undoState) return;
+
+    try {
+      if (storageMode === 'supabase') {
+        const { error } = await supabase
+          .from('appointments')
+          .update({ 
+            status: undoState.previousStatus,
+            is_done: undoState.previousStatus === 'done'
+          })
+          .eq('id', undoState.appointmentId);
+        if (error) throw error;
+      } else {
+        const allAppointments = (storage.get(STORAGE_KEYS.APPOINTMENTS) as Appointment[]) || [];
+        const updated = allAppointments.map((apt) =>
+          apt.id === undoState.appointmentId 
+            ? { ...apt, status: undoState.previousStatus, is_done: undoState.previousStatus === 'done' } 
+            : apt
+        );
+        storage.set(STORAGE_KEYS.APPOINTMENTS, updated);
+      }
+      
+      setShowUndoPopup(false);
+      setUndoState(null);
+      await refresh();
+    } catch (error) {
+      console.error('Error undoing status change:', error);
+      alert('Failed to undo status change');
     }
   };
 
@@ -270,7 +340,6 @@ export default function AppointmentsSection({ worker }: AppointmentsSectionProps
     }
   };
 
-  // ── NEW: Change Service handler ────────────────────────────────────────────
   const handleUpdateService = async (
     id: string,
     service: string,
@@ -298,7 +367,6 @@ export default function AppointmentsSection({ worker }: AppointmentsSectionProps
       alert('Failed to update service');
     }
   };
-  // ──────────────────────────────────────────────────────────────────────────
 
   const handleAddAdditionalService = async (
     id: string,
@@ -457,9 +525,108 @@ export default function AppointmentsSection({ worker }: AppointmentsSectionProps
   ? appointments
   : appointments.filter(a => !a.is_done && a.status !== 'done' && a.status !== 'cancelled');
 
+  const getStatusText = (status: AppointmentStatus) => {
+    switch (status) {
+      case 'confirmed': return 'Confirmed';
+      case 'arrived': return 'Arrived';
+      case 'done': return 'Done';
+      case 'cancelled': return 'Cancelled';
+      default: return 'Pending';
+    }
+  };
+
   return (
     <div id="appointments">
       <h2>Appointments</h2>
+
+      {/* Undo Status Change Popup */}
+      {showUndoPopup && undoState && (
+        <div
+          style={{
+            position: 'fixed',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            background: '#2c2c2e',
+            border: '2px solid #007aff',
+            borderRadius: '16px',
+            padding: '20px 24px',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
+            zIndex: 9999,
+            minWidth: '280px',
+            maxWidth: '90%',
+            animation: 'slideUp 0.3s ease-out'
+          }}
+        >
+          <div style={{ textAlign: 'center' }}>
+            <p style={{ 
+              fontSize: '16px', 
+              fontWeight: '600', 
+              marginBottom: '12px',
+              color: '#fff'
+            }}>
+              Undo Status Change?
+            </p>
+            <p style={{ 
+              fontSize: '14px', 
+              color: '#888', 
+              marginBottom: '20px' 
+            }}>
+              Revert to "{getStatusText(undoState.previousStatus)}"
+            </p>
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <button
+                onClick={() => setShowUndoPopup(false)}
+                style={{
+                  flex: 1,
+                  padding: '12px',
+                  background: '#3a3a3c',
+                  color: '#fff',
+                  border: 'none',
+                  borderRadius: '10px',
+                  fontSize: '15px',
+                  fontWeight: '600',
+                  cursor: 'pointer'
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleUndoStatusChange}
+                style={{
+                  flex: 1,
+                  padding: '12px',
+                  background: '#007aff',
+                  color: '#fff',
+                  border: 'none',
+                  borderRadius: '10px',
+                  fontSize: '15px',
+                  fontWeight: '600',
+                  cursor: 'pointer'
+                }}
+              >
+                Undo
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Backdrop for popup */}
+      {showUndoPopup && (
+        <div
+          onClick={() => setShowUndoPopup(false)}
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'rgba(0,0,0,0.5)',
+            zIndex: 9998
+          }}
+        />
+      )}
 
       {/* Month Filter + Show Done Toggle */}
       <div
@@ -554,6 +721,19 @@ export default function AppointmentsSection({ worker }: AppointmentsSectionProps
           onAdded={refresh}
         />
       )}
+
+      <style jsx>{`
+        @keyframes slideUp {
+          from {
+            opacity: 0;
+            transform: translate(-50%, -40%);
+          }
+          to {
+            opacity: 1;
+            transform: translate(-50%, -50%);
+          }
+        }
+      `}</style>
     </div>
   );
 }
