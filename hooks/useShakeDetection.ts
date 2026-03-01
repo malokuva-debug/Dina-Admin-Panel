@@ -12,16 +12,13 @@ export function useShakeDetection(
   options: ShakeDetectionOptions = {}
 ) {
   const {
-    threshold = 28,      // MUCH stronger than 15
-    shakeCount = 3,      // require 3 shakes
-    interval = 800,      // must happen within 800ms
-    cooldown = 2000      // 2s cooldown after trigger
+    threshold = 20,      // smaller, because vertical delta is usually lower
+    shakeCount = 2,      // maybe only 2 vertical shakes
+    interval = 800,
+    cooldown = 2000
   } = options;
 
-  const lastX = useRef<number | null>(null);
   const lastY = useRef<number | null>(null);
-  const lastZ = useRef<number | null>(null);
-
   const shakeCounter = useRef(0);
   const lastShakeTime = useRef(0);
   const lastTriggerTime = useRef(0);
@@ -31,24 +28,14 @@ export function useShakeDetection(
       const acc = event.accelerationIncludingGravity;
       if (!acc) return;
 
-      const { x, y, z } = acc;
-      if (x == null || y == null || z == null) return;
+      const { y } = acc;
+      if (y == null) return;
 
-      if (
-        lastX.current !== null &&
-        lastY.current !== null &&
-        lastZ.current !== null
-      ) {
-        const deltaX = Math.abs(lastX.current - x);
+      if (lastY.current !== null) {
         const deltaY = Math.abs(lastY.current - y);
-        const deltaZ = Math.abs(lastZ.current - z);
-
-        const totalDelta = deltaX + deltaY + deltaZ;
-
-        if (totalDelta > threshold) {
+        if (deltaY > threshold) {
           const now = Date.now();
 
-          // Count shakes within interval
           if (now - lastShakeTime.current < interval) {
             shakeCounter.current++;
           } else {
@@ -57,14 +44,11 @@ export function useShakeDetection(
 
           lastShakeTime.current = now;
 
-          if (
-            shakeCounter.current >= shakeCount &&
-            now - lastTriggerTime.current > cooldown
-          ) {
+          if (shakeCounter.current >= shakeCount && now - lastTriggerTime.current > cooldown) {
             lastTriggerTime.current = now;
             shakeCounter.current = 0;
 
-            // Blur active input to avoid iOS default shake undo
+            // Blur active input to prevent iOS "Undo Typing"
             if (document.activeElement instanceof HTMLElement) {
               document.activeElement.blur();
             }
@@ -74,18 +58,14 @@ export function useShakeDetection(
         }
       }
 
-      lastX.current = x;
       lastY.current = y;
-      lastZ.current = z;
     },
     [onShake, threshold, shakeCount, interval, cooldown]
   );
 
   useEffect(() => {
     const requestPermission = async () => {
-      if (
-        typeof (DeviceMotionEvent as any).requestPermission === 'function'
-      ) {
+      if (typeof (DeviceMotionEvent as any).requestPermission === 'function') {
         try {
           const permission = await (DeviceMotionEvent as any).requestPermission();
           if (permission === 'granted') {
