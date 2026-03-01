@@ -1,22 +1,23 @@
 import { useEffect, useRef } from 'react';
 
 interface ShakeDetectionOptions {
-  threshold?: number;      // min movement in each direction
-  cooldown?: number;       // prevent retriggering
-  maxInterval?: number;    // max time between down and up
+  threshold?: number;   // how much Y-axis movement counts as a tilt
+  cooldown?: number;    // minimum time between triggers
+  maxInterval?: number; // max time for down→up sequence
 }
 
 export function useShakeDetection(
   onShake: () => void,
   options: ShakeDetectionOptions = {}
 ) {
-  const { threshold = 12, cooldown = 1500, maxInterval = 800 } = options;
+  const { threshold = 8, cooldown = 2000, maxInterval = 1000 } = options;
 
   const lastY = useRef<number | null>(null);
   const lastTime = useRef(0);
 
   const state = useRef<'waitingDown' | 'waitingUp'>('waitingDown');
-  const downTimestamp = useRef(0);
+  const tiltStartTime = useRef(0);
+  const lastTriggerTime = useRef(0);
 
   const handleMotion = (event: DeviceMotionEvent) => {
     const acc = event.accelerationIncludingGravity;
@@ -25,7 +26,8 @@ export function useShakeDetection(
     const y = acc.y!;
     const now = Date.now();
 
-    if (now - lastTime.current < 50) return; // small debounce
+    // small debounce to avoid too frequent updates
+    if (now - lastTime.current < 50) return;
     lastTime.current = now;
 
     if (lastY.current === null) {
@@ -36,23 +38,27 @@ export function useShakeDetection(
     const deltaY = y - lastY.current;
 
     if (state.current === 'waitingDown') {
-      // Detect downward movement
+      // Detect intentional downward tilt
       if (deltaY > threshold) {
         state.current = 'waitingUp';
-        downTimestamp.current = now;
+        tiltStartTime.current = now;
       }
     } else if (state.current === 'waitingUp') {
-      // Detect upward movement within maxInterval
-      if (deltaY < -threshold && now - downTimestamp.current <= maxInterval) {
-        // Blur active input to prevent iOS undo typing
-        if (document.activeElement instanceof HTMLElement) {
-          document.activeElement.blur();
-        }
+      // Detect upward tilt to complete the gesture
+      if (deltaY < -threshold && now - tiltStartTime.current <= maxInterval) {
+        if (now - lastTriggerTime.current > cooldown) {
+          lastTriggerTime.current = now;
 
-        onShake();
+          // Blur active input to prevent iOS undo typing
+          if (document.activeElement instanceof HTMLElement) {
+            document.activeElement.blur();
+          }
+
+          onShake();
+        }
         state.current = 'waitingDown';
-      } else if (now - downTimestamp.current > maxInterval) {
-        // Timeout, reset
+      } else if (now - tiltStartTime.current > maxInterval) {
+        // Timeout: reset if user is too slow
         state.current = 'waitingDown';
       }
     }
