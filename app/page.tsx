@@ -3,7 +3,6 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { isAuthenticated } from '@/lib/auth';
 import Navbar from '@/components/layout/Navbar';
-import WorkerNav from '@/components/layout/WorkerNav';
 import FinanceSection from '@/components/finance/FinanceSection';
 import AppointmentsSection from '@/components/appointments/AppointmentsSection';
 import SettingsSection from '@/components/settings/SettingsSection';
@@ -30,7 +29,6 @@ export default function AdminPage() {
   return (
     <div className="container">
       <PushNotifications worker="dina" />
-      <WorkerNav />
 
       {activeTab === 'appointments' && <AppointmentsSection worker="dina" />}
       {activeTab === 'clients' && <ClientsPage />}
